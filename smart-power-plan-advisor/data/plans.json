@@ -1,0 +1,6 @@
+[
+  {"id":"demo-oncor-simple","name":"Demo Simple","tdu":"Oncor","energy_rate":"0.105","base_fee":"0","delivery_rate":"0.05","delivery_fee":"5","source":"Synthetic fixture: data/plans.json"},
+  {"id":"demo-oncor-credit","name":"Demo Usage Credit","tdu":"Oncor","energy_rate":"0.13","base_fee":"5","delivery_rate":"0.05","delivery_fee":"5","credit_threshold":"1000","credit_amount":"40","source":"Synthetic fixture: data/plans.json"},
+  {"id":"demo-centerpoint-simple","name":"Demo Simple","tdu":"CenterPoint","energy_rate":"0.10","base_fee":"0","delivery_rate":"0.055","delivery_fee":"5","source":"Synthetic fixture: data/plans.json"},
+  {"id":"demo-centerpoint-credit","name":"Demo Usage Credit","tdu":"CenterPoint","energy_rate":"0.125","base_fee":"5","delivery_rate":"0.055","delivery_fee":"5","credit_threshold":"1000","credit_amount":"40","source":"Synthetic fixture: data/plans.json"}
+]

@@ -1,0 +1,22 @@
+:root { font-family: system-ui, sans-serif; color: #163047; background: #f3f7fa; line-height: 1.5; }
+* { box-sizing: border-box; }
+main { max-width: 900px; margin: 3rem auto; padding: 0 1.25rem; }
+h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.15; max-width: 700px; }
+.eyebrow { color: #087667; font-weight: 700; letter-spacing: .08em; font-size: .8rem; }
+aside { background: #fff3cc; padding: 1rem; border-radius: .6rem; }
+form, article { background: white; padding: 1.5rem; border: 1px solid #d8e3eb; border-radius: .8rem; margin-top: 1.5rem; }
+label { display: block; margin: 1rem 0 .4rem; font-weight: 650; }
+select, textarea, button { font: inherit; padding: .75rem; border: 1px solid #92a8ba; border-radius: .4rem; }
+textarea { width: 100%; resize: vertical; }
+button { display: block; margin-top: 1rem; background: #087667; color: white; cursor: pointer; border: 0; }
+button:disabled { opacity: .55; cursor: wait; }
+:focus-visible { outline: 3px solid #2876d2; outline-offset: 3px; }
+.note, #usage-help, footer { font-size: .85rem; color: #4b6273; }
+.price { font-size: 1.6rem; font-weight: 700; color: #087667; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: 1rem; }
+th, td { padding: .5rem; text-align: right; border-bottom: 1px solid #e0e8ef; white-space: nowrap; }
+caption { text-align: left; color: #4b6273; }
+summary { cursor: pointer; }
+footer { margin: 2rem 0; }
+a { color: #075b9a; }
