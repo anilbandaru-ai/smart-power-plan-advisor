@@ -5,6 +5,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from uuid import uuid4
 
 from backend.integrations import PlanSource, DEMO_ZIP_PLAN_IDS
+from backend.recommendations import Candidate, recommend
 from backend.models import ComparisonRequest, ComparisonResult, MonthlyCost, Plan, PlanComparison
 
 
@@ -60,4 +61,10 @@ def compare(request: ComparisonRequest, source: PlanSource) -> ComparisonResult:
             "Monthly energy, delivery, base fee and credit amounts round to cents before summing.",
         ],
         recommendations=results,
+        recommendation_result=recommend(request, [Candidate(
+            plan_id=p.id, name=p.name, term_months=p.term_months,
+            calculate=lambda usage, month, p=p: calculate_month(p, usage, month),
+            boundaries=[p.credit_threshold] if p.credit_threshold is not None and p.credit_amount > 0 else [],
+            evidence=[{"kind": "demo_fixture", "description": p.source}],
+        ) for p in plans], "demo"),
     )

@@ -114,6 +114,7 @@ def build_graph(checkpointer):
                 "tools": state["tools"] + 1, "activity": state["activity"] + ["Received clarification"]}
 
     def finalize(state, config):
+        activity = list(state["activity"])
         if too_large(state):
             return limit(state)
         if not state["evidence"]:
@@ -121,7 +122,13 @@ def build_graph(checkpointer):
         else:
             generated = config["configurable"]["model"].finalize(state["messages"], list(state["evidence"].values()))
             answer = validate_answer(generated, list(state["evidence"].values()))
-        return {"result": {"status": "insufficient_evidence" if answer.abstained else "answered",
+            # Five reasoning calls plus initial finalization exhaust the six-call budget.
+            if generated is not None and not generated.abstained and answer.abstained and state["calls"] < 5:
+                activity.append("Retried answer with exact source excerpts")
+                generated = config["configurable"]["model"].finalize(
+                    state["messages"], list(state["evidence"].values()), repair=True)
+                answer = validate_answer(generated, list(state["evidence"].values()))
+        return {"activity": activity, "result": {"status": "insufficient_evidence" if answer.abstained else "answered",
                            **answer.model_dump()}, "messages": [AIMessage(content=answer.answer)]}
 
     def limit(state):

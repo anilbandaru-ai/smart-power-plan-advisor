@@ -1,4 +1,4 @@
-﻿# Smart Power Plan Advisor — Implemented Specification
+# Smart Power Plan Advisor — Implemented Specification
 
 Status: current implementation baseline, API version `0.1.0`.
 Reviewed: 2026-09-11.
@@ -319,3 +319,133 @@ When a PDF omits delivery charges, ingestion discovers its provider TDU link and
 Verification on 2026-09-11: all 52 Python tests and 11 JavaScript tests passed; JavaScript syntax checking passed. Live sync processed 22 files into 20 unique plans, with nine calculable after resolving the 4Change Oncor delivery charges. The running comparison API returned HTTP 200 and $804.12 for that plan at 1,000 kWh each month, including the provider URL, publication date and table snapshot. See `docs/tdu-evaluation.json`. Only the approved 4Change page is fetched initially; other discovered provider pages require a reviewed adapter. Full browser visual QA remains unavailable. Section 12’s original eight-plan evaluation predates this fallback.
 
 Integration verification after merging `origin/main` (`896a69b`): preserved the upstream RAG blank-page amendment and catalog/TDU requirements; all 53 Python tests, 11 JavaScript tests and both browser-script syntax checks passed.
+
+## CATALOG-02 portability fix - implemented
+
+The calculator frontend can update while an older non-reloading server still runs;
+restart with backend reload so the running schema accepts data_source. Catalog sync
+must work on Windows as well as POSIX: use msvcrt byte locking on Windows and flock
+on POSIX through one context manager. Preserve nonblocking single-sync exclusion,
+release on success/error and reuse of the lock file. Verify contention/release and
+catalog regressions, then sync local PDFs and verify PDF comparison via HTTP.
+
+Verification: project .venv retry processed 22 PDFs with 22 extracted and zero failures, producing 20 unique plans and nine calculable plans. The earlier all-file failure was ModuleNotFoundError under system Python, which lacks pdfplumber. Live POST /api/comparisons with data_source=pdf and ZIP 75201 returned HTTP 201 with nine recommendations. Twelve of 13 catalog tests passed, including cross-process lock contention and release after errors; the remaining pre-existing symlink test was blocked by Windows privilege error 1314 before testing path escape. Server restarted with backend reload and network access. Windows setup/retry instructions recorded in docs/plan-catalog.md.
+
+
+## 14. Deterministic recommendations - implemented
+
+Authorized 2026-09-12. Extend comparisons with a persisted recommendation_result;
+legacy snapshots default this field to null. Existing bills, cost ordering, ZIP
+coverage and document-agent scope remain unchanged. No provider/model call occurs
+while recommending. Recommendation policy v1 prioritizes supplied-usage cost.
+
+- REC-01: Reuse demo/PDF calculators for five shared scenarios: supplied usage and
+  uniform multipliers 0.8, 0.9, 1.1, 1.2, preserving month order and rounding usage
+  to four decimals. Filter by optional maximum contract length before scenario
+  ranking; the baseline can remain outside that preference filter. Only currently
+  calculable, ZIP-matched plans qualify. Return up to three, deterministic ties,
+  cost winner and minimax-regret winner. Empty preference result yields no winner.
+- REC-02: Regret is scenario cost minus minimum candidate cost in that scenario.
+  Maximum regret is over these five scenarios only; no probabilities or forecast
+  claims. Show alternative's additional supplied-usage cost and ranking changes.
+- REC-03: Report positive-credit months, annual credits and scenario months where
+  credit value decreases. Probe every credit boundary at b-0.0001, b, b+0.0001 kWh
+  (nonnegative only), preserving strict/inclusive and upper/lower bounds. Show
+  bills/credits at probes and nearby months within 10% of boundary (floor 1 kWh).
+- REC-04: Add optional recommendation_options: usage provenance (unknown default,
+  estimated, bills, meter), max_contract_months, baseline_plan_id, switching_cost.
+  Baseline must be a currently calculable ZIP-matched plan from the chosen source;
+  invalid baseline rejects input. Savings use the same 12 months and calculator.
+  Without baseline return null. Gross and net savings are distinct; unknown
+  switching cost leaves net savings and payback null. Staying on baseline costs
+  zero to switch. Negative savings are retained. Find earliest month after which
+  cumulative net savings stay nonnegative through month 12, if any.
+- REC-05: Confidence exposes evidence, provenance, scenario stability, freshness
+  and unverified availability separately. High is not claimed with unverified
+  live eligibility. Unknown/estimated usage, demo evidence, stale/unparseable issue
+  dates or unstable best-plan ranking give low confidence; otherwise moderate.
+  Freshness heuristic is 365 days, not legal validity. No probability/confidence %.
+- REC-06: Break-even conditions include switching-cost recovery and sampled
+  usage-scenario brackets where cost preference between best and alternatives
+  changes. Brackets are explicitly not exact crossing points or guarantees of
+  one crossing; credit discontinuities and untapped scenarios remain warnings.
+- REC-07: Include key_tradeoffs, warnings, evidence_refs, confidence_reasons,
+  assumptions, scenario definitions, horizon and policy version. Per-plan analysis
+  includes scenario costs/ranks/regret, maximum regret, credit analysis and source
+  references. PDF references preserve pages/quotes/revisions and TDU evidence;
+  calculation references identify reproducible saved scenario outputs. Missing
+  baseline/preferences/verified eligibility never receive invented values.
+- REC-08: UI exposes provenance, optional contract ceiling, optional current-plan
+  selection from the comparison and optional switching cost, preserving old calls.
+  Render primary/alternative, top three, confidence reasons, tradeoffs, scenario
+  table, credit sensitivity, sampled break-even conditions, savings, warnings and
+  source references. Persist options in recommendation output and restore them
+  without refetching catalog; invalidate stale results on edits. Retain raw monthly
+  breakdowns. Legacy results remain readable without recommendation data.
+- REC-09: Tests cover independently calculated cost/regret and ranking reversals,
+  strict/inclusive lower and upper credit bounds, decimal probes, equal/zero usage,
+  one/no eligible plans, preference filters, missing/invalid baseline, switching
+  payback and negative savings, confidence reasons, PDF/demo evidence and snapshots,
+  and UI input/render/restore behavior. Document unimplemented live verification,
+  arbitrary current-plan uploads, renewable preference ranking, probability models
+  and exact continuous break-even solvers as beyond available data/policy.
+
+Verification 2026-09-12: all eight recommendation test methods passed. Full regression: 61 of 62 Python tests passed; the pre-existing catalog symlink test is blocked by Windows privilege error 1314. All 14 JavaScript DOM-stub tests and app.js syntax checking passed. Live PDF POST returned HTTP 201 with three top plans and five scenarios; GET returned an identical saved snapshot. Optional catalog-baseline savings, explicit switching cost and payback were verified through HTTP. No full browser visual test was available. The app is running with backend reload on port 8000. See smart-power-plan-advisor/docs/recommendations.md for the implemented policy, wire contract and limitations.
+
+
+## 15. Two-tab application navigation — IMPLEMENTED
+
+Requested 2026-09-12. This section supersedes the expandable calculator layout.
+
+- UI-13: Browser title and visible main heading are Smart Power Plan Advisor. Remove demo from site branding; retain accurate synthetic-data labels in the calculator.
+- UI-14: Provide Plan Assistant and Compare Plan Costs tabs. Assistant is the default; a nonempty comparison query parameter opens Compare Plan Costs immediately, including while loading or displaying a retrieval error. Keep document chat and its controls in the assistant panel; keep calculator inputs, recommendations, breakdowns, status and saved comparison links in the comparison panel.
+- UI-15: Switching tabs hides/shows existing panels without reconstructing content, clearing state, submitting requests or changing the URL. Pending responses must not switch tabs or move focus into the hidden panel. Refresh retains existing chat reset behavior.
+- UI-16: Use tablist/tab/tabpanel roles, linked accessible names, aria-selected, one tab stop and hidden inactive panels. Left/Right arrows wrap and activate tabs; Home/End select first/last; standard buttons support Enter/Space. Responsive tabs fit narrow screens and retain visible keyboard focus.
+
+Acceptance: verify default and saved-link selection, pointer and keyboard navigation, retained panel contents, and existing calculator/chat UI regressions. No API, pricing, recommendation or agent capability changes. Record automated verification and any browser testing limits when complete.
+
+Verification 2026-09-12: all 18 JavaScript DOM-stub tests passed (calculator, chat and tabs), including keyboard wrapping, default/saved-link selection, retained panel contents and hidden-assistant response focus. Syntax checks passed for tabs.js, app.js and agent.js; git diff --check passed. Live HTTP checks returned 200 for the page and tab script and confirmed the main title, unique element IDs and single navigation script. No full browser visual or assistive-technology test was performed; responsive layout was checked by source inspection. Backend behavior is unchanged.
+
+## 16. Agent plan-name clarification and citation recovery — IMPLEMENTED
+
+Reported and reproduced 2026-09-12: sending Frontier Saver Plus 12 as a first message retrieves evidence but returns an exact-excerpt validation failure.
+
+- AGENT-12: Instruct the decision model to call ask_user for a standalone plan/document name with no stated question, rather than generate an unsolicited factual summary. Preserve explicit summary requests and context-resolved follow-ups/clarification answers. Include the current clarification question along with its answer in finalization context so the user's intent remains explicit.
+- AGENT-04 amendment: Explain the exact citation contract to the agent finalizer: known source IDs, contiguous verbatim excerpts, whitespace normalization only, 20–1200 characters, no paraphrases or stitched table rows. If a non-abstaining generated answer fails citation validation, allow one fresh finalization attempt against the same current-turn evidence, with citation-specific guidance. Never loosen validation, fabricate supporting quotes, or publish the rejected draft. If repair fails, retain insufficient_evidence with no unvalidated citations.
+- AGENT-07 amendment: Keep six total model calls per logical turn. A repair is allowed only if the reasoning calls plus initial finalization leave one call available; no repair after five reasoning calls. No retries for deliberate abstention, absent retrieval evidence or provider failures. No additional retrieval/index writes. Record only a sanitized recovery activity message.
+
+Acceptance: scripted graph/API tests cover valid recovery, repeated failure, no repair for abstention/no evidence, exhausted call budget and preserved clarification context. Verify the real first-message Frontier case and a specific document question using the configured application when possible. No pricing, comparison or Pinecone ingestion changes. Semantic claim verification remains deferred.
+
+Verification 2026-09-12: all 12 agent tests and 17 knowledge tests passed. Scripted tests verified repair success/failure, unchanged evidence, no repair for abstention/missing evidence/exhausted budget, and current clarification context. Live HTTP first-message Frontier Saver Plus 12 returned needs_input; resuming with the contract-term question returned answered with 12 months and the exact excerpt Contract Term: | 12 Months from choosetexaspower/EFL-4.pdf page 1. This live case did not need citation repair; repair is verified by scripted tests. git diff --check passed. Model-directed clarification is not a deterministic guarantee for every wording; semantic entailment checking remains deferred. App restarted on port 8000; existing in-memory conversations must be restarted after reload. See docs/agent.md for current bounds.
+
+### 16.1 Citation selection from prepared excerpts — IMPLEMENTED
+
+AGENT-04 follow-up, 2026-09-12: the live Frontier rates case reproduced quote corruption (the cents symbol became a NUL-containing escape and table rows were reordered). Fees succeeded in this diagnostic run; the reported failures are variable model output, not proof of missing indexed pages.
+
+Replace free-form quote generation in the agent finalizer with selection of server-prepared excerpt IDs. Split each current-turn source into contiguous windows of at most 1000 characters with 200-character overlap; retain exact original text and page/source identity, and omit windows whose whitespace-normalized text is shorter than 20 characters. Send these excerpts instead of duplicate full-page text. The model returns answer, abstained, and at most eight excerpt IDs. Resolve every ID against the current invocation's map into the existing GeneratedAnswer evidence contract, then use the unchanged exact-excerpt validator. Unknown IDs must reject the entire answer, not be dropped or reassigned. Preserve one bounded repair attempt and the six-call limit. The HTTP citation schema and legacy knowledge API remain unchanged. Semantic entailment is still not automatically verified; instructions require each factual claim to be supported by selected excerpts.
+
+Acceptance: verify exact symbol/table preservation, window bounds and overlap, unknown-ID rejection, empty/refused output, repeated source citations, and existing graph/knowledge regressions. Repeat the actual plan-name -> fees clarification -> rates follow-up via configured providers and validate cited excerpts. No reingestion or index mutations.
+
+Verification 2026-09-12: all 14 agent tests and 17 knowledge tests passed; git diff --check passed. Tests cover original Unicode cents symbols, raw table newlines, exact slices and overlap, multiple citations on one page, unknown-ID rejection, missing evidence/refusal, adapter conversion and bounded repair. Live Runtime/graph execution against configured OpenAI/Pinecone reproduced plan name -> fees clarification -> rates follow-up: both factual responses were answered with exact PDF citations, including unchanged cents symbols, with no repair needed. This validates the reported sequence, not every possible model answer or semantic entailment. No index mutations or browser visual tests were performed. The original prompt-only repair was insufficient for the broader rates question and is superseded by excerpt selection in the agent adapter; the legacy knowledge adapter is unchanged.
+
+## 17. Hide assistant source selector - IMPLEMENTED
+
+UI-17 (2026-09-12): Hide the Sources label and document dropdown in Plan Assistant, including from keyboard navigation and accessibility exposure. Retain the existing hidden selector and its empty default value for compatibility with agent.js; fresh conversations search all indexed documents. Preserve answer citations, the Answers with citations indicator, chat behavior and Compare Plan Costs controls. Acceptance: inspect hidden markup and run existing agent UI regressions. No API changes.
+
+Verification 2026-09-12: inspected native hidden attributes on both label and select, with existing all-document default retained. All six existing agent UI tests passed. No full browser visual test performed.
+
+### 17.1 Restore source selector - IMPLEMENTED
+
+UI-17 revision: supersede the hidden-selector behavior above at the user's request. Show the Sources label and dropdown again, retaining All indexed documents as the default and existing readiness/busy/clarification disabling behavior. Preserve source filtering and citations. Acceptance: remove native hidden attributes from both elements and run existing agent UI checks. No API changes.
+
+Verification: both hidden attributes removed and all six existing agent UI tests passed. No full browser visual test performed.
+
+## 18. Compact comparison workspace - IMPLEMENTED
+
+UI-18: Restyle Compare Plan Costs with a compact responsive form: ZIP and plan source side by side on desktop, a short labeled January-December usage textarea, optional preferences in a collapsed section with a two-column field grid, and a clear comparison action. Keep existing IDs, validation, data defaults, request payloads and saved-input restoration. Retain essential estimate/synthetic-data limitations; move lengthy help to disclosures and remove developer API links from the form.
+
+UI-19: Present a compact recommendation summary with annual cost, clearly labeled average monthly cost (annual divided by 12, not a bill forecast), confidence, top-plan cards and savings availability. Keep tradeoffs accessible and show the first warning with an expandable full list. Group confidence reasons, scenarios, credit sensitivity, break-even conditions and source evidence into collapsed details. Show all compared plans as compact expandable rows with plan name, contract term and annual price; retain explanations, source links and full monthly breakdowns inside each row. Do not alter ranking, pricing, savings meaning, negative/unknown amounts, exclusions or legacy-result support. Keep distinction between recommendation-qualified plans and all raw cost comparisons.
+
+Acceptance: existing comparison/chat/tab tests pass; check disclosure structure and retained recommendation/billing information, unknown savings and legacy/no-eligible states. Responsive layouts stack on narrow screens, controls remain labeled, focus remains visible and wide tables scroll. Verify rendered layout in a browser if available; report limits honestly. No backend changes.
+
+Verification: all 18 existing calculator/chat/tab UI tests passed, including option restoration, unknown savings, legacy snapshots and no-qualifying-plan results. app.js syntax and git diff --check passed. Headless Edge rendered the actual FastAPI application through a local TestClient with a temporary comparison database: PDF comparison produced nine plan rows, initially collapsed; annual/monthly metric labels rendered; opening a plan and monthly breakdown exposed all 12 rows; switching tabs retained ZIP and results. Desktop 1280px and mobile 390px screenshots were visually reviewed, with no horizontal page overflow including expanded monthly tables and no browser JavaScript errors. Screenshots are local ignored artifacts under .data/compare-desktop.png and .data/compare-mobile.png. No external document-service calls or production comparison writes were needed for browser verification.

@@ -18,8 +18,10 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m uvicorn backend.api.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Open http://127.0.0.1:8000. Enter a demo ZIP and 12 monthly usage values,
-and compare plans. Expand each result for a monthly breakdown. The saved-result
+Open http://127.0.0.1:8000. **Plan Assistant** opens by default for document questions.
+Select **Compare Plan Costs**, enter a supported ZIP and 12 monthly usage values,
+and compare plans. Switching tabs preserves your work; saved comparison links open
+the cost tab directly. Expand each result for a monthly breakdown. The saved-result
 link reloads the comparison from SQLite. API documentation is at `/docs`.
 
 For runtime-only installation, use `requirements.txt` instead.
@@ -127,3 +129,19 @@ with dated web evidence and price reconciliation. Use
 `python -m backend.catalog.cli --env-file .env sync --refresh-tdu` to refresh
 dependent plans. Other provider pages require a reviewed parser; details are in
 the catalog guide.
+
+
+## Recommendations
+
+Comparisons now include lowest-cost and lowest-scenario-regret recommendations,
+top three, credit-threshold sensitivity, confidence reasons, optional current-plan
+savings and sampled break-even conditions. Open **Recommendation preferences and
+current plan** in the calculator to supply usage provenance, a contract ceiling,
+and optional baseline/switching cost. See [recommendation policy and API](docs/recommendations.md).
+
+
+The comparison workspace groups ZIP, plan source and monthly usage into a compact
+form. Expand **Preferences & savings** for optional inputs. Results show annual
+cost and average monthly cost, a shortlist, and expandable plan rows. Confidence
+reasons, usage scenarios, bill credits, warnings and evidence remain available in
+disclosures. The monthly average is annual cost divided by 12; actual bills vary.
