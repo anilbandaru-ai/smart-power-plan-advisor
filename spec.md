@@ -1,4 +1,4 @@
-# Smart Power Plan Advisor — Implemented Specification
+﻿# Smart Power Plan Advisor — Implemented Specification
 
 Status: current implementation baseline, API version `0.1.0`.
 Reviewed: 2026-09-11.
@@ -254,3 +254,15 @@ The first live follow-up attempt exposed missing re-retrieval; the tool-selectio
 Replace the two document-question forms with one document chat workspace. Keep all user messages, assistant answers, clarification questions, errors and source excerpts together in a scrollable conversation; use one anchored composer and a document selector in the chat header. Provide an empty state, prompt suggestions, readable message bubbles, expandable sources, an in-progress indicator, Enter-to-send with Shift+Enter for a newline, and focus restoration after requests. Keep the calculator available separately in a collapsible section. Preserve text-only safe rendering, request deduplication, session/reset behavior and the existing knowledge API for compatibility. This is a presentation change, not durable history: refresh/restart still starts a new conversation. Acceptance: only one document chat form, multiple turns remain visible together, clarification stays in the transcript, sources remain attached to their answer, errors do not erase history, responsive layout and existing calculator/UI regressions pass.
 
 UI verification: ten JavaScript tests pass, covering multiple turns in one transcript, safe expandable citations, clarification, retry deduplication, reset/expiry, keyboard submission and existing ZIP behavior. Both scripts pass syntax checks. Full visual browser QA remains unavailable. RAG-09’s original standalone form is superseded by this unified chat; its backend API remains supported.
+## RAG-01/RAG-02 amendment: blank PDF pages - implemented
+
+For indexing the expanded data corpus, skip pages with no extracted text and no
+PDF objects (characters, images or vector drawings). Preserve original page
+numbers, record skipped_blank_pages per document, and reject documents without
+any usable pages. Continue rejecting scanned/nonblank short pages and oversized
+pages. Version the extraction policy. Test blank-page skipping, original page
+citations, all-blank rejection and existing scanned-page rejection before ingestion.
+
+Verification: 17 RAG tests passed. Created power-plan-documents (3072 dimensions, cosine) and ingested all 22 PDFs into power-plans-992a431d5dda47a05af9294d. Verified all 59 vectors by ID and document coverage, plus a successful filtered retrieval. Two truly blank trailing pages were skipped; original PDF files and page numbers were preserved. Active manifest: smart-power-plan-advisor/.data/knowledge.json. Policy: table-page-parent-1800-child-450-overlap-60-v3-skip-blank.
+
+
