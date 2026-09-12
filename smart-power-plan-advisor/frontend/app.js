@@ -74,12 +74,27 @@ function recommendationOptions() {
   return options;
 }
 
+function renderAppliedPreferences(data, parent) {
+  const options = data.recommendation_result?.options;
+  if (!options) return;
+  const summary = element('div', '', parent);
+  summary.className = 'applied-preferences';
+  element('h3', 'Applied preferences', summary);
+  const usageLabels = { unknown: 'Not specified', estimated: 'Estimates', bills: 'Electricity bills', meter: 'Meter records' };
+  const baseline = data.recommendation_result.baseline?.name || data.recommendations.find(p => p.plan_id === options.baseline_plan_id)?.name;
+  element('p', `Contract: ${options.max_contract_months ? `up to ${options.max_contract_months} months` : 'No maximum'}. Usage source: ${usageLabels[options.usage_provenance] || 'Not specified'}.`, summary);
+  element('p', `Current plan: ${baseline || 'Not selected'}. Entered switching costs: ${options.switching_cost == null ? 'Unknown' : dollars(options.switching_cost)}.`, summary);
+  element('p', 'Contract length filters plans. Usage source informs confidence; it does not change prices. Current plan and switching costs determine savings, not the annual-cost ranking.', summary).className = 'note';
+  if (!options.baseline_plan_id && options.switching_cost != null) element('p', 'Select your current plan and compare again to apply these switching costs to savings.', summary).className = 'result-warning';
+}
+
 function renderRecommendation(data) {
   const rec = data.recommendation_result;
   if (!rec) return;
   const panel = element('section', '', results);
   panel.className = 'recommendation-summary';
   element('h2', 'Your recommendation', panel);
+  renderAppliedPreferences(data, panel);
   if (!rec.best_overall) {
     element('p', 'No plan meets your recommendation preferences. Adjust the maximum contract length.', panel);
     for (const warning of rec.warnings) element('p', warning, panel);
@@ -122,6 +137,9 @@ function renderRecommendation(data) {
     element('h3', 'Savings against your selected current plan', panel);
     element('p', `${rec.baseline.name}: ${dollars(rec.baseline.annual_cost)} under the same usage.`, panel);
     const savings = rec.expected_savings;
+    element('p', `Switching costs applied: ${savings.switching_cost == null ? 'Unknown' : dollars(savings.switching_cost)}.`, panel).className = 'note';
+    if (rec.baseline.plan_id === best.plan_id) element('p', 'Your current plan is the lowest-cost qualifying plan. Staying applies no switching cost.', panel).className = 'note';
+    if (savings.net_annual_savings != null && Number(savings.net_annual_savings) < 0) element('p', 'Switching costs exceed first-year savings. Staying on your current plan may cost less.', panel).className = 'result-warning';
     element('p', `Estimated gross savings: ${dollars(savings.gross_annual_savings)}. Net after switching costs: ${savings.net_annual_savings === null ? 'unknown' : dollars(savings.net_annual_savings)}.`, panel);
     element('p', savings.sustained_payback_month === null ? 'No switching payback month established.' : `Switching costs recovered from month ${savings.sustained_payback_month} through month 12.`, panel);
   } else element('p', 'Savings unavailable until a current-plan baseline is selected.', panel);
@@ -182,21 +200,32 @@ function render(data) {
   results.replaceChildren();
   populateBaseline(data);
   renderRecommendation(data);
-  element('h2', `All compared plans (${data.recommendations.length})`, results);
+  const maxContract = data.recommendation_result?.options?.max_contract_months;
+  const matching = data.recommendations.filter(plan => !maxContract || plan.term_months <= maxContract);
+  const longer = data.recommendations.filter(plan => maxContract && plan.term_months > maxContract);
+  element('h2', maxContract ? `Plans matching your contract preference (${matching.length})` : `All compared plans (${matching.length})`, results);
+  if (maxContract) element('p', `Maximum contract: ${maxContract} months. Longer contracts are listed separately below.`, results).className = 'note';
+  if (!matching.length) element('p', 'No compared plans meet your maximum contract length.', results);
+  const longerPlans = document.createElement('details');
+  longerPlans.className = 'longer-contracts';
+  element('summary', `Longer contracts (${longer.length}) - outside your preference`, longerPlans);
   element('p', data.zip_code ? `ZIP ${data.zip_code}` : 'Legacy comparison (no ZIP saved)', results);
   const assumptions = element('details', '', results);
   element('summary', 'Calculation assumptions', assumptions);
   for (const assumption of data.assumptions) element('p', assumption, assumptions).className = 'note';
-  data.recommendations.forEach((plan, index) => {
-    const card = element('details', '', results);
+  [...matching, ...longer].forEach((plan, index) => {
+    const outsidePreference = index >= matching.length;
+    const card = element('details', '', outsidePreference ? longerPlans : results);
     card.className = 'plan-row';
     const rowSummary = element('summary', '', card);
-    element('span', `${index + 1}. ${plan.name}`, rowSummary).className = 'plan-name';
+    element('span', `${outsidePreference ? index - matching.length + 1 : index + 1}. ${plan.name}`, rowSummary).className = 'plan-name';
     element('span', plan.term_months ? `${plan.term_months} months` : 'Contract not recorded', rowSummary).className = 'plan-term';
     element('span', `${dollars(plan.annual_cost)} / year`, rowSummary).className = 'plan-cost';
     const content = element('div', '', card);
     content.className = 'plan-content';
-    if (index === 0) element('p', data.data_mode === 'pdf' ? 'Lowest estimated first-year cost among calculable PDF plans' : 'Lowest estimated cost among these demo plans', content);
+    if (outsidePreference) element('p', `Exceeds your maximum contract length of ${maxContract} months; excluded from recommendations.`, content).className = 'note';
+    if (index === 0 && !outsidePreference && maxContract) element('p', 'Lowest estimated cost among plans matching your contract preference.', content);
+    else if (index === 0 && !outsidePreference) element('p', data.data_mode === 'pdf' ? 'Lowest estimated first-year cost among calculable PDF plans' : 'Lowest estimated cost among these demo plans', content);
     element('p', plan.explanation, content);
     element('p', `Source: ${plan.source}`, content).className = 'note';
     if (plan.source_url) {
@@ -221,6 +250,7 @@ function render(data) {
       for (const value of [month.month, month.kwh, ...['energy', 'base_fee', 'delivery', 'credit', 'total'].map(key => dollars(month[key]))]) element('td', String(value), row);
     }
   });
+  if (longer.length) results.append(longerPlans);
   if (data.excluded_plans?.length) {
     const excluded = element('details', '', results);
     element('summary', `Plans excluded from calculation (${data.excluded_plans.length})`, excluded);

@@ -1,4 +1,4 @@
-﻿const assert = require('node:assert/strict');
+const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
@@ -182,4 +182,62 @@ test('no qualifying recommendation does not claim a winner, and invalid costs ne
   app.get('switching-cost').value='';
   await app.get('compare-form').fire('submit');
   assert.match(allText(app.get('results')),/No plan meets/);
+});
+
+
+test('saved contract preference separates longer plans while retaining baseline choices and bills', async () => {
+  const snapshot = recommendedSnapshot();
+  snapshot.recommendation_result.options.max_contract_months = 12;
+  snapshot.recommendations.push({...snapshot.recommendations[0], plan_id:'long', name:'Long contract', term_months:24});
+  const app = setup(async () => snapshot, '?comparison=saved');
+  await flush();
+  const results = app.get('results');
+  const rows = results.children.filter(n => n.className === 'plan-row');
+  assert.equal(rows.length, 1);
+  assert.ok(!allText(rows[0]).includes('Long contract'));
+  const outside = results.children.find(n => n.className === 'longer-contracts');
+  assert.ok(outside && !outside.open);
+  assert.match(allText(outside), /Long contract/);
+  assert.match(allText(outside), /Monthly cost breakdown/);
+  assert.match(allText(results), /Maximum contract: 12 months/);
+  assert.equal(app.get('baseline-plan').children.length, 3);
+  snapshot.recommendation_result.options.max_contract_months = null;
+  const unrestricted = setup(async () => snapshot, '?comparison=saved');
+  await flush();
+  assert.equal(unrestricted.get('results').children.filter(n => n.className === 'plan-row').length, 2);
+  assert.ok(!unrestricted.get('results').children.some(n => n.className === 'longer-contracts'));
+});
+const assertPreferences = text => {
+  for (const phrase of ['Applied preferences', 'up to 24 months', 'Electricity bills', 'Current plan: Current plan', 'Entered switching costs: $0.00']) assert.ok(text.includes(phrase), phrase);
+};
+test('all saved preferences are visible and negative savings are prominent', async () => {
+  const data = recommendedSnapshot();
+  data.recommendation_result.expected_savings.net_annual_savings = '-80';
+  data.recommendation_result.expected_savings.switching_cost = '200';
+  const app = setup(async () => data, '?comparison=saved');
+  await flush();
+  assertPreferences(allText(app.get('results')));
+  const panel = app.get('results').children.find(n => n.className === 'recommendation-summary');
+  assert.ok(panel.children.some(n => n.className === 'result-warning' && n.textContent.includes('Switching costs exceed')));
+});
+test('switching costs without a baseline are explicitly unapplied and unknown differs from zero', async () => {
+  for (const cost of [null, '0', '50']) {
+    const data = recommendedSnapshot();
+    data.recommendation_result.baseline = null;
+    data.recommendation_result.expected_savings = null;
+    data.recommendation_result.options.baseline_plan_id = null;
+    data.recommendation_result.options.switching_cost = cost;
+    const app = setup(async () => data, '?comparison=saved');
+    await flush();
+    const text = allText(app.get('results'));
+    assert.ok(text.includes(`Entered switching costs: ${cost === null ? 'Unknown' : cost === '0' ? '$0.00' : '$50.00'}`));
+    assert.equal(text.includes('apply these switching costs to savings'), cost !== null);
+  }
+});
+test('no eligible recommendation still displays all applied preferences', async () => {
+  const data = recommendedSnapshot();
+  data.recommendation_result.best_overall = null;
+  const app = setup(async () => data, '?comparison=saved');
+  await flush();
+  assertPreferences(allText(app.get('results')));
 });

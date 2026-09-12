@@ -69,9 +69,10 @@
         <p id="usage-help">Paste 12 numbers separated by commas. Replace the sample values with your usage.</p>
         <details class="recommendation-options">
           <summary>Preferences &amp; savings <span class="label-hint">Optional</span></summary>
+          <p class="note">Change preferences, then select Compare plans to update your results.</p>
           <div class="input-grid">
             <div><label for="usage-provenance">Usage figures from</label>
-              <select id="usage-provenance"><option value="unknown">Not specified</option><option value="estimated">Estimates</option><option value="bills">Electricity bills</option><option value="meter">Meter records</option></select></div>
+              <select id="usage-provenance" aria-describedby="provenance-help"><option value="unknown">Not specified</option><option value="estimated">Estimates</option><option value="bills">Electricity bills</option><option value="meter">Meter records</option></select><p id="provenance-help" class="note">Informs recommendation confidence, not plan prices.</p></div>
             <div><label for="max-contract">Maximum contract (months)</label>
               <input id="max-contract" type="number" min="12" max="120" step="1" placeholder="No preference"></div>
             <div><label for="baseline-plan">Current plan</label>
@@ -79,7 +80,7 @@
               <p id="baseline-help" class="note">Compare once to populate this list. Select your current plan and compare again for savings.</p></div>
             <div><label for="switching-cost">Switching costs ($)</label>
               <input id="switching-cost" type="number" min="0" max="9999999999.99" step="0.01" placeholder="Unknown" aria-describedby="switching-help">
-              <p id="switching-help" class="note">Include cancellation and enrollment fees. Enter 0 only if there are none.</p></div>
+              <p id="switching-help" class="note">Reduces net savings against your current plan; does not change annual-cost ranking. Include cancellation and enrollment fees. Blank means unknown; 0 means no costs.</p></div>
           </div>
         </details>
         <div class="compare-actions"><p class="note">Estimates only. Review plan terms before switching.</p><button id="submit" disabled>Compare plans</button></div>
