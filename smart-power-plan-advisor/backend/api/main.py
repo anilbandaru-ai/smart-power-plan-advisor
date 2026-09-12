@@ -13,6 +13,7 @@ from backend.integrations import JsonPlanSource, PlanSource
 from backend.models import ComparisonRequest, ComparisonResult
 from backend.services import compare
 from backend.storage import ComparisonStore
+from backend.knowledge.api import create_router
 
 ROOT = Path(__file__).resolve().parents[2]
 logger = logging.getLogger("uvicorn.error")
@@ -31,6 +32,7 @@ def create_app(db_path: Path | None = None, plan_source: PlanSource | None = Non
         yield
 
     app = FastAPI(title="Smart Power Plan Advisor", version="0.1.0", lifespan=lifespan)
+    app.include_router(create_router())
 
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
@@ -80,4 +82,3 @@ def create_app(db_path: Path | None = None, plan_source: PlanSource | None = Non
 
 
 app = create_app()
-

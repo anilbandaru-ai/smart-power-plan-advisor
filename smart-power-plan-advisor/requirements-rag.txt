@@ -1,0 +1,7 @@
+-r requirements.txt
+openai>=2.54,<3
+pinecone>=8.1,<9
+langgraph>=1.2,<2
+pdfplumber>=0.11,<1
+tiktoken>=0.14,<1
+python-dotenv>=1,<2

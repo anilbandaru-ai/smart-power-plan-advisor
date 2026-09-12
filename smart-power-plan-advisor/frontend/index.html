@@ -22,6 +22,19 @@
     </form>
     <p id="status" role="status" aria-live="polite"></p>
     <section id="results" aria-label="Comparison results"></section>
+    <section class="knowledge" aria-labelledby="knowledge-heading">
+      <h2 id="knowledge-heading">Ask about plan documents</h2>
+      <p>Explore indexed electricity facts labels with page citations. These are document explanations, not live offers or calculated recommendations.</p>
+      <form id="knowledge-form">
+        <label for="knowledge-document">Source document</label>
+        <select id="knowledge-document" disabled><option value="">All indexed documents</option></select>
+        <label for="knowledge-question">Your question</label>
+        <textarea id="knowledge-question" rows="3" maxlength="2000" required placeholder="What is the bill-credit condition for this plan?"></textarea>
+        <button id="knowledge-submit" disabled>Ask about documents</button>
+      </form>
+      <p id="knowledge-status" role="status" aria-live="polite">Checking document availability…</p>
+      <div id="knowledge-answer" aria-live="polite"></div>
+    </section>
     <footer><a href="/docs">API documentation</a> · <a href="/api/health">Service health</a></footer>
   </main>
 </body>

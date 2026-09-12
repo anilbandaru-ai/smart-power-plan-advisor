@@ -95,3 +95,55 @@ async function initialize() {
   } catch (error) { status.textContent = error.message; }
 }
 initialize();
+
+const knowledgeForm = document.querySelector('#knowledge-form');
+const knowledgeDocument = document.querySelector('#knowledge-document');
+const knowledgeButton = document.querySelector('#knowledge-submit');
+const knowledgeStatus = document.querySelector('#knowledge-status');
+const knowledgeAnswer = document.querySelector('#knowledge-answer');
+
+async function initializeKnowledge() {
+  try {
+    const data = await request('/api/knowledge/status');
+    for (const document of data.documents) {
+      const option = element('option', document.filename, knowledgeDocument);
+      option.value = document.id;
+    }
+    if (!data.configured || !data.indexed) {
+      knowledgeStatus.textContent = 'Document Q&A is not configured and indexed yet. You can still compare the demo plans above.';
+      return;
+    }
+    knowledgeButton.disabled = false;
+    knowledgeDocument.disabled = false;
+    knowledgeStatus.textContent = `${data.documents.length} source document(s) indexed. Ask a question to retrieve supporting pages.`;
+  } catch (error) { knowledgeStatus.textContent = error.message; }
+}
+
+knowledgeForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const question = document.querySelector('#knowledge-question').value.trim();
+  if (!question) {
+    knowledgeStatus.textContent = 'Enter a question about the plan documents.';
+    return;
+  }
+  knowledgeButton.disabled = true;
+  knowledgeAnswer.replaceChildren();
+  knowledgeStatus.textContent = 'Finding supporting pages…';
+  try {
+    const data = await request('/api/knowledge/ask', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, document_id: knowledgeDocument.value || null }),
+    });
+    element('p', data.answer, knowledgeAnswer);
+    for (const citation of data.citations) {
+      const link = element('a', `${citation.source_id}: ${citation.filename}, page ${citation.page}`, knowledgeAnswer);
+      link.href = citation.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      element('blockquote', citation.excerpt, knowledgeAnswer);
+    }
+    knowledgeStatus.textContent = data.abstained ? 'The documents do not support a complete answer to this question.' : 'Answer linked to supporting document excerpts. Review the source for full terms.';
+  } catch (error) { knowledgeStatus.textContent = error.message; }
+  finally { knowledgeButton.disabled = false; }
+});
+initializeKnowledge();
