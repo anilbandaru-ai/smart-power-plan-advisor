@@ -6,7 +6,7 @@ h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.15; max-width: 700px; }
 aside { background: #fff3cc; padding: 1rem; border-radius: .6rem; }
 form, article { background: white; padding: 1.5rem; border: 1px solid #d8e3eb; border-radius: .8rem; margin-top: 1.5rem; }
 label { display: block; margin: 1rem 0 .4rem; font-weight: 650; }
-select, textarea, button { font: inherit; padding: .75rem; border: 1px solid #92a8ba; border-radius: .4rem; }
+input, select, textarea, button { font: inherit; padding: .75rem; border: 1px solid #92a8ba; border-radius: .4rem; }
 textarea { width: 100%; resize: vertical; }
 button { display: block; margin-top: 1rem; background: #087667; color: white; cursor: pointer; border: 0; }
 button:disabled { opacity: .55; cursor: wait; }

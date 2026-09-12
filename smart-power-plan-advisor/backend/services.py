@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from uuid import uuid4
 
-from backend.integrations import PlanSource
+from backend.integrations import PlanSource, DEMO_ZIP_PLAN_IDS
 from backend.models import ComparisonRequest, ComparisonResult, MonthlyCost, Plan, PlanComparison
 
 
@@ -27,9 +27,12 @@ def calculate_month(plan: Plan, kwh: Decimal, month: int) -> MonthlyCost:
 
 
 def compare(request: ComparisonRequest, source: PlanSource) -> ComparisonResult:
-    plans = [plan for plan in source.list_plans() if plan.tdu == request.tdu]
+    candidates = DEMO_ZIP_PLAN_IDS.get(request.zip_code, ())
+    if not candidates:
+        raise ValueError("This ZIP code is not covered by the demo lookup.")
+    plans = [plan for plan in source.list_plans() if plan.id in candidates]
     if not plans:
-        raise ValueError("No demo plans are available for this delivery area.")
+        raise ValueError("No demo plans are available for this ZIP code.")
     results = []
     for plan in plans:
         months = [calculate_month(plan, usage, i + 1) for i, usage in enumerate(request.monthly_kwh)]
@@ -47,12 +50,13 @@ def compare(request: ComparisonRequest, source: PlanSource) -> ComparisonResult:
         ))
     results.sort(key=lambda result: (result.annual_cost, result.plan_id))
     return ComparisonResult(
-        id=str(uuid4()), created_at=datetime.now(timezone.utc).isoformat(), tdu=request.tdu,
+        id=str(uuid4()), created_at=datetime.now(timezone.utc).isoformat(),
+        zip_code=request.zip_code,
         assumptions=[
             "Synthetic demonstration plans and rates; these are not available offers.",
             "All prices are USD. Rates and delivery charges stay constant for 12 months.",
             "Taxes, enrollment fees and early termination fees are excluded.",
-            "Delivery area is selected manually; address eligibility is not verified.",
+            "Plan coverage uses an in-memory demo ZIP mapping; address eligibility is not verified.",
             "Monthly energy, delivery, base fee and credit amounts round to cents before summing.",
         ],
         recommendations=results,

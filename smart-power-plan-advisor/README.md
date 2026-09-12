@@ -18,7 +18,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m uvicorn backend.api.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Open http://127.0.0.1:8000. Choose a delivery area, enter 12 monthly usage values,
+Open http://127.0.0.1:8000. Enter a demo ZIP and 12 monthly usage values,
 and compare plans. Expand each result for a monthly breakdown. The saved-result
 link reloads the comparison from SQLite. API documentation is at `/docs`.
 
@@ -29,6 +29,7 @@ For runtime-only installation, use `requirements.txt` instead.
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 node --check frontend/app.js
+node --test tests/zip-ui.test.cjs
 ```
 
 Node is only needed for the optional JavaScript syntax check; there is no frontend
@@ -39,25 +40,37 @@ build or npm installation.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/api/health` | Check catalog and SQLite readiness |
-| GET | `/api/plans` | List demo plans and delivery areas |
+| GET | `/api/plans` | List demo plans |
 | POST | `/api/comparisons` | Calculate, rank and save a comparison |
 | GET | `/api/comparisons/{id}` | Retrieve a saved comparison |
 
 Example comparison request:
 
 ```json
-{"tdu":"Oncor","monthly_kwh":[800,750,700,850,1100,1400,1600,1500,1200,950,750,850]}
+{"zip_code":"75201","monthly_kwh":[800,750,700,850,1100,1400,1600,1500,1200,950,750,850]}
 ```
 
 Monetary values in comparison responses are decimal strings. The calculation
 rounds monthly line items to cents and then sums monthly totals. SQLite lives at
 `.data/advisor.sqlite3`; set `ADVISOR_DB_PATH` to choose another file.
 
+## In-memory ZIP plan coverage
+
+Enter ZIP and monthly usage, then click **Compare plans**. Supported demo ZIPs
+are `75201`, `75001`, `77002` and `77007`. Coverage is an in-memory ZIP-to-plan-ID
+mapping in `backend/integrations.py`; no lookup request or external service is
+needed. Unsupported ZIPs return a coverage error on comparison.
+
+The API accepts only `zip_code` and `monthly_kwh`. Delivery-area controls, the
+service-area endpoint and TDU fields have been removed. Old snapshots remain
+readable; results without a ZIP need one before a new comparison. Snapshots still
+use SQLite. Sample coverage does not establish actual service eligibility.
+
 ## Scope and extension
 
 This version supports fixed energy and delivery charges, base fees, and a single
 inclusive monthly bill-credit threshold. It excludes taxes and switching fees.
-All plans have a 12-month term. The selected area is not verified against an
+All plans have a 12-month term. Service eligibility is not verified against an
 address. This is a local, unauthenticated demo, not a live shopping service.
 
 See the [architecture review and diagrams](docs/architecture-review.md) for a detailed

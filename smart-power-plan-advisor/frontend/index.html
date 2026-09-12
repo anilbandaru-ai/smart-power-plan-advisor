@@ -13,8 +13,9 @@
       <p>Compare 12 months of energy costs with a clear breakdown for every plan.</p></header>
     <aside>Demo only: all offers and delivery charges are fictional. Results exclude taxes and switching fees.</aside>
     <form id="compare-form">
-      <label for="tdu">Delivery area</label>
-      <select id="tdu" required disabled><option value="">Loading areas…</option></select>
+      <label for="zip-code">ZIP code</label>
+      <input id="zip-code" type="text" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" minlength="5" maxlength="5" required aria-describedby="zip-help">
+      <p id="zip-help">Demo coverage: 75201, 75001, 77002, 77007. This lookup does not verify service eligibility.</p>
       <label for="usage">Monthly usage in kWh, January through December</label>
       <p id="usage-help">Enter exactly 12 numbers separated by commas. Replace these sample values with your usage.</p>
       <textarea id="usage" rows="3" required aria-describedby="usage-help">800, 750, 700, 850, 1100, 1400, 1600, 1500, 1200, 950, 750, 850</textarea>

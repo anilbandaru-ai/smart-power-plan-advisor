@@ -1,5 +1,23 @@
 const form = document.querySelector('#compare-form');
-const area = document.querySelector('#tdu');
+const zipInput = document.querySelector('#zip-code');
+let revision = 0;
+let busy = false;
+
+function updateButton() {
+  button.disabled = busy || !/^[0-9]{5}$/.test(zipInput.value);
+}
+
+function invalidate() {
+  revision++;
+  busy = false;
+  results.replaceChildren();
+  status.textContent = '';
+  history.replaceState(null, '', location.pathname);
+  updateButton();
+}
+
+zipInput.addEventListener('input', invalidate);
+document.querySelector('#usage').addEventListener('input', invalidate);
 const button = document.querySelector('#submit');
 const status = document.querySelector('#status');
 const results = document.querySelector('#results');
@@ -24,6 +42,7 @@ async function request(url, options) {
 function render(data) {
   results.replaceChildren();
   element('h2', 'Your comparison', results);
+  element('p', data.zip_code ? `ZIP ${data.zip_code}` : 'Legacy comparison (no ZIP saved)', results);
   for (const assumption of data.assumptions) element('p', assumption, results).className = 'note';
   data.recommendations.forEach((plan, index) => {
     const card = element('article', '', results);
@@ -52,47 +71,50 @@ function render(data) {
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
+  if (busy) return;
+  if (!/^[0-9]{5}$/.test(zipInput.value)) {
+    status.textContent = 'Enter a five-digit ZIP code.';
+    return;
+  }
   const values = document.querySelector('#usage').value.split(',').map(value => value.trim());
   if (values.length !== 12 || values.some(value => !/^\d+(\.\d{1,4})?$/.test(value) || Number(value) > 99999999.9999)) {
     status.textContent = 'Enter 12 non-negative usage numbers with no more than four decimal places.';
     results.replaceChildren();
     return;
   }
-  button.disabled = true;
+  const version = ++revision;
+  busy = true;
+  updateButton();
   results.replaceChildren();
   status.textContent = 'Comparing plans…';
   try {
     const data = await request('/api/comparisons', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tdu: area.value, monthly_kwh: values }),
+      body: JSON.stringify({ zip_code: zipInput.value, monthly_kwh: values }),
     });
+    if (version !== revision) return;
     render(data);
     history.replaceState(null, '', `/?comparison=${encodeURIComponent(data.id)}`);
     status.textContent = 'Comparison saved locally.';
-  } catch (error) { status.textContent = error.message; }
-  finally { button.disabled = false; }
+  } catch (error) { if (version === revision) status.textContent = error.message; }
+  finally { if (version === revision) { busy = false; updateButton(); } }
 });
 
 async function initialize() {
+  const version = revision;
+  const id = new URLSearchParams(location.search).get('comparison');
+  if (!id) return;
   try {
-    const catalog = await request('/api/plans');
-    area.replaceChildren();
-    for (const tdu of catalog.tdus) {
-      const option = element('option', tdu, area);
-      option.value = tdu;
-    }
-    if (!catalog.tdus.length) throw new Error('No demo delivery areas are available.');
-    area.disabled = false;
-    button.disabled = false;
-    const id = new URLSearchParams(location.search).get('comparison');
-    if (id) {
-      const data = await request(`/api/comparisons/${encodeURIComponent(id)}`);
-      render(data);
-      area.value = data.tdu;
-      document.querySelector('#usage').value = data.recommendations[0].monthly_costs.map(month => month.kwh).join(', ');
-      status.textContent = 'Loaded saved comparison.';
-    }
-  } catch (error) { status.textContent = error.message; }
+    const data = await request(`/api/comparisons/${encodeURIComponent(id)}`);
+    if (version !== revision) return;
+    render(data);
+    zipInput.value = data.zip_code || '';
+    document.querySelector('#usage').value = data.recommendations[0].monthly_costs.map(month => month.kwh).join(', ');
+    status.textContent = data.zip_code
+      ? 'Loaded saved comparison.'
+      : 'Loaded saved comparison. Enter a ZIP before comparing again.';
+    updateButton();
+  } catch (error) { if (version === revision) status.textContent = error.message; }
 }
 initialize();
 
