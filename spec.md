@@ -1,4 +1,4 @@
-﻿# Smart Power Plan Advisor — Implemented Specification
+# Smart Power Plan Advisor — Implemented Specification
 
 Status: current implementation baseline, API version `0.1.0`.
 Reviewed: 2026-09-11.
@@ -319,3 +319,15 @@ When a PDF omits delivery charges, ingestion discovers its provider TDU link and
 Verification on 2026-09-11: all 52 Python tests and 11 JavaScript tests passed; JavaScript syntax checking passed. Live sync processed 22 files into 20 unique plans, with nine calculable after resolving the 4Change Oncor delivery charges. The running comparison API returned HTTP 200 and $804.12 for that plan at 1,000 kWh each month, including the provider URL, publication date and table snapshot. See `docs/tdu-evaluation.json`. Only the approved 4Change page is fetched initially; other discovered provider pages require a reviewed adapter. Full browser visual QA remains unavailable. Section 12’s original eight-plan evaluation predates this fallback.
 
 Integration verification after merging `origin/main` (`896a69b`): preserved the upstream RAG blank-page amendment and catalog/TDU requirements; all 53 Python tests, 11 JavaScript tests and both browser-script syntax checks passed.
+
+## 14. Agent grounding and scope recovery - IMPLEMENTED
+
+AGENT-04: Restore agent-only citation selection using prepared contiguous source excerpts (up to 1000 characters, 200-character overlap, minimum 20 normalized characters). Model selects at most eight excerpt IDs; Python resolves original quotes and validates them with the existing exact-excerpt validator. Unknown IDs reject the entire draft. One repair attempt is allowed for invalid non-abstaining output if fewer than five reasoning calls were used; total model calls remain at most six. No retry for intentional abstention, missing evidence or infrastructure failures. Keep legacy knowledge API unchanged; semantic entailment is not guaranteed by exact matching.
+
+AGENT-12: A standalone plan name should prompt a question about the user's intent. Preserve current clarification question/reply and earlier user context for follow-ups, with fresh retrieval per factual turn. Unknown plans must not be substituted with similar offers. Respect selected-document scope and explain missing evidence.
+
+AGENT-13: Add an allowlisted redirect_to_comparison tool that returns a fixed document-only limitation pointing to Compare Plan Costs, without collecting billing details. Detect explicit common bill-calculation and recommendation requests before model reasoning, including clarification replies; other phrasings are handled by model instructions/tool choice. Do not block factual questions about documented rates, fees or bill-credit conditions. Redirects use the existing insufficient_evidence/abstained response shape, no fabricated citations, and leave the conversation usable. The current frontend calls the calculator section Compare plan costs; no restoration of unrelated UI changes is in scope.
+
+Acceptance: regression tests for exact Unicode/table citations, unknown IDs, repair budget, clarification context, scoped retrieval, reset, and calculation redirects (including resume) while retaining factual rate/credit support. Live plan name -> fees -> rates, contract term, scoped document, unknown plan and unsupported calculation checks. Record actual test results and live limitations before marking implemented. No index, pricing or comparison changes.
+
+Verification: 17 agent tests, 17 knowledge tests and five chat UI tests passed; git diff --check passed. Live HTTP Frontier plan name -> fees -> rates returned clarification followed by cited answers, with citation URLs serving PDFs. Exact bill request immediately returned the fixed Compare Plan Costs redirect. Scoped Frontier contract-term request answered 12 months using only the selected document. A nonexistent plan returned insufficient evidence. Reported broader failures were reproduced before this change. No index/pricing/UI changes. Arbitrary wording still relies in part on model routing, and exact quote validation does not prove semantic entailment. The application is running in a hidden background process on port 8000. See docs/agent.md for behavior and verification limits.

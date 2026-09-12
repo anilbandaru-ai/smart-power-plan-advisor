@@ -49,8 +49,8 @@ sessions and uses `Command(resume=...)`. `model.py` adapts OpenAI Responses func
 calls to LangGraph messages. `knowledge/evidence.py` shares deterministic source
 selection and citation validation with the original RAG graph.
 
-Three allowed tools: `list_indexed_documents`, `search_document_evidence`, and
-`ask_user`. Every new turn requires a tool action until retrieval has been attempted.
+Four allowed tools: `list_indexed_documents`, `search_document_evidence`, and
+`ask_user`, and `redirect_to_comparison`. Factual document turns require a tool action until retrieval has been attempted; calculation redirects do not retrieve.
 Only current-turn evidence can support the final answer. Stable source IDs include
 corpus version, document hash and page identity. A corpus change during a pending
 clarification requires a new conversation.
@@ -81,7 +81,8 @@ This local session capability is not production authentication or rate limiting.
 
 ## Bounds and current limitations
 
-- Up to five reasoning calls plus one finalization per logical turn; at most three
+- Up to six model calls per logical turn: at most five reasoning calls plus finalization.
+  One repair finalization is permitted only after fewer than five reasoning calls. At most three
   searches, eight tool calls and 30 graph steps. Clarification resumes retain counters.
 - Current and retained message/evidence payloads stop conservatively near a 12k
   input-token ceiling (2k reserved for instructions/tool schemas), rather than
@@ -89,7 +90,7 @@ This local session capability is not production authentication or rate limiting.
 - Provider operations use bounded timeouts; model calls have no automatic retry.
   A hard end-to-end cancellation deadline remains deferred.
 - Evidence is checked for source/version membership and exact excerpt presence.
-  This does not prove semantic entailment. There is no automated citation repair.
+  This does not prove semantic entailment. One citation repair is available within the six-call budget. Unknown excerpt IDs reject the whole draft; deliberate abstention and provider errors are not retried.
 - No streaming, durable history, multi-worker support, automatic ingestion,
   full history restoration, or full production authentication.
 - Only active-manifest documents are searchable. The repository has additional
@@ -118,3 +119,30 @@ The original [implementation plan](react-agent-plan.md) records the broader prop
 root `spec.md` section 11.1 defines the smaller first increment delivered here.
 
 The unified chat keeps user turns, clarification, assistant responses and errors in one scrollable transcript. Sources expand beneath each answer. Enter sends a message; Shift+Enter inserts a newline. Prompt suggestions populate the composer. The calculator expands separately below the chat.
+
+
+## Grounding and scope recovery verification
+
+The agent finalizer selects IDs for source excerpts prepared by Python (1000-character
+windows, 200-character overlap). Original Unicode symbols, table rows and page
+identity are retained. The existing exact-excerpt validator checks every resolved
+citation; the legacy knowledge API remains unchanged. This verifies provenance,
+not semantic entailment of every generated claim.
+
+Plan-only messages prompt clarification. Current and earlier clarification replies
+are available for reference resolution; each factual follow-up retrieves fresh evidence.
+Explicit common calculation/recommendation requests are redirected by a deterministic
+text check before model reasoning, including replies to clarification. Other wording
+is handled by model instructions and the redirect tool, so arbitrary paraphrases are
+not guaranteed to be classified perfectly. Documented rate and credit questions remain
+supported. Redirects use the existing insufficient_evidence response status and keep
+the conversation usable.
+
+Verification: 17 agent tests, 17 knowledge tests and five chat UI tests passed.
+Live HTTP checks confirmed plan-name clarification, fees and rates with valid PDF
+citations, a calculation redirect without further questions, a contract-term answer
+restricted to the selected Frontier document, and abstention for a nonexistent plan.
+All returned citation document URLs in the fees/rates sequence served PDFs successfully.
+No index mutations were performed. Live results are samples, not universal accuracy
+claims. The app was started as a hidden background process on port 8000; its logs
+are in .data/agent-server.stdout.log and .data/agent-server.stderr.log.
