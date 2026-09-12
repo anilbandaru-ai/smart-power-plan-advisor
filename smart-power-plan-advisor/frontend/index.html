@@ -48,12 +48,15 @@
       </div>
     </section>
     <details class="calculator-panel">
-      <summary><span>Compare demo plans</span><span class="note">Estimate costs from 12 months of usage</span></summary>
-    <aside>Demo only: all offers and delivery charges are fictional. Results exclude taxes and switching fees.</aside>
+      <summary><span>Compare plan costs</span><span class="note">Estimate costs from 12 months of usage</span></summary>
+    <aside>PDF mode uses extracted document-date rates. Review source terms: these are estimates, not live offers or verified address eligibility. Demo mode uses fictional rates. Taxes and switching fees are excluded.</aside>
     <form id="compare-form">
+      <label for="plan-source">Plan data</label>
+      <select id="plan-source"><option value="pdf" selected>Extracted PDF plans</option><option value="demo">Synthetic demo plans</option></select>
+      <p class="note"><a href="/api/catalog/plans" target="_blank" rel="noopener noreferrer">Browse PDF plan API</a> · <a href="/api/catalog/status" target="_blank" rel="noopener noreferrer">Ingestion status</a></p>
       <label for="zip-code">ZIP code</label>
       <input id="zip-code" type="text" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" minlength="5" maxlength="5" required aria-describedby="zip-help">
-      <p id="zip-help">Demo coverage: 75201, 75001, 77002, 77007. This lookup does not verify service eligibility.</p>
+      <p id="zip-help">Supported ZIP lookup: 75201, 75001 (Oncor); 77002, 77007 (CenterPoint). A mapped ZIP does not guarantee available PDF plans or service eligibility.</p>
       <label for="usage">Monthly usage in kWh, January through December</label>
       <p id="usage-help">Enter exactly 12 numbers separated by commas. Replace these sample values with your usage.</p>
       <textarea id="usage" rows="3" required aria-describedby="usage-help">800, 750, 700, 850, 1100, 1400, 1600, 1500, 1200, 950, 750, 850</textarea>

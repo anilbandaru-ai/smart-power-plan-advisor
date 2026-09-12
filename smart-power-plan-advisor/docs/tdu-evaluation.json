@@ -1,0 +1,28 @@
+{
+  "verified_on": "2026-09-11",
+  "source_files": 22,
+  "unique_plans": 20,
+  "calculable_plans": 9,
+  "python_tests_passed": 52,
+  "javascript_tests_passed": 11,
+  "http_comparison_status": 200,
+  "plan": "4Change Energy Maxx Saver Value 12SM",
+  "monthly_kwh": 1000,
+  "annual_cost_usd": "804.12",
+  "tdu_source": {
+    "url": "https://www.4changeenergy.com/tdu-charges",
+    "service_area": "Oncor",
+    "published_on": "2026-09-01",
+    "date_label": "Updated September 1, 2026 - Residential",
+    "fetched_at": "2026-09-12T03:52:33.831049+00:00",
+    "snapshot": "Updated September 1, 2026 - Residential\n | Oncor | CenterPoint | AEP Central1\nMonthly Charge Per Billing Cycle | $4.06 | $4.90 | $3.24\nUsage-based Charge Per kWh | 6.02950\u00a2 | 6.41300\u00a2 | 5.75540\u00a2\n | AEP North | TNMP | LP & L\nMonthly Charge Per Billing Cycle | $3.24 | $7.85 | $0.00\nUsage-based Charge Per kWh | 5.64070\u00a2 | 7.40220\u00a2 | 6.31200\u00a2\nUse the following formula to calculate the TDU Delivery Charges billed: (applicable charges based on customer usage and current meter read date of invoice) TDU Delivery Charges = [Total TDU Delivery Charges Per Month + (Total TDU Delivery Charges Per kWh * Monthly Billed kWh Usage)] Example (ONCOR TDU @ 1,000 kWh Usage): [$4.06 + (0.0602950 * 1,000 kWh)] = $64.36\nNote(s): 1 McAllen and Mission service area customers formerly served by Oncor will not be subject to the following AEP Central TDU Surcharges: Transition Charges 2 & 3, Nuclear Decommissioning Fee, System Restoration Charge and associate Accumulated Deferred Federal Income Taxes (ADFIT).",
+    "sha256": "bd434b625192422a9ab8b23f9cf27f8bc0ad05c1a0af056ddd65d8c0a5911e15",
+    "monthly_usd": "4.06",
+    "cents_per_kwh": "6.02950"
+  },
+  "limitations": [
+    "Only the approved 4Change rate page is fetched initially.",
+    "Publication date is not asserted to be a legal effective date.",
+    "Full browser visual QA unavailable."
+  ]
+}

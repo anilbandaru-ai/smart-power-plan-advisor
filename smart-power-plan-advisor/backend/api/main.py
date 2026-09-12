@@ -15,22 +15,26 @@ from backend.services import compare
 from backend.storage import ComparisonStore
 from backend.knowledge.api import create_router
 from backend.agent.api import create_router as create_agent_router
+from backend.catalog.api import create_router as create_catalog_router
+from backend.catalog.store import CatalogStore
 
 ROOT = Path(__file__).resolve().parents[2]
 logger = logging.getLogger("uvicorn.error")
 
 
-def create_app(db_path: Path | None = None, plan_source: PlanSource | None = None) -> FastAPI:
+def create_app(db_path: Path | None = None, plan_source: PlanSource | None = None, catalog_path: Path | None = None) -> FastAPI:
     source = plan_source or JsonPlanSource(ROOT / "data" / "plans.json")
     store = ComparisonStore(db_path if db_path is not None else Path(
         os.environ.get("ADVISOR_DB_PATH", str(ROOT / ".data" / "advisor.sqlite3"))
     ))
 
+    catalog = CatalogStore(catalog_path or Path(os.getenv("PLAN_CATALOG_DB_PATH", str(ROOT / ".data" / "plans.sqlite3"))))
     agent_router, close_agent = create_agent_router()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         store.initialize()
+        catalog.initialize()
         source.list_plans()  # Fail early when the local catalog is invalid.
         try:
             yield
@@ -40,6 +44,7 @@ def create_app(db_path: Path | None = None, plan_source: PlanSource | None = Non
     app = FastAPI(title="Smart Power Plan Advisor", version="0.1.0", lifespan=lifespan)
     app.include_router(create_router())
     app.include_router(agent_router)
+    app.include_router(create_catalog_router(catalog, Path(os.getenv("PLAN_DATA_DIR", str(ROOT / "data")))))
 
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
@@ -67,7 +72,11 @@ def create_app(db_path: Path | None = None, plan_source: PlanSource | None = Non
     @app.post("/api/comparisons", response_model=ComparisonResult, status_code=201)
     def create_comparison(payload: ComparisonRequest):
         try:
-            result = compare(payload, source)
+            if payload.data_source == "pdf":
+                from backend.catalog.compare import compare_catalog
+                result = compare_catalog(payload, catalog)
+            else:
+                result = compare(payload, source)
         except ValueError as error:
             raise HTTPException(422, str(error)) from error
         store.save(result)

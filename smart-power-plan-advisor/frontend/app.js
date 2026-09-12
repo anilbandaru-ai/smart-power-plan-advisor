@@ -17,6 +17,7 @@ function invalidate() {
 }
 
 zipInput.addEventListener('input', invalidate);
+document.querySelector('#plan-source').addEventListener('change', invalidate);
 document.querySelector('#usage').addEventListener('input', invalidate);
 const button = document.querySelector('#submit');
 const status = document.querySelector('#status');
@@ -48,9 +49,17 @@ function render(data) {
     const card = element('article', '', results);
     element('h3', `${index + 1}. ${plan.name}`, card);
     element('p', `${dollars(plan.annual_cost)} / 12 months`, card).className = 'price';
-    if (index === 0) element('p', 'Lowest estimated cost among these demo plans', card);
+    if (index === 0) element('p', data.data_mode === 'pdf' ? 'Lowest estimated first-year cost among calculable PDF plans' : 'Lowest estimated cost among these demo plans', card);
     element('p', plan.explanation, card);
     element('p', `Source: ${plan.source}`, card).className = 'note';
+    if (plan.source_url) {
+      const source = element('a', 'Review source PDF', card);
+      source.href = plan.source_url; source.target = '_blank'; source.rel = 'noopener noreferrer';
+    }
+    if (plan.tdu_source) {
+      const tdu = element('a', `TDU rates: ${plan.tdu_source.service_area} · published ${plan.tdu_source.published_on}`, card);
+      tdu.href = plan.tdu_source.url; tdu.target = '_blank'; tdu.rel = 'noopener noreferrer';
+    }
     const details = element('details', '', card);
     element('summary', 'Monthly cost breakdown', details);
     const wrapper = element('div', '', details);
@@ -65,6 +74,11 @@ function render(data) {
       for (const value of [month.month, month.kwh, ...['energy', 'base_fee', 'delivery', 'credit', 'total'].map(key => dollars(month[key]))]) element('td', String(value), row);
     }
   });
+  if (data.excluded_plans?.length) {
+    const excluded = element('details', '', results);
+    element('summary', `Plans excluded from calculation (${data.excluded_plans.length})`, excluded);
+    for (const plan of data.excluded_plans) element('p', `${plan.name}: ${plan.reasons.join('; ')}`, excluded);
+  }
   const link = element('a', 'Link to this saved comparison', results);
   link.href = `/?comparison=${encodeURIComponent(data.id)}`;
 }
@@ -90,7 +104,7 @@ form.addEventListener('submit', async event => {
   try {
     const data = await request('/api/comparisons', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ zip_code: zipInput.value, monthly_kwh: values }),
+      body: JSON.stringify({ zip_code: zipInput.value, monthly_kwh: values, ...(document.querySelector('#plan-source').value === 'pdf' ? {data_source: 'pdf'} : {}) }),
     });
     if (version !== revision) return;
     render(data);
@@ -110,6 +124,7 @@ async function initialize() {
     document.querySelector('.calculator-panel').open = true;
     render(data);
     zipInput.value = data.zip_code || '';
+    document.querySelector('#plan-source').value = data.data_mode === 'pdf' ? 'pdf' : 'demo';
     document.querySelector('#usage').value = data.recommendations[0].monthly_costs.map(month => month.kwh).join(', ');
     status.textContent = data.zip_code
       ? 'Loaded saved comparison.'

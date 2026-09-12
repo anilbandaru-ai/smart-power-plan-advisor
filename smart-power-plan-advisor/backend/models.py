@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,6 +14,7 @@ class ComparisonRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     zip_code: ZipCode
+    data_source: Literal["demo", "pdf"] = "demo"
     monthly_kwh: list[NonNegative] = Field(min_length=12, max_length=12)
 
 
@@ -48,6 +49,9 @@ class PlanComparison(BaseModel):
     monthly_costs: list[MonthlyCost]
     explanation: str
     source: str
+    source_url: str | None = None
+    source_revision: str | None = None
+    tdu_source: dict | None = None
 
 
 class ComparisonResult(BaseModel):
@@ -57,3 +61,4 @@ class ComparisonResult(BaseModel):
     zip_code: ZipCode | None = None  # Legacy snapshots did not store ZIP.
     assumptions: list[str]
     recommendations: list[PlanComparison]
+    excluded_plans: list[dict] = Field(default_factory=list)
