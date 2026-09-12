@@ -1,7 +1,12 @@
 # Smart Power Plan Advisor
 
-A thin local demo connecting a web form, FastAPI, a JSON plan source, deterministic
-pricing, and SQLite. All plans and rates are synthetic; no API keys are needed.
+A local demo connecting a web form, FastAPI, a JSON plan source, deterministic
+pricing, and SQLite. Calculator plans and rates are synthetic; the calculator needs no API keys.
+
+Optional **plan-document Q&A** uses Pinecone, OpenAI and LangGraph to answer questions
+about EFL PDFs with page citations. It requires your OpenAI and Pinecone keys.
+See [RAG setup, models, chunking and architecture](docs/rag.md). Document answers do
+not change the calculator's pricing data.
 
 ## Run locally (PowerShell)
 
@@ -55,6 +60,8 @@ inclusive monthly bill-credit threshold. It excludes taxes and switching fees.
 All plans have a 12-month term. The selected area is not verified against an
 address. This is a local, unauthenticated demo, not a live shopping service.
 
+See the [architecture review and diagrams](docs/architecture-review.md) for a detailed
+code-based assessment, request/data flows, and verified findings.
 See [architecture and extension points](docs/architecture.md) for the mapping to
 all six diagram layers and the features deferred to later iterations. Replace
 `JsonPlanSource` through the `PlanSource` interface to add a plan feed; extend

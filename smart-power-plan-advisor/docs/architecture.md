@@ -1,5 +1,12 @@
 # Thin architecture
 
+See the [detailed architecture review and diagrams](architecture-review.md) for
+component and sequence diagrams, data flows, verified findings, and proposed next steps.
+
+The original comparison architecture below now has an optional parallel
+[plan-document RAG feature](rag.md), implemented with OpenAI, Pinecone and LangGraph.
+It answers cited document questions without supplying pricing rules to the calculator.
+
 The browser calls FastAPI, which invokes the deterministic comparison service.
 The service reads plans through a `PlanSource` interface, calculates each month,
 sorts annual totals, and creates template explanations. The API saves the complete
@@ -25,8 +32,9 @@ general implementation of provider billing rules.
 
 The service never infers delivery eligibility from a ZIP code. Users manually
 select a demo area. No real tariffs, offer availability or customer eligibility
-are verified. No network connector, OCR, RAG, LLM, agent, authentication, forecast,
-notification delivery or background scheduler is implemented yet.
+are verified. The comparison path does not call RAG or an LLM. The separate document
+Q&A path uses OpenAI and Pinecone; OCR, authentication, forecasts, notification
+delivery and background scheduling remain unimplemented.
 
 ## Extension boundaries
 
