@@ -55,7 +55,7 @@ def create_app(db_path: Path | None = None, plan_source: PlanSource | None = Non
     @app.get("/api/plans")
     def plans():
         catalog = source.list_plans()
-        return {"data_mode": "demo", "tdus": sorted({plan.tdu for plan in catalog}), "plans": catalog}
+        return {"data_mode": "demo", "plans": catalog}
 
     @app.post("/api/comparisons", response_model=ComparisonResult, status_code=201)
     def create_comparison(payload: ComparisonRequest):

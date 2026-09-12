@@ -7,6 +7,15 @@ from typing import Protocol
 from backend.models import Plan
 
 
+# Synthetic coverage only; these plan IDs do not establish real eligibility.
+DEMO_ZIP_PLAN_IDS = {
+    "75201": ("demo-oncor-simple", "demo-oncor-credit"),
+    "75001": ("demo-oncor-simple", "demo-oncor-credit"),
+    "77002": ("demo-centerpoint-simple", "demo-centerpoint-credit"),
+    "77007": ("demo-centerpoint-simple", "demo-centerpoint-credit"),
+}
+
+
 class PlanSource(Protocol):
     def list_plans(self) -> list[Plan]: ...
 

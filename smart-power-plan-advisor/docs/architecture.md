@@ -16,8 +16,8 @@ result in SQLite before returning it. Saved comparisons are immutable snapshots.
 | --- | --- | --- |
 | Frontend | Plain HTML/CSS/JS served by FastAPI | React or Angular with the same API |
 | API | Validated plan, comparison, retrieval and health endpoints | Authentication and customer profiles |
-| Core services | Monthly pricing, area filtering, ranking, template explanation | Usage scenarios, full pricing rules, RAG and bounded orchestration |
-| External sources | JSON adapter with four synthetic plans | Authorized plan feeds, EFL ingestion, SMT and tariff adapters |
+| Core services | Monthly pricing, ZIP plan filtering, ranking, template explanation | Usage scenarios, full pricing rules, RAG and bounded orchestration |
+| External sources | JSON adapter with four synthetic plans and an in-memory demo ZIP mapping | Authorized plan feeds, EFL ingestion, SMT and tariff adapters |
 | Storage | Source JSON and SQLite comparison snapshots | PostgreSQL, documents, vectors and interval usage |
 | Evaluation/monitoring | Independent expected-price tests, API tests, request timing logs, readiness check | Extraction/LLM evals, scheduled refresh and customer alerts |
 
@@ -30,8 +30,8 @@ when monthly consumption reaches its inclusive threshold. Annual cost sums the
 12 monthly totals. Ties sort by plan ID. This is a demonstration contract, not a
 general implementation of provider billing rules.
 
-The service never infers delivery eligibility from a ZIP code. Users manually
-select a demo area. No real tariffs, offer availability or customer eligibility
+The in-memory ZIP-to-plan-ID mapping filters the catalog directly during comparison.
+No real tariffs, offer availability or customer eligibility
 are verified. The comparison path does not call RAG or an LLM. The separate document
 Q&A path uses OpenAI and Pinecone; OCR, authentication, forecasts, notification
 delivery and background scheduling remain unimplemented.
@@ -50,6 +50,11 @@ delivery and background scheduling remain unimplemented.
 ## Local scope
 
 Run on loopback. This demo has no authentication: anyone with server access can
-read a comparison if they know its ID. It stores only selected delivery area,
+read a comparison if they know its ID. It stores only ZIP,
 usage, costs and explanations; there is no address or account collection.
 Add authentication and ownership checks before shared deployment.
+
+Comparisons accept ZIP and monthly usage directly. `backend/integrations.py`
+contains the in-memory ZIP-to-plan-ID mapping. Unsupported ZIPs return 422.
+The delivery-area selector, lookup endpoint, mapping module and TDU fields were
+removed. Legacy snapshots remain readable with missing ZIP defaulting to null.

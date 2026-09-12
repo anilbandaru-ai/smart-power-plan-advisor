@@ -4,20 +4,22 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 
+ZipCode = Annotated[str, Field(pattern=r"^[0-9]{5}$", min_length=5, max_length=5)]
+
+
 NonNegative = Annotated[Decimal, Field(ge=0, max_digits=12, decimal_places=4)]
 
 
 class ComparisonRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    tdu: str = Field(min_length=1, max_length=60)
+    zip_code: ZipCode
     monthly_kwh: list[NonNegative] = Field(min_length=12, max_length=12)
 
 
 class Plan(BaseModel):
     id: str
     name: str
-    tdu: str
     energy_rate: NonNegative
     base_fee: NonNegative
     delivery_rate: NonNegative
@@ -52,6 +54,6 @@ class ComparisonResult(BaseModel):
     id: str
     created_at: str
     data_mode: str = "demo"
-    tdu: str
+    zip_code: ZipCode | None = None  # Legacy snapshots did not store ZIP.
     assumptions: list[str]
     recommendations: list[PlanComparison]
