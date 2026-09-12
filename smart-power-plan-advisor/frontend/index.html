@@ -5,14 +5,19 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Smart Power Plan Advisor</title>
   <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/tabs.js" defer></script>
   <script src="/static/app.js" defer></script>
   <script src="/static/agent.js" defer></script>
 </head>
 <body>
   <main>
-    <header><p class="eyebrow">TEXAS ELECTRICITY · LOCAL DEMO</p><h1>Your plans. A clearer picture.</h1>
-      <p>Understand your plan documents with answers you can trace to the source.</p></header>
-    <section class="chat-workspace" aria-labelledby="agent-heading">
+    <header><p class="eyebrow">TEXAS ELECTRICITY</p><h1>Smart Power Plan Advisor</h1>
+      <p>Understand your plan documents and compare costs using your electricity usage.</p></header>
+    <div class="workspace-tabs" role="tablist" aria-label="Advisor tools">
+      <button id="assistant-tab" type="button" role="tab" aria-selected="true" aria-controls="assistant-panel" tabindex="0">Plan Assistant</button>
+      <button id="compare-tab" type="button" role="tab" aria-selected="false" aria-controls="compare-panel" tabindex="-1">Compare Plan Costs</button>
+    </div>
+    <section id="assistant-panel" class="chat-workspace" role="tabpanel" aria-labelledby="assistant-tab" tabindex="0">
       <div class="chat-header">
         <div class="chat-title"><span class="agent-avatar" aria-hidden="true">P</span><div><h2 id="agent-heading">Plan assistant</h2><p>Understand your electricity plan, one question at a time.</p></div></div>
         <button id="agent-reset" class="secondary-button" type="button">＋ New conversation</button>
@@ -47,24 +52,44 @@
         <p class="composer-help">Memory lasts for this tab and running server, up to 30 idle minutes. Refresh starts a new chat.</p>
       </div>
     </section>
-    <details class="calculator-panel">
-      <summary><span>Compare plan costs</span><span class="note">Estimate costs from 12 months of usage</span></summary>
-    <aside>PDF mode uses extracted document-date rates. Review source terms: these are estimates, not live offers or verified address eligibility. Demo mode uses fictional rates. Taxes and switching fees are excluded.</aside>
-    <form id="compare-form">
-      <label for="plan-source">Plan data</label>
-      <select id="plan-source"><option value="pdf" selected>Extracted PDF plans</option><option value="demo">Synthetic demo plans</option></select>
-      <p class="note"><a href="/api/catalog/plans" target="_blank" rel="noopener noreferrer">Browse PDF plan API</a> · <a href="/api/catalog/status" target="_blank" rel="noopener noreferrer">Ingestion status</a></p>
-      <label for="zip-code">ZIP code</label>
-      <input id="zip-code" type="text" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" minlength="5" maxlength="5" required aria-describedby="zip-help">
-      <p id="zip-help">Supported ZIP lookup: 75201, 75001 (Oncor); 77002, 77007 (CenterPoint). A mapped ZIP does not guarantee available PDF plans or service eligibility.</p>
-      <label for="usage">Monthly usage in kWh, January through December</label>
-      <p id="usage-help">Enter exactly 12 numbers separated by commas. Replace these sample values with your usage.</p>
-      <textarea id="usage" rows="3" required aria-describedby="usage-help">800, 750, 700, 850, 1100, 1400, 1600, 1500, 1200, 950, 750, 850</textarea>
-      <button id="submit" disabled>Compare plans</button>
-    </form>
+    <section id="compare-panel" class="calculator-panel" role="tabpanel" aria-labelledby="compare-tab" tabindex="0" hidden>
+      <div class="compare-heading"><div><h2>Find the right plan for your usage</h2>
+        <p class="note">Compare estimated costs over 12 months.</p></div><span class="compare-badge">Personalized comparison</span></div>
+      <form id="compare-form">
+        <div class="input-grid">
+          <div><label for="zip-code">ZIP code</label>
+            <input id="zip-code" type="text" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" minlength="5" maxlength="5" placeholder="e.g. 75201" required aria-describedby="zip-help">
+            <p id="zip-help" class="note">Supported: 75201, 75001, 77002, 77007.</p></div>
+          <div><label for="plan-source">Plans to compare</label>
+            <select id="plan-source"><option value="pdf" selected>Extracted PDF plans</option><option value="demo">Synthetic demo plans</option></select>
+            <p class="note">PDF rates reflect the date of each document.</p></div>
+        </div>
+        <label for="usage">Monthly usage <span class="label-hint">kWh / January to December</span></label>
+        <textarea id="usage" rows="2" required aria-describedby="usage-help">800, 750, 700, 850, 1100, 1400, 1600, 1500, 1200, 950, 750, 850</textarea>
+        <p id="usage-help">Paste 12 numbers separated by commas. Replace the sample values with your usage.</p>
+        <details class="recommendation-options">
+          <summary>Preferences &amp; savings <span class="label-hint">Optional</span></summary>
+          <div class="input-grid">
+            <div><label for="usage-provenance">Usage figures from</label>
+              <select id="usage-provenance"><option value="unknown">Not specified</option><option value="estimated">Estimates</option><option value="bills">Electricity bills</option><option value="meter">Meter records</option></select></div>
+            <div><label for="max-contract">Maximum contract (months)</label>
+              <input id="max-contract" type="number" min="12" max="120" step="1" placeholder="No preference"></div>
+            <div><label for="baseline-plan">Current plan</label>
+              <select id="baseline-plan" aria-describedby="baseline-help"><option value="">No baseline selected</option></select>
+              <p id="baseline-help" class="note">Compare once to populate this list. Select your current plan and compare again for savings.</p></div>
+            <div><label for="switching-cost">Switching costs ($)</label>
+              <input id="switching-cost" type="number" min="0" max="9999999999.99" step="0.01" placeholder="Unknown" aria-describedby="switching-help">
+              <p id="switching-help" class="note">Include cancellation and enrollment fees. Enter 0 only if there are none.</p></div>
+          </div>
+        </details>
+        <div class="compare-actions"><p class="note">Estimates only. Review plan terms before switching.</p><button id="submit" disabled>Compare plans</button></div>
+        <details class="estimate-help"><summary>How these estimates work</summary>
+          <p class="note">PDF mode uses document-date rates, not live offers or verified address eligibility. A supported ZIP does not guarantee available PDF plans. Demo mode uses fictional rates. Bill estimates exclude taxes and switching fees; entered switching costs are reflected separately in net savings. Usage scenarios are sensitivity checks, not forecasts.</p>
+        </details>
+      </form>
     <p id="status" role="status" aria-live="polite"></p>
     <section id="results" aria-label="Comparison results"></section>
-    </details>
+    </section>
     <footer><a href="/docs">API documentation</a> · <a href="/api/health">Service health</a></footer>
   </main>
 </body>

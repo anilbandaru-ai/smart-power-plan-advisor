@@ -7,7 +7,7 @@ class Element {
   append(node) { this.children.push(node); }
   replaceChildren() { this.children = []; }
   addEventListener(name, fn) { this.listeners[name] = fn; }
-  focus() {}
+  focus() { this.focusCount = (this.focusCount || 0) + 1; }
   fire(name) { return this.listeners[name]?.({ preventDefault() {} }); }
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -94,9 +94,24 @@ test('Enter submits but Shift+Enter and composition preserve typing', async () =
   assert.equal(prevented, 1);
 });
 
-test('page exposes one document composer and a separate collapsible calculator', () => {
+test('page exposes one document composer and separate assistant and calculator tab panels', () => {
   const html = readFileSync('frontend/index.html', 'utf8');
   assert.equal((html.match(/id="agent-form"/g) || []).length, 1);
   assert.equal(html.includes('id="knowledge-form"'), false);
-  assert.match(html, /<details class="calculator-panel">/);
+  assert.match(html, /id="compare-panel"[^>]*role="tabpanel"[^>]*hidden/);
+});
+
+
+test('chat completion retains its answer without focusing a hidden assistant', async () => {
+  let finish;
+  const response = new Promise(resolve => { finish = resolve; });
+  const get = setup(async url => url.endsWith('/threads') ? {thread_id:'thread',token:'token'} : response);
+  await flush();
+  get('question').value = 'Term?';
+  const pending = get('form').fire('submit');
+  get('#assistant-panel').hidden = true;
+  finish({status:'answered',answer:'12 months',citations:[]});
+  await pending;
+  assert.equal(get('question').focusCount || 0, 0);
+  assert.equal(get('messages').children.at(-1).children[1].textContent, '12 months');
 });

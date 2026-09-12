@@ -1,6 +1,6 @@
 # Document agent — first working increment
 
-The document chat uses an explicit LangGraph ReAct graph in a unified chat workspace, with the calculator available in a separate collapsible section. The original single-question RAG API remains supported. OpenAI chooses document tools, sees their
+The document chat uses an explicit LangGraph ReAct graph in a unified chat workspace, with the calculator available in the Compare Plan Costs tab. The original single-question RAG API remains supported. OpenAI chooses document tools, sees their
 observations, can refine a search or ask for clarification, then produces an answer
 checked against retrieved page excerpts. It does not calculate bills or rank offers.
 
@@ -50,7 +50,7 @@ calls to LangGraph messages. `knowledge/evidence.py` shares deterministic source
 selection and citation validation with the original RAG graph.
 
 Four allowed tools: `list_indexed_documents`, `search_document_evidence`, and
-`ask_user`, and `redirect_to_comparison`. Factual document turns require a tool action until retrieval has been attempted; calculation redirects do not retrieve.
+`ask_user`, and `redirect_to_comparison`. Factual document turns require retrieval; calculation redirects do not.
 Only current-turn evidence can support the final answer. Stable source IDs include
 corpus version, document hash and page identity. A corpus change during a pending
 clarification requires a new conversation.
@@ -82,7 +82,8 @@ This local session capability is not production authentication or rate limiting.
 ## Bounds and current limitations
 
 - Up to six model calls per logical turn: at most five reasoning calls plus finalization.
-  One repair finalization is permitted only after fewer than five reasoning calls. At most three
+  One citation-repair finalization is allowed only when fewer than five reasoning
+  calls were used. There are at most three
   searches, eight tool calls and 30 graph steps. Clarification resumes retain counters.
 - Current and retained message/evidence payloads stop conservatively near a 12k
   input-token ceiling (2k reserved for instructions/tool schemas), rather than
@@ -90,7 +91,10 @@ This local session capability is not production authentication or rate limiting.
 - Provider operations use bounded timeouts; model calls have no automatic retry.
   A hard end-to-end cancellation deadline remains deferred.
 - Evidence is checked for source/version membership and exact excerpt presence.
-  This does not prove semantic entailment. One citation repair is available within the six-call budget. Unknown excerpt IDs reject the whole draft; deliberate abstention and provider errors are not retried.
+  This does not prove semantic entailment. A non-abstaining answer rejected by citation validation gets one fresh
+  finalization attempt against the same sources if the call budget permits.
+  Both attempts use the same strict validator; repeated failure returns no answer
+  or unvalidated citations. Deliberate abstention and provider failures are not retried.
 - No streaming, durable history, multi-worker support, automatic ingestion,
   full history restoration, or full production authentication.
 - Only active-manifest documents are searchable. The repository has additional
@@ -118,7 +122,25 @@ and [OpenAI function calling](https://developers.openai.com/api/docs/guides/func
 The original [implementation plan](react-agent-plan.md) records the broader proposal;
 root `spec.md` section 11.1 defines the smaller first increment delivered here.
 
-The unified chat keeps user turns, clarification, assistant responses and errors in one scrollable transcript. Sources expand beneath each answer. Enter sends a message; Shift+Enter inserts a newline. Prompt suggestions populate the composer. The calculator expands separately below the chat.
+The unified chat keeps user turns, clarification, assistant responses and errors in one scrollable transcript. Sources expand beneath each answer. Enter sends a message; Shift+Enter inserts a newline. Prompt suggestions populate the composer. The Compare Plan Costs tab preserves calculator inputs and results while switching workspaces.
+
+
+A plan name alone (for example, Frontier Saver Plus 12) prompts a question about
+what the user wants to know. Reply in the same conversation to continue. The
+finalizer receives the current clarification question and reply along with the
+original user message. Explicit summary requests and names that resolve an earlier
+question continue through document retrieval. This behavior is model-directed;
+exact excerpt validation remains deterministic and is not semantic fact checking.
+
+
+Citation generation now uses prepared excerpt IDs. Python slices each retrieved
+page into windows of at most 1000 characters with 200-character overlap. The
+finalizer selects IDs; Python attaches the exact original text before applying
+the existing validator. This prevents copied cents symbols, escape sequences or
+reordered table rows from breaking citations. Unknown IDs reject the whole draft;
+the existing one-attempt repair budget still applies. Source/page URLs and the
+public citation response are unchanged. Excerpts can be longer than before and
+may overlap. Selection does not independently prove every answer claim.
 
 
 ## Grounding and scope recovery verification

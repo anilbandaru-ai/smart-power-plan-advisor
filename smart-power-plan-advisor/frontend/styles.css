@@ -65,8 +65,6 @@ form.chat-composer { margin: 0; border: 1px solid #b9cbd2; padding: .6rem; borde
 #agent-status { font-size: .8rem; color: #315565; margin: .7rem 0 .3rem; }
 .composer-help { color: #667d8b; font-size: .72rem; margin: .2rem 0; }
 .calculator-panel { margin-top: 1.5rem; padding: 1.3rem; border: 1px solid #d8e3eb; border-radius: .85rem; background: #fff; }
-.calculator-panel > summary { font-weight: 650; }
-.calculator-panel > summary .note { margin-left: 1rem; font-weight: 400; }
 .calculator-panel aside { margin-top: 1rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 @media (max-width: 640px) {
@@ -81,6 +79,83 @@ form.chat-composer { margin: 0; border: 1px solid #b9cbd2; padding: .6rem; borde
   .composer-area { padding: .8rem; }
   .chat-composer button { padding: .75rem; }
   .chat-empty { margin: 1rem auto; }
-  .calculator-panel > summary .note { display: block; margin-left: 1rem; }
 }
 @media (prefers-reduced-motion: reduce) { .chat-scroll { scroll-behavior: auto; } }
+
+.recommendation-summary { padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #b4d4cc; border-radius: .8rem; background: #f2faf7; }
+.recommendation-summary details, .recommendation-options { margin: 1rem 0; }
+.recommendation-summary p { overflow-wrap: anywhere; }
+.recommendation-options select { max-width: 100%; }
+
+.workspace-tabs { display: flex; gap: .5rem; margin-bottom: 1rem; }
+.workspace-tabs button { flex: 1; margin: 0; padding: .85rem .5rem; background: white; color: #315565; border: 1px solid #92a8ba; }
+.workspace-tabs button[aria-selected="true"] { background: #087667; color: white; border-color: #087667; box-shadow: inset 0 -3px 0 #044c43; }
+[role="tabpanel"][hidden] { display: none; }
+.calculator-panel { margin-top: 0; }
+.calculator-panel > h2 { margin-top: 0; }
+/* Compact comparison workspace; chat styling remains independent. */
+#compare-panel { padding: 1.4rem; background: #f8fafb; }
+.compare-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.compare-heading h2 { margin: 0; font-size: 1.35rem; }
+.compare-heading p { margin: .25rem 0 0; }
+.compare-badge { font-size: .75rem; background: #e7f3ef; color: #086657; padding: .4rem .7rem; border-radius: 2rem; white-space: nowrap; }
+#compare-form { padding: 1.1rem; margin: 0; }
+.input-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem 1.2rem; }
+.input-grid > div { min-width: 0; }
+#compare-form label { font-size: .85rem; margin: .55rem 0 .35rem; }
+#compare-form input, #compare-form select, #compare-form textarea { width: 100%; min-width: 0; font-size: .9rem; padding: .6rem .7rem; background: white; }
+#compare-form .note, #usage-help { font-size: .78rem; margin: .35rem 0; }
+.label-hint { color: #597080; font-size: .75rem; font-weight: 400; margin-left: .4rem; }
+#compare-form .recommendation-options { margin: .7rem 0; padding: .7rem 0; border-top: 1px solid #e0e8ef; border-bottom: 1px solid #e0e8ef; }
+#compare-form summary { font-size: .85rem; font-weight: 600; }
+.compare-actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.compare-actions button { margin: 0; padding: .65rem 1.4rem; min-height: 44px; white-space: nowrap; }
+.estimate-help { margin-top: .7rem; color: #4b6273; }
+#status { margin: .7rem 0; font-size: .85rem; }
+#status:empty { margin: 0; }
+#results > h2 { font-size: 1.15rem; margin: 1.3rem 0 .35rem; }
+#results > p { margin: .3rem 0; font-size: .85rem; }
+#results > details:not(.plan-row) { margin: .65rem 0; font-size: .85rem; }
+#results > a { display: inline-block; margin-top: 1rem; font-size: .85rem; }
+#results .recommendation-summary { padding: 1.2rem; margin: 1rem 0; background: #fff; border-top: 4px solid #087667; }
+.recommendation-summary h2 { font-size: .8rem; color: #087667; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 .5rem; }
+.recommendation-summary .recommended-name { font-size: 1.5rem; margin: 0 0 .8rem; }
+.recommendation-summary h3 { font-size: 1rem; margin: 1rem 0 .4rem; }
+.recommendation-summary p { font-size: .85rem; margin: .4rem 0; }
+.cost-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; padding: .9rem; border-radius: .65rem; background: #eff7f4; }
+.cost-metrics .price { font-size: 1.8rem; margin: .15rem 0; font-variant-numeric: tabular-nums; }
+.cost-metrics .note { font-size: .75rem; }
+.shortlist { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
+.shortlist-card { padding: .8rem; border: 1px solid #d8e3eb; border-radius: .6rem; min-width: 0; }
+.shortlist-card h4 { font-size: .85rem; margin: 0 0 .5rem; overflow-wrap: anywhere; }
+.shortlist-card .shortlist-price { font-size: 1.15rem; font-weight: 700; margin: .3rem 0; }
+.shortlist-card .note { font-size: .75rem; }
+.recommendation-summary details { margin: .6rem 0; padding: .65rem 0; border-top: 1px solid #e0e8ef; }
+.recommendation-summary summary { font-size: .85rem; font-weight: 600; }
+.recommendation-summary details details { margin-left: .6rem; }
+.recommendation-summary .result-warning { background: #fff5e5; color: #785019; padding: .65rem .8rem; border-radius: .4rem; }
+.plan-row { margin: .5rem 0; background: #fff; border: 1px solid #d8e3eb; border-radius: .6rem; }
+.plan-row > summary { display: flex; align-items: center; gap: .85rem; padding: .9rem; font-size: .85rem; list-style: none; }
+.plan-row > summary::-webkit-details-marker { display: none; }
+.plan-row > summary::before { content: '+'; color: #087667; font-weight: 700; }
+.plan-row[open] > summary::before { content: '-'; }
+.plan-name { flex: 1; min-width: 0; font-weight: 650; overflow-wrap: anywhere; }
+.plan-term { color: #597080; white-space: nowrap; }
+.plan-cost { color: #087667; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.plan-content { border-top: 1px solid #e0e8ef; padding: .3rem 1rem 1rem; font-size: .85rem; }
+.plan-content > a { display: inline-block; margin: 0 .8rem .7rem 0; }
+#results th:first-child, #results td:first-child { text-align: left; }
+@media (max-width: 640px) {
+  #compare-panel { padding: .85rem; }
+  .compare-heading h2 { font-size: 1.15rem; }
+  .compare-badge { display: none; }
+  .input-grid, .shortlist { grid-template-columns: 1fr; }
+  .compare-actions { flex-direction: column; align-items: stretch; gap: .4rem; }
+  .cost-metrics { gap: .6rem; padding: .7rem; }
+  .cost-metrics .price { font-size: 1.35rem; }
+  .plan-row > summary { flex-wrap: wrap; gap: .5rem; padding: .8rem; }
+  .plan-name { flex-basis: calc(100% - 2rem); }
+  .plan-term { margin-left: 1.2rem; }
+  .plan-cost { margin-left: auto; }
+  .recommendation-summary .recommended-name { font-size: 1.2rem; }
+}

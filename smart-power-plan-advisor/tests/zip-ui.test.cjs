@@ -125,3 +125,61 @@ test('PDF mode is explicit, renders exclusions and changing mode invalidates res
   app.get('plan-source').fire('change');
   assert.equal(app.get('results').children.length, 0);
 });
+
+
+function recommendedSnapshot() {
+  const plan = { plan_id:'demo', name:'Credit plan', term_months:12, estimated_annual_cost:'1800.00',
+    max_scenario_regret:'330.00', additional_cost_at_supplied_usage:'0', recommendation_reasons:[],
+    scenario_results:[{scenario_id:'supplied',annual_cost:'1800',rank:1,regret:'0'}],
+    bill_credit_analysis:{annual_credits:'480',qualifying_months:[1],credit_loss_scenarios:[],
+      threshold_exposure:[{boundary_kwh:'1000',nearby_months:[1],probes:[{kwh:'999.9999',bill:'190',credit:'0'}]}]}, evidence_refs:[] };
+  return { ...saved('75201'), recommendations:[{...saved('75201').recommendations[0],plan_id:'demo',term_months:12}],
+    recommendation_result:{status:'recommended',best_overall:plan,top_3:[plan],plan_analyses:[plan],
+      category_winners:{lowest_estimated_cost:'demo',lowest_scenario_regret:'demo'},
+      confidence:'low',confidence_reasons:['Usage is estimated.'],key_tradeoffs:['Credits depend on usage.'],
+      baseline:{name:'Current plan',annual_cost:'1920'},expected_savings:{gross_annual_savings:'120',net_annual_savings:null,sustained_payback_month:null},
+      warnings:['Live availability unverified.'],assumptions:[],break_even_conditions:[],evidence_refs:[],
+      scenarios:[{id:'supplied',multiplier:'1'}],policy_version:'v1',comparison_horizon:12,
+      options:{usage_provenance:'bills',baseline_plan_id:'demo',max_contract_months:24,switching_cost:'0'}} };
+}
+function allText(node) { return [node.textContent, ...node.children.map(allText)].join(' '); }
+
+test('recommendation controls submit options and render regret, confidence, credits and unknown net savings', async () => {
+  let body;
+  const app = setup(async (_, options) => { body=JSON.parse(options.body); return recommendedSnapshot(); });
+  enterZip(app,'75201');
+  app.get('usage-provenance').value='bills'; app.get('max-contract').value='24';
+  app.get('baseline-plan').value='demo'; app.get('switching-cost').value='0';
+  await app.get('compare-form').fire('submit');
+  assert.deepEqual(body.recommendation_options,{usage_provenance:'bills',max_contract_months:24,baseline_plan_id:'demo',switching_cost:'0'});
+  const text=allText(app.get('results'));
+  for (const phrase of ['Your recommendation','330.00','confidence: low','480.00','999.9999','Net after switching costs: unknown']) assert.ok(text.includes(phrase),phrase);
+  app.get('switching-cost').value='50'; app.get('switching-cost').fire('input');
+  assert.equal(app.get('results').children.length,0);
+});
+
+test('recommendation options restore and ZIP edits clear the baseline', async () => {
+  const app=setup(async () => recommendedSnapshot(),'?comparison=saved');
+  await flush();
+  assert.equal(app.get('baseline-plan').value,'demo');
+  assert.equal(app.get('max-contract').value,'24');
+  assert.equal(app.get('switching-cost').value,'0');
+  assert.equal(app.get('usage-provenance').value,'bills');
+  enterZip(app,'77002');
+  assert.equal(app.get('baseline-plan').value,'');
+});
+
+test('no qualifying recommendation does not claim a winner, and invalid costs never submit', async () => {
+  let calls=0;
+  const app=setup(async () => {
+    calls++;
+    return {...saved('75201'),recommendation_result:{status:'no_eligible_plans',best_overall:null,warnings:[],options:{}}};
+  });
+  enterZip(app,'75201');
+  app.get('switching-cost').value='-1';
+  await app.get('compare-form').fire('submit');
+  assert.equal(calls,0);
+  app.get('switching-cost').value='';
+  await app.get('compare-form').fire('submit');
+  assert.match(allText(app.get('results')),/No plan meets/);
+});

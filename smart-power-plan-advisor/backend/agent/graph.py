@@ -155,7 +155,7 @@ def build_graph(checkpointer):
             generated = config["configurable"]["model"].finalize(state["messages"], list(state["evidence"].values()))
             answer = validate_answer(generated, list(state["evidence"].values()))
             if generated is not None and not generated.abstained and answer.abstained and state["calls"] < 5:
-                activity.append("Retried answer with valid source references")
+                activity.append("Retried answer with exact source excerpts")
                 generated = config["configurable"]["model"].finalize(
                     state["messages"], list(state["evidence"].values()), repair=True)
                 answer = validate_answer(generated, list(state["evidence"].values()))
