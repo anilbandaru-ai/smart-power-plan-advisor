@@ -14,6 +14,7 @@ from backend.models import ComparisonRequest, ComparisonResult
 from backend.services import compare
 from backend.storage import ComparisonStore
 from backend.knowledge.api import create_router
+from backend.agent.api import create_router as create_agent_router
 
 ROOT = Path(__file__).resolve().parents[2]
 logger = logging.getLogger("uvicorn.error")
@@ -25,14 +26,20 @@ def create_app(db_path: Path | None = None, plan_source: PlanSource | None = Non
         os.environ.get("ADVISOR_DB_PATH", str(ROOT / ".data" / "advisor.sqlite3"))
     ))
 
+    agent_router, close_agent = create_agent_router()
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         store.initialize()
         source.list_plans()  # Fail early when the local catalog is invalid.
-        yield
+        try:
+            yield
+        finally:
+            close_agent()
 
     app = FastAPI(title="Smart Power Plan Advisor", version="0.1.0", lifespan=lifespan)
     app.include_router(create_router())
+    app.include_router(agent_router)
 
     @app.middleware("http")
     async def log_requests(request: Request, call_next):

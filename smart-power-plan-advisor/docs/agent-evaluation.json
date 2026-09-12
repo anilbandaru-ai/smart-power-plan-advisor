@@ -1,0 +1,116 @@
+{
+  "date": "2026-09-11",
+  "kind": "live smoke evaluation, not a comprehensive benchmark",
+  "model": "gpt-4.1-mini",
+  "active_documents": 1,
+  "sequence": [
+    "contract term",
+    "follow-up termination fee",
+    "exact bill at 1200 kWh"
+  ],
+  "results": [
+    {
+      "status": "answered",
+      "answer": "The contract term of the 4Change Energy Maxx Saver Value 12 plan is 12 months.",
+      "question": null,
+      "citations": [
+        {
+          "source_id": "Sbb6df5859b403952",
+          "document_id": "e2af3499be21a624480547e3",
+          "filename": "4change/4Change Energy max saver value 12.pdf",
+          "page": 1,
+          "excerpt": "Contract Term | 12 Months",
+          "url": "/api/knowledge/documents/e2af3499be21a624480547e3#page=1"
+        }
+      ],
+      "activity": [
+        "Listed indexed documents",
+        "Searched documents: 1 supporting page(s)"
+      ],
+      "http_status": 200,
+      "seconds": 7.1
+    },
+    {
+      "status": "answered",
+      "answer": "The early termination fee for the 4Change Energy Maxx Saver Value 12 plan is $20 multiplied by the number of months remaining on the contract term.",
+      "question": null,
+      "citations": [
+        {
+          "source_id": "Sbb6df5859b403952",
+          "document_id": "e2af3499be21a624480547e3",
+          "filename": "4change/4Change Energy max saver value 12.pdf",
+          "page": 1,
+          "excerpt": "Do I have a termination fee or any fees associated with terminating service? | Yes. A termination fee of $20 multiplied by the number of months remaining on the term of your contract will apply.",
+          "url": "/api/knowledge/documents/e2af3499be21a624480547e3#page=1"
+        }
+      ],
+      "activity": [
+        "Searched documents: 1 supporting page(s)"
+      ],
+      "http_status": 200,
+      "seconds": 4.1
+    },
+    {
+      "status": "insufficient_evidence",
+      "answer": "The exact total bill at 1200 kWh cannot be determined from the provided document because Transmission and Distribution Utility (TDU) delivery charges are passed through as billed and are not specified. The Energy Charge is 12.7645\u00a2 per kWh, and there is a $125.00 monthly bill credit for usage over 999 kWh. However, the total bill also depends on TDU delivery charges, which are not included in the document and must be viewed at 4ChangeEnergy.com/tdu-charges.",
+      "question": null,
+      "citations": [
+        {
+          "source_id": "Sbb6df5859b403952",
+          "document_id": "e2af3499be21a624480547e3",
+          "filename": "4change/4Change Energy max saver value 12.pdf",
+          "page": 1,
+          "excerpt": "Energy Charge: 12.7645\u00a2 Per kWh Monthly Bill Credit: $125.00 Per billing cycle > 999 kWh Monthly TDU Delivery Charges ($): ** TDU charges passed through as billed Per kWh (\u00a2) TDU Charges: ** TDU charges passed through as billed The EFL average prices include pass through TDU Delivery Charges as of the issue date of this EFL. **You can view TDU delivery charges at: 4ChangeEnergy.com/tdu-charges TDU Delivery Charges Per Month and TDU Delivery Charges Per kWh will be passed through to customer as billed from the Transmission and Distribution Utility (TDU).",
+          "url": "/api/knowledge/documents/e2af3499be21a624480547e3#page=1"
+        }
+      ],
+      "activity": [
+        "Searched documents: 1 supporting page(s)"
+      ],
+      "http_status": 200,
+      "seconds": 6.7
+    }
+  ],
+  "limits": [
+    "Clarification/resume was checked live over HTTP; broader adversarial live evaluation and cost benchmarking remain deferred.",
+    "No full visual browser QA.",
+    "Citation validity does not prove semantic entailment."
+  ],
+  "live_http_clarification": [
+    {
+      "status": "needs_input",
+      "question": "Could you please specify which kind of fee you are referring to? For example, are you asking about connection fees, monthly fees, or exit fees?",
+      "answer": null,
+      "activity": [],
+      "citations": [],
+      "http_status": 200
+    },
+    {
+      "status": "answered",
+      "question": null,
+      "answer": "The early termination fee of the 4Change Energy Maxx Saver Value 12 plan is calculated as $20 multiplied by the number of months remaining on the term of your contract.",
+      "activity": [
+        "Received clarification",
+        "Searched documents: 1 supporting page(s)"
+      ],
+      "citations": [
+        {
+          "source_id": "Sbb6df5859b403952",
+          "document_id": "e2af3499be21a624480547e3",
+          "filename": "4change/4Change Energy max saver value 12.pdf",
+          "page": 1,
+          "excerpt": "Do I have a termination fee or any fees associated with terminating service? | Yes. A termination fee of $20 multiplied by the number of months remaining on the term of your contract will apply.",
+          "url": "/api/knowledge/documents/e2af3499be21a624480547e3#page=1"
+        }
+      ],
+      "http_status": 200
+    }
+  ],
+  "http_checks": {
+    "page": 200,
+    "agent_script": 200,
+    "health": 200,
+    "agent_status": 200,
+    "cited_pdf": 200
+  }
+}

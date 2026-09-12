@@ -94,3 +94,15 @@ Team Members:
     Vishwesh Patil
     Vimaleswaran Ganeshan
     Anil Bandaru
+
+## Document ReAct agent
+
+The page now also offers **Chat with the document agent**: contextual document
+questions, iterative evidence search, clarification and page citations using
+LangGraph fundamentals, OpenAI and Pinecone. It uses the same optional RAG
+installation and `.env` configuration. Conversations live only in the running
+process and expire after 30 idle minutes. Run one worker.
+
+See the [agent guide](docs/agent.md) for run instructions, API contracts, graph,
+limits and tests. The [implementation plan](docs/react-agent-plan.md) records the
+broader proposal; the root specification identifies the delivered first increment.
