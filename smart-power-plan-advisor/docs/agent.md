@@ -49,8 +49,8 @@ sessions and uses `Command(resume=...)`. `model.py` adapts OpenAI Responses func
 calls to LangGraph messages. `knowledge/evidence.py` shares deterministic source
 selection and citation validation with the original RAG graph.
 
-Three allowed tools: `list_indexed_documents`, `search_document_evidence`, and
-`ask_user`. Every new turn requires a tool action until retrieval has been attempted.
+Four allowed tools: `list_indexed_documents`, `search_document_evidence`, and
+`ask_user`, and `redirect_to_comparison`. Factual document turns require retrieval; calculation redirects do not.
 Only current-turn evidence can support the final answer. Stable source IDs include
 corpus version, document hash and page identity. A corpus change during a pending
 clarification requires a new conversation.
@@ -141,3 +141,30 @@ reordered table rows from breaking citations. Unknown IDs reject the whole draft
 the existing one-attempt repair budget still applies. Source/page URLs and the
 public citation response are unchanged. Excerpts can be longer than before and
 may overlap. Selection does not independently prove every answer claim.
+
+
+## Grounding and scope recovery verification
+
+The agent finalizer selects IDs for source excerpts prepared by Python (1000-character
+windows, 200-character overlap). Original Unicode symbols, table rows and page
+identity are retained. The existing exact-excerpt validator checks every resolved
+citation; the legacy knowledge API remains unchanged. This verifies provenance,
+not semantic entailment of every generated claim.
+
+Plan-only messages prompt clarification. Current and earlier clarification replies
+are available for reference resolution; each factual follow-up retrieves fresh evidence.
+Explicit common calculation/recommendation requests are redirected by a deterministic
+text check before model reasoning, including replies to clarification. Other wording
+is handled by model instructions and the redirect tool, so arbitrary paraphrases are
+not guaranteed to be classified perfectly. Documented rate and credit questions remain
+supported. Redirects use the existing insufficient_evidence response status and keep
+the conversation usable.
+
+Verification: 17 agent tests, 17 knowledge tests and five chat UI tests passed.
+Live HTTP checks confirmed plan-name clarification, fees and rates with valid PDF
+citations, a calculation redirect without further questions, a contract-term answer
+restricted to the selected Frontier document, and abstention for a nonexistent plan.
+All returned citation document URLs in the fees/rates sequence served PDFs successfully.
+No index mutations were performed. Live results are samples, not universal accuracy
+claims. The app was started as a hidden background process on port 8000; its logs
+are in .data/agent-server.stdout.log and .data/agent-server.stderr.log.

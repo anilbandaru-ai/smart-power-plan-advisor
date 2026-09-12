@@ -1,15 +1,35 @@
 """ReAct fundamentals: reason, conditional routing, action, observation, repeat."""
 import hashlib
 import json
+import re
+from uuid import uuid4
 from typing import Annotated, TypedDict
 
 import tiktoken
-from langchain_core.messages import AIMessage, AnyMessage, ToolMessage
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, ToolMessage
 from langgraph.graph import END, START, StateGraph, add_messages
 from langgraph.types import interrupt
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend.knowledge.evidence import abstain, select_context, validate_answer
+
+
+COMPARISON_MESSAGE = "Use Compare Plan Costs to estimate bills and compare plans using your usage. Plan Assistant can explain documented rates, fees and bill-credit conditions, but cannot calculate bills or recommend plans."
+
+
+def comparison_request(messages):
+    """Catch explicit common requests; model tool routing handles other phrasings."""
+    text = ""
+    for message in messages:
+        if isinstance(message, HumanMessage):
+            text = message.content
+        elif isinstance(message, ToolMessage) and message.name == "ask_user":
+            text = json.loads(message.content).get("user_clarification", "")
+    text = text.lower()
+    return bool(re.search(r"\b(?:calculate|estimate|compute|work out)\b.{0,60}\b(?:bill|cost|payment)s?\b", text)
+        or re.search(r"\bhow much\b.{0,40}\b(?:pay|owe|bill|cost)\b", text)
+        or re.search(r"\b(?:recommend|rank|choose|pick)\b.{0,45}\bplans?\b", text)
+        or re.search(r"\b(?:cheapest|best)\s+(?:electricity\s+)?plan\b", text))
 
 
 class Search(BaseModel):
@@ -46,6 +66,9 @@ def build_graph(checkpointer):
         return len(encoding.encode(content, disallowed_special=())) > 10000
 
     def reason(state, config):
+        if comparison_request(state["messages"]):
+            return {"messages": [AIMessage(content="", tool_calls=[{
+                "id": str(uuid4()), "name": "redirect_to_comparison", "args": {}}])]}
         if state["calls"] >= 5 or state["tools"] >= 8 or too_large(state):
             return {"stopped": True}
         model = config["configurable"]["model"]
@@ -58,6 +81,8 @@ def build_graph(checkpointer):
         calls = state["messages"][-1].tool_calls
         if not calls:
             return "finalize"
+        if len(calls) == 1 and calls[0]["name"] == "redirect_to_comparison" and calls[0]["args"] == {}:
+            return "redirect"
         if len(calls) == 1 and calls[0]["name"] == "ask_user":
             try:
                 Clarify.model_validate(calls[0]["args"])
@@ -113,6 +138,13 @@ def build_graph(checkpointer):
                     tool_call_id=call["id"], name="ask_user")],
                 "tools": state["tools"] + 1, "activity": state["activity"] + ["Received clarification"]}
 
+    def redirect(state):
+        call = state["messages"][-1].tool_calls[0]
+        answer = abstain(COMPARISON_MESSAGE)
+        return {"result": {"status": "insufficient_evidence", **answer.model_dump()},
+            "messages": [ToolMessage(content=COMPARISON_MESSAGE, tool_call_id=call["id"], name=call["name"]),
+                         AIMessage(content=COMPARISON_MESSAGE)]}
+
     def finalize(state, config):
         activity = list(state["activity"])
         if too_large(state):
@@ -122,7 +154,6 @@ def build_graph(checkpointer):
         else:
             generated = config["configurable"]["model"].finalize(state["messages"], list(state["evidence"].values()))
             answer = validate_answer(generated, list(state["evidence"].values()))
-            # Five reasoning calls plus initial finalization exhaust the six-call budget.
             if generated is not None and not generated.abstained and answer.abstained and state["calls"] < 5:
                 activity.append("Retried answer with exact source excerpts")
                 generated = config["configurable"]["model"].finalize(
@@ -137,7 +168,7 @@ def build_graph(checkpointer):
         return {"result": {"status": "limit_reached", "answer": answer, "citations": []}}
 
     graph = StateGraph(State)
-    for name, fn in [("reason", reason), ("action", action), ("clarify", clarify), ("finalize", finalize), ("limit", limit)]:
+    for name, fn in [("reason", reason), ("action", action), ("clarify", clarify), ("finalize", finalize), ("limit", limit), ("redirect", redirect)]:
         graph.add_node(name, fn)
     graph.add_edge(START, "reason")
     graph.add_conditional_edges("reason", route)
@@ -145,4 +176,5 @@ def build_graph(checkpointer):
     graph.add_edge("clarify", "reason")
     graph.add_edge("finalize", END)
     graph.add_edge("limit", END)
+    graph.add_edge("redirect", END)
     return graph.compile(checkpointer=checkpointer)

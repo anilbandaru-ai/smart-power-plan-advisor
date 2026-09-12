@@ -7,6 +7,8 @@ from backend.knowledge.models import GeneratedAnswer
 from backend.knowledge.providers import INSTRUCTIONS
 
 TOOLS = [
+    {"type": "function", "name": "redirect_to_comparison", "description": "Direct bill calculation, cost ranking or plan recommendation requests to Compare Plan Costs. Do not collect billing details.",
+     "strict": True, "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": False}},
     {"type": "function", "name": "list_indexed_documents", "description": "List the available indexed document IDs and filenames.",
      "strict": True, "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": False}},
     {"type": "function", "name": "search_document_evidence", "description": "Search indexed documents for supporting pages. Refine the query if evidence is insufficient.",
@@ -15,6 +17,9 @@ TOOLS = [
      "strict": True, "parameters": {"type": "object", "properties": {"question": {"type": "string"}}, "required": ["question"], "additionalProperties": False}},
 ]
 PROMPT = """You are a document-only electricity plan assistant. Use the available tools to gather evidence.
+For bill calculations or plan recommendations, call redirect_to_comparison immediately,
+without asking for usage, location or fees. Documented rates and bill-credit conditions are valid questions.
+Never substitute a similar plan for an unknown requested plan.
 Always search again for each new factual user question, including follow-ups; prior answers are not evidence.
 If a user supplies only a plan or document name without a question, call ask_user to ask
 what they want to know (for example contract term, bill credits, or termination fees).
@@ -100,13 +105,14 @@ class Model:
         questions = [m.content for m in messages if isinstance(m, HumanMessage)]
         last_user = max(i for i, m in enumerate(messages) if isinstance(m, HumanMessage))
         clarifications = [m.content for m in messages[last_user + 1:] if isinstance(m, ToolMessage) and m.name == "ask_user"]
+        earlier_clarifications = [m.content for m in messages[:last_user] if isinstance(m, ToolMessage) and m.name == "ask_user"]
         clarification_questions = [call["args"]["question"]
             for m in messages[last_user + 1:] if isinstance(m, AIMessage)
             for call in m.tool_calls if call["name"] == "ask_user"]
         sources, excerpts = prepare_excerpts(evidence)
         instructions = INSTRUCTIONS + """
 Answer only latest_question as resolved by the current clarification question and answer.
-Earlier user turns are context for resolving references, not additional questions to answer.
+Earlier user turns and earlier clarifications resolve references, not additional questions to answer. Never substitute a different plan.
 Citation output for this task uses excerpt_ids instead of free-form quotes or source IDs.
 Select only excerpt_id values supplied below; the server attaches their exact text as citations.
 Keep excerpt IDs in excerpt_ids only, not in the user-facing answer.
@@ -121,7 +127,7 @@ The previous attempt failed citation validation. Generate a fresh concise answer
 only the supplied excerpt IDs supporting its claims. Abstain if this is not possible.
 """
         result = self.client.responses.parse(model=self.settings.model, instructions=instructions,
-            input=json.dumps({"latest_question": questions[-1], "earlier_user_turns": questions[:-1], "clarifications": clarifications, "clarification_questions": clarification_questions, "sources": sources}, ensure_ascii=False),
+            input=json.dumps({"latest_question": questions[-1], "earlier_user_turns": questions[:-1], "clarifications": clarifications, "earlier_clarifications": earlier_clarifications, "clarification_questions": clarification_questions, "sources": sources}, ensure_ascii=False),
             text_format=SelectedAnswer, max_output_tokens=1600, store=False)
         return resolve_excerpts(result.output_parsed, excerpts)
 
