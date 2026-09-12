@@ -9,8 +9,8 @@ calculations do not need a model call or a Pinecone connection.
 From the application directory with optional RAG dependencies installed:
 
 ```sh
-python -m backend.catalog.cli --env-file .env sync
-python -m backend.catalog.cli status
+.\.venv\Scripts\python.exe -m backend.catalog.cli --env-file .env sync
+.\.venv\Scripts\python.exe -m backend.catalog.cli status
 ```
 
 Drop new PDFs anywhere beneath `data/`, then run `sync` again. File extensions
@@ -165,3 +165,20 @@ explicit PDF mode and stale results after changing modes.
 
 Storage rationale: [SQLite appropriate uses](https://www.sqlite.org/whentouse.html)
 and [Pinecone data modeling](https://docs.pinecone.io/guides/index-data/data-modeling).
+
+
+### Windows runtime and retry
+
+Use the project virtual environment: system Python may lack the optional PDF
+packages. If status shows `ModuleNotFoundError` for every source, install
+`requirements-rag.txt` into `.venv` and retry using that interpreter:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-rag.txt
+.\.venv\Scripts\python.exe -m backend.catalog.cli --env-file .env sync --retry
+```
+
+Previously failed files require `--retry`. Sync locking uses a nonblocking Windows
+byte lock or POSIX flock, released on success and failure. Restart the server after
+backend updates, or use `--reload --reload-dir backend` during local development,
+so the API and browser agree on fields such as `data_source`.

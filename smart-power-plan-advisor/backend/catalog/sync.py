@@ -1,4 +1,4 @@
-import fcntl
+from backend.catalog.locking import catalog_lock
 import json
 import os
 from datetime import datetime, timezone
@@ -29,11 +29,7 @@ def sync(store, root, extractor, force=False, retry=False, refresh_tdu=False, re
     paths.sort()
     store.initialize()
     lock_path = store.path.with_suffix('.sync.lock')
-    with lock_path.open('w') as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            raise ValueError('Another catalog sync is running') from None
+    with catalog_lock(lock_path):
         run_id, started = str(uuid4()), now()
         summary = {'files': len(paths), 'extracted': 0, 'reused': 0, 'failed': 0, 'removed': 0}
         with store.connection() as db:

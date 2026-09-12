@@ -101,7 +101,7 @@
       bubble('error', error.message);
       status.textContent = error.message;
       if ([404, 409, 502].includes(error.status)) { ready = false; status.textContent += ' Select New conversation to continue.'; }
-    } finally { busy = false; controls(); question.focus(); }
+    } finally { busy = false; controls(); if (!document.querySelector('#assistant-panel').hidden) question.focus(); }
   });
   reset.addEventListener('click', async () => {
     if (busy) return;
@@ -115,7 +115,7 @@
     messages.replaceChildren(); get('empty').hidden = false; question.value = '';
     busy = false;
     await initialize();
-    question.focus();
+    if (!document.querySelector('#assistant-panel').hidden) question.focus();
   });
   async function initialize() {
     try {

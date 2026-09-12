@@ -2,6 +2,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+from backend.recommendation_models import RecommendationOptions, RecommendationResult
 
 
 ZipCode = Annotated[str, Field(pattern=r"^[0-9]{5}$", min_length=5, max_length=5)]
@@ -14,6 +15,7 @@ class ComparisonRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     zip_code: ZipCode
+    recommendation_options: RecommendationOptions = Field(default_factory=RecommendationOptions)
     data_source: Literal["demo", "pdf"] = "demo"
     monthly_kwh: list[NonNegative] = Field(min_length=12, max_length=12)
 
@@ -62,3 +64,4 @@ class ComparisonResult(BaseModel):
     assumptions: list[str]
     recommendations: list[PlanComparison]
     excluded_plans: list[dict] = Field(default_factory=list)
+    recommendation_result: RecommendationResult | None = None

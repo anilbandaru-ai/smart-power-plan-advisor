@@ -58,3 +58,10 @@ Comparisons accept ZIP and monthly usage directly. `backend/integrations.py`
 contains the in-memory ZIP-to-plan-ID mapping. Unsupported ZIPs return 422.
 The delivery-area selector, lookup endpoint, mapping module and TDU fields were
 removed. Legacy snapshots remain readable with missing ZIP defaulting to null.
+
+
+The comparison services now attach a deterministic recommendation result via
+`backend/recommendations.py`, passing adapters around their existing calculators.
+`backend/recommendation_models.py` defines the options and result contract.
+Scenario costs, regret, credit probes, confidence, baseline savings and source
+references are saved with each comparison. See [recommendation policy](recommendations.md).
