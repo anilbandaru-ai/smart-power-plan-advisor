@@ -1,0 +1,701 @@
+{
+  "date": "2026-09-12",
+  "pdf_files": 22,
+  "unique_plans": 20,
+  "calculable_plans": 8,
+  "http_checks": {
+    "catalog": 200,
+    "comparison": 201,
+    "source_pdf": 200,
+    "saved_snapshot": 200,
+    "no_eligible_area": 422
+  },
+  "sample": {
+    "zip_code": "75201",
+    "monthly_kwh": [
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000
+    ],
+    "recommendations": [
+      {
+        "name": "SimpleSaver 12",
+        "annual_cost": "792.12"
+      },
+      {
+        "name": "Gexa Eco Saver Plus 12",
+        "annual_cost": "803.52"
+      },
+      {
+        "name": "Frontier Saver Plus 12",
+        "annual_cost": "803.52"
+      },
+      {
+        "name": "Gexa Saver Plus 12",
+        "annual_cost": "803.52"
+      },
+      {
+        "name": "SimpleSaver 24",
+        "annual_cost": "816.12"
+      },
+      {
+        "name": "Reliant Power Savings 24 plan",
+        "annual_cost": "1548.36"
+      },
+      {
+        "name": "Reliant Secure Advantage\u00ae 12 plan",
+        "annual_cost": "1818.36"
+      },
+      {
+        "name": "Reliant Cowboys plan",
+        "annual_cost": "2010.36"
+      }
+    ]
+  },
+  "plan_summary": [
+    {
+      "name": "4Change Energy Maxx Saver Value 12SM",
+      "sources": [
+        "4change/4Change Energy max saver value 12.pdf",
+        "choosetexaspower/EFL-10.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Exactly one stated delivery_energy charge required",
+        "Exactly one stated delivery_fixed charge required",
+        "Price example mismatch at 500 kWh",
+        "Price example mismatch at 1000 kWh",
+        "Price example mismatch at 2000 kWh"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.6",
+          "calculated_cents_per_kwh": "12.764",
+          "passed": false
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "6.70",
+          "calculated_cents_per_kwh": "0.265",
+          "passed": false
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "12.7",
+          "calculated_cents_per_kwh": "6.5145",
+          "passed": false
+        }
+      ]
+    },
+    {
+      "name": "Bill Credit Bundle 12",
+      "sources": [
+        "choosetexaspower/EFL-1.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Exactly one stated delivery_energy charge required",
+        "Exactly one stated delivery_fixed charge required",
+        "Price example mismatch at 500 kWh",
+        "Price example mismatch at 1000 kWh",
+        "Price example mismatch at 2000 kWh"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.7",
+          "calculated_cents_per_kwh": "12.826",
+          "passed": false
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "6.8",
+          "calculated_cents_per_kwh": "0.325",
+          "passed": false
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "12.8",
+          "calculated_cents_per_kwh": "6.575",
+          "passed": false
+        }
+      ]
+    },
+    {
+      "name": "Bill Credit Bundle 24",
+      "sources": [
+        "choosetexaspower/EFL-2.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Exactly one stated delivery_energy charge required",
+        "Exactly one stated delivery_fixed charge required",
+        "Price example mismatch at 500 kWh",
+        "Price example mismatch at 1000 kWh",
+        "Price example mismatch at 2000 kWh"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.7",
+          "calculated_cents_per_kwh": "12.826",
+          "passed": false
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "6.8",
+          "calculated_cents_per_kwh": "0.325",
+          "passed": false
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "12.8",
+          "calculated_cents_per_kwh": "6.575",
+          "passed": false
+        }
+      ]
+    },
+    {
+      "name": "Frontier Saver Plus 12",
+      "sources": [
+        "choosetexaspower/EFL-4.pdf"
+      ],
+      "calculable": true,
+      "issues": [],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.6",
+          "calculated_cents_per_kwh": "19.602",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "6.7",
+          "calculated_cents_per_kwh": "6.696",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "12.7",
+          "calculated_cents_per_kwh": "12.7425",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "Gexa Eco Saver Plus 12",
+      "sources": [
+        "choosetexaspower/EFL-11.pdf"
+      ],
+      "calculable": true,
+      "issues": [],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.6",
+          "calculated_cents_per_kwh": "19.602",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "6.7",
+          "calculated_cents_per_kwh": "6.696",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "12.7",
+          "calculated_cents_per_kwh": "12.7425",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "Gexa Saver Plus 12",
+      "sources": [
+        "choosetexaspower/EFL-6.pdf"
+      ],
+      "calculable": true,
+      "issues": [],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.6",
+          "calculated_cents_per_kwh": "19.602",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "6.7",
+          "calculated_cents_per_kwh": "6.696",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "12.7",
+          "calculated_cents_per_kwh": "12.7425",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "Real 1000 Deal 12SM",
+      "sources": [
+        "choosetexaspower/EFL-5.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Exactly one stated delivery_energy charge required",
+        "Exactly one stated delivery_fixed charge required"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.7",
+          "calculated_cents_per_kwh": "19.69",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "6.70",
+          "calculated_cents_per_kwh": "6.695",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "12.7",
+          "calculated_cents_per_kwh": "12.6975",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "Reliant ClearSM Flex plan",
+      "sources": [
+        "Reliant/EFL - Reliant Energy Retail Services-8.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Variable-rate pricing is not supported",
+        "Missing contract_term",
+        "Only fixed-rate products supported",
+        "Contract does not cover the 12-month comparison horizon"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "21.1",
+          "calculated_cents_per_kwh": "21.15",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "18.8",
+          "calculated_cents_per_kwh": "18.753",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "18.5",
+          "calculated_cents_per_kwh": "18.55",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "Reliant Cowboys plan",
+      "sources": [
+        "Reliant/EFL - Reliant Energy Retail Services-7.pdf"
+      ],
+      "calculable": true,
+      "issues": [],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.1",
+          "calculated_cents_per_kwh": "19.15",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "16.8",
+          "calculated_cents_per_kwh": "16.753",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "16.5",
+          "calculated_cents_per_kwh": "16.55",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "Reliant Flextra Credits 24 plan",
+      "sources": [
+        "Reliant/EFL - Reliant Energy Retail Services-10.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Interval usage is required for free-time pricing",
+        "Unsupported pricing rule: free days",
+        "Unsupported pricing rule: free flex",
+        "Exactly one stated delivery_fixed charge required",
+        "Price example mismatch at 500 kWh",
+        "Price example mismatch at 1000 kWh",
+        "Price example mismatch at 2000 kWh"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.6",
+          "calculated_cents_per_kwh": "27.57",
+          "passed": false
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "19.2",
+          "calculated_cents_per_kwh": "27.569",
+          "passed": false
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "18.9",
+          "calculated_cents_per_kwh": "27.569",
+          "passed": false
+        }
+      ]
+    },
+    {
+      "name": "Reliant Free Overnight 12 plan",
+      "sources": [
+        "Reliant/EFL - Reliant Energy Retail Services-9.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Interval usage is required for free-time pricing",
+        "Unsupported pricing rule: free overnight",
+        "Exactly one stated delivery_energy charge required",
+        "Exactly one stated delivery_fixed charge required",
+        "Price example mismatch at 500 kWh",
+        "Price example mismatch at 1000 kWh",
+        "Price example mismatch at 2000 kWh"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "17.6",
+          "calculated_cents_per_kwh": "18.598",
+          "passed": false
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "17.2",
+          "calculated_cents_per_kwh": "18.598",
+          "passed": false
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "16.9",
+          "calculated_cents_per_kwh": "18.598",
+          "passed": false
+        }
+      ]
+    },
+    {
+      "name": "Reliant Get More, Save More 12 plan",
+      "sources": [
+        "Reliant/EFL - Reliant Energy Retail Services-5.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Tiered energy rates require a tiered calculator",
+        "Unsupported pricing rule: energy charge: (>",
+        "Exactly one stated energy charge required",
+        "Price example mismatch at 500 kWh",
+        "Price example mismatch at 1000 kWh",
+        "Price example mismatch at 2000 kWh"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "17.6",
+          "calculated_cents_per_kwh": "8.232",
+          "passed": false
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "16.5",
+          "calculated_cents_per_kwh": "7.131",
+          "passed": false
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "14.9",
+          "calculated_cents_per_kwh": "6.58",
+          "passed": false
+        }
+      ]
+    },
+    {
+      "name": "Reliant Get More, Save More 36 plan",
+      "sources": [
+        "Reliant/EFL - Reliant Energy Retail Services-4.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Tiered energy rates require a tiered calculator",
+        "Unsupported pricing rule: energy charge: (>",
+        "Exactly one stated energy charge required",
+        "Price example mismatch at 500 kWh",
+        "Price example mismatch at 1000 kWh",
+        "Price example mismatch at 2000 kWh"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "18.7",
+          "calculated_cents_per_kwh": "8.232",
+          "passed": false
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "17.6",
+          "calculated_cents_per_kwh": "7.131",
+          "passed": false
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "14.5",
+          "calculated_cents_per_kwh": "6.58",
+          "passed": false
+        }
+      ]
+    },
+    {
+      "name": "Reliant Power Savings 24 plan",
+      "sources": [
+        "Reliant/EFL - Reliant Energy Retail Services-1.pdf",
+        "Reliant/EFL - Reliant Energy Retail Services-2.pdf"
+      ],
+      "calculable": true,
+      "issues": [],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "20.8",
+          "calculated_cents_per_kwh": "20.81",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "12.9",
+          "calculated_cents_per_kwh": "12.903",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "16.4",
+          "calculated_cents_per_kwh": "16.45",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "Reliant Power Savings 9 plan",
+      "sources": [
+        "Reliant/EFL - Reliant Energy Retail Services-3.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Contract does not cover the 12-month comparison horizon"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.8",
+          "calculated_cents_per_kwh": "19.81",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "11.9",
+          "calculated_cents_per_kwh": "11.903",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "15.4",
+          "calculated_cents_per_kwh": "15.45",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "Reliant Secure Advantage\u00ae 12 plan",
+      "sources": [
+        "Reliant/EFL - Reliant Energy Retail Services-6.pdf"
+      ],
+      "calculable": true,
+      "issues": [],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "17.5",
+          "calculated_cents_per_kwh": "17.55",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "15.2",
+          "calculated_cents_per_kwh": "15.153",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "14.9",
+          "calculated_cents_per_kwh": "14.95",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "SimpleSaver 11",
+      "sources": [
+        "choosetexaspower/EFL-8.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Contract does not cover the 12-month comparison horizon"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.4",
+          "calculated_cents_per_kwh": "19.408",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "6.5",
+          "calculated_cents_per_kwh": "6.501",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "12.5",
+          "calculated_cents_per_kwh": "12.5475",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "SimpleSaver 12",
+      "sources": [
+        "choosetexaspower/EFL-7.pdf"
+      ],
+      "calculable": true,
+      "issues": [],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.5",
+          "calculated_cents_per_kwh": "19.508",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "6.6",
+          "calculated_cents_per_kwh": "6.601",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "12.6",
+          "calculated_cents_per_kwh": "12.6475",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "SimpleSaver 24",
+      "sources": [
+        "choosetexaspower/EFL-3.pdf"
+      ],
+      "calculable": true,
+      "issues": [],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "19.7",
+          "calculated_cents_per_kwh": "19.708",
+          "passed": true
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "6.8",
+          "calculated_cents_per_kwh": "6.801",
+          "passed": true
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "12.8",
+          "calculated_cents_per_kwh": "12.8475",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "TXU Energy Smart 1000 Saver 12SM",
+      "sources": [
+        "choosetexaspower/EFL-9.pdf"
+      ],
+      "calculable": false,
+      "issues": [
+        "Seasonal credit pricing is not supported",
+        "Unsupported pricing rule: summer bill credit",
+        "Exactly one stated delivery_energy charge required",
+        "Exactly one stated delivery_fixed charge required",
+        "Price example mismatch at 500 kWh",
+        "Price example mismatch at 1000 kWh",
+        "Price example mismatch at 2000 kWh"
+      ],
+      "price_checks": [
+        {
+          "kwh": 500,
+          "stated_cents_per_kwh": "22.5",
+          "calculated_cents_per_kwh": "15.69",
+          "passed": false
+        },
+        {
+          "kwh": 1000,
+          "stated_cents_per_kwh": "10.5",
+          "calculated_cents_per_kwh": "4.695",
+          "passed": false
+        },
+        {
+          "kwh": 2000,
+          "stated_cents_per_kwh": "15.1",
+          "calculated_cents_per_kwh": "9.1975",
+          "passed": false
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Document-date estimates, not live offers or independent tariff approval.",
+    "Only recognized, complete pricing models are calculated.",
+    "No new Pinecone publication performed."
+  ]
+}

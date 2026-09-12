@@ -108,3 +108,20 @@ test('editing ZIP while a saved comparison loads ignores the old response', asyn
   assert.equal(app.get('zip-code').value, '77002');
   assert.equal(app.get('results').children.length, 0);
 });
+
+test('PDF mode is explicit, renders exclusions and changing mode invalidates results', async () => {
+  let payload;
+  const app = setup(async (_, options) => {
+    payload = JSON.parse(options.body);
+    return { ...saved('75201'), data_mode:'pdf', excluded_plans:[{name:'Missing rates',reasons:['TDU rates absent']}],
+      recommendations:[{...saved('75201').recommendations[0],source_url:'/api/catalog/plans/id/document'}] };
+  });
+  enterZip(app, '75201');
+  app.get('plan-source').value = 'pdf';
+  await app.get('compare-form').fire('submit');
+  assert.equal(payload.data_source, 'pdf');
+  assert.ok(app.get('results').children.some(node => node.tag === 'details'));
+  app.get('plan-source').value = 'demo';
+  app.get('plan-source').fire('change');
+  assert.equal(app.get('results').children.length, 0);
+});

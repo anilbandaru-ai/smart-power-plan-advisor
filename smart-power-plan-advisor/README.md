@@ -106,3 +106,24 @@ process and expire after 30 idle minutes. Run one worker.
 See the [agent guide](docs/agent.md) for run instructions, API contracts, graph,
 limits and tests. The [implementation plan](docs/react-agent-plan.md) records the
 broader proposal; the root specification identifies the delivered first increment.
+
+## PDF plan API and ingestion
+
+The calculator now offers **Extracted PDF plans** backed by a SQLite catalog.
+To ingest new or changed PDFs under `data/`, run from this directory:
+
+```sh
+python -m backend.catalog.cli --env-file .env sync
+```
+
+Browse `/api/catalog/plans` and `/api/catalog/status`. Incomplete or unsupported
+plans remain visible with exclusion reasons; the calculator never substitutes demo
+rates. Unchanged files are reused. See the [catalog guide](docs/plan-catalog.md) for
+filters, retry options, supported pricing, storage choices and the separate Pinecone
+chat-ingestion workflow.
+
+Missing delivery charges can now be resolved from the approved 4Change TDU page,
+with dated web evidence and price reconciliation. Use
+`python -m backend.catalog.cli --env-file .env sync --refresh-tdu` to refresh
+dependent plans. Other provider pages require a reviewed parser; details are in
+the catalog guide.
