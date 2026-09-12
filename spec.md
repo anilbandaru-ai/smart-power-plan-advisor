@@ -7,7 +7,7 @@ This specification records the functionality present in the repository. Requirem
 
 ## 1. Purpose and scope
 
-The application is a local Texas electricity-plan comparison demo. A user selects a delivery area and supplies 12 monthly electricity-usage values. The application computes each eligible plan's monthly charges, ranks plans by annual cost, and saves a retrievable comparison.
+The application is a local Texas electricity-plan comparison demo. A user enters a demo ZIP and supplies 12 monthly electricity-usage values. The application computes each eligible plan's monthly charges, ranks plans by annual cost, and saves a retrievable comparison.
 
 All calculator catalog plans, rates, and delivery charges are synthetic. Comparison results are estimates in USD, not available electricity offers. Calculator pricing and explanations use deterministic Python logic with no API key. The separate document Q&A feature in section 10 uses OpenAI, Pinecone and LangGraph to explain indexed PDFs with citations.
 
@@ -15,16 +15,16 @@ All calculator catalog plans, rates, and delivery charges are synthetic. Compari
 
 | ID | Implemented requirement |
 | --- | --- |
-| UI-01 | Serve the application at `/`, with a delivery-area selector, a required usage textarea, and a Compare plans button. Explain that plans are fictional and taxes and switching fees are excluded. |
-| UI-02 | Load delivery areas from `/api/plans`. Keep the selector and button disabled until a nonempty catalog of areas loads successfully. Display areas in the API's sorted order. |
+| UI-01 | Serve the application at `/`, with a required ZIP input, a required usage textarea, and a Compare plans button. Explain that plans are fictional and taxes and switching fees are excluded. |
+| UI-02 | Enable comparison for a five-digit ZIP when no comparison is pending. No delivery-area lookup or selection exists. |
 | UI-03 | Prepopulate usage with `800, 750, 700, 850, 1100, 1400, 1600, 1500, 1200, 950, 750, 850`, labeled January through December. |
 | UI-04 | Accept exactly 12 comma-separated usage values. Trim each token; require digits with an optional decimal portion of one to four digits, and a numeric value at most `99999999.9999`. Zero is allowed. Reject empty tokens, negative numbers, exponent notation, and incomplete decimals in the browser. |
 | UI-05 | On invalid browser input, clear results and display `Enter 12 non-negative usage numbers with no more than four decimal places.` Do not send a comparison request. |
-| UI-06 | On valid submission, disable the button, clear previous results, display `Comparing plans…`, and POST the selected area and usage values as decimal strings. Re-enable the button after success or failure. |
+| UI-06 | Submit ZIP and monthly usage, disable the comparison button while pending and ignore responses made stale by input edits. |
 | UI-07 | Render assumptions followed by ranked plan cards showing rank, name, annual cost, explanation, and source. Label the first plan `Lowest estimated cost among these demo plans`. |
 | UI-08 | Provide an expandable monthly breakdown for each plan with month, kWh, energy, base fee, delivery, credit, and total columns. Display money using US-dollar currency formatting. Explain that credits are subtracted. |
 | UI-09 | After creation, display `Comparison saved locally.`, replace the browser URL with `/?comparison=<id>`, and provide a link to that saved comparison. |
-| UI-10 | On initial load with a nonempty `comparison` query parameter, load the catalog first, then retrieve and render the saved result. Restore the selected area and usage from the saved result and display `Loaded saved comparison.` |
+| UI-10 | Retrieve saved comparisons and restore ZIP and usage, without a coverage lookup. Legacy results without ZIP remain viewable and need ZIP for a new comparison. |
 | UI-11 | Show a string API `detail` as an error message when available; otherwise show `Request failed (<status>). Check your inputs and try again.` Network errors are displayed using the thrown error's message. An empty area list displays `No demo delivery areas are available.` |
 | UI-12 | Provide labeled form controls, usage help linked through `aria-describedby`, a polite live status region, table captions and column headers, visible keyboard focus styling, and horizontally scrollable tables. Link to API documentation and service health in the footer. |
 
@@ -36,20 +36,20 @@ The frontend uses plain HTML, CSS, and JavaScript. It has no frontend build step
 
 ```json
 {
-  "tdu": "Oncor",
+  "zip_code": "75201",
   "monthly_kwh": [800, 750, 700, 850, 1100, 1400, 1600, 1500, 1200, 950, 750, 850]
 }
 ```
 
 | ID | Implemented requirement |
 | --- | --- |
-| DATA-01 | Require `tdu` to be a string of 1–60 characters. Match catalog delivery areas exactly; no trimming, case normalization, address lookup, or ZIP-code inference is implemented. |
+| DATA-01 | Require a five-ASCII-digit ZIP string; comparison requests have no tdu field. Filter demo plans using the in-memory ZIP-to-plan-ID mapping. |
 | DATA-02 | Require exactly 12 nonnegative decimal usage values, with Pydantic constraints `max_digits=12` and `decimal_places=4`. Numeric JSON values and decimal strings are supported. Non-finite values such as `NaN` are invalid. |
 | DATA-03 | Reject additional top-level comparison-request fields. Backend validation is authoritative and is separate from the browser's token-format check. |
 
 ### 3.2 Plan model and catalog
 
-`Plan` contains `id`, `name`, `tdu`, `energy_rate`, `base_fee`, `delivery_rate`, `delivery_fee`, `credit_threshold`, `credit_amount`, `term_months`, and `source`.
+`Plan` contains `id`, `name`, `energy_rate`, `base_fee`, `delivery_rate`, `delivery_fee`, `credit_threshold`, `credit_amount`, `term_months`, and `source`.
 
 - Rates, fees, credit amounts, and non-null thresholds use the same nonnegative decimal constraints as usage.
 - `credit_threshold` defaults to `null`, `credit_amount` to zero, and `term_months` to 12.
@@ -58,12 +58,12 @@ The frontend uses plain HTML, CSS, and JavaScript. It has no frontend build step
 
 The current catalog is:
 
-| Plan ID | Name | Area | Energy $/kWh | Base $/month | Delivery $/kWh | Delivery $/month | Credit |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `demo-oncor-simple` | Demo Simple | Oncor | 0.105 | 0 | 0.05 | 5 | None |
-| `demo-oncor-credit` | Demo Usage Credit | Oncor | 0.13 | 5 | 0.05 | 5 | $40 at usage ≥ 1000 kWh |
-| `demo-centerpoint-simple` | Demo Simple | CenterPoint | 0.10 | 0 | 0.055 | 5 | None |
-| `demo-centerpoint-credit` | Demo Usage Credit | CenterPoint | 0.125 | 5 | 0.055 | 5 | $40 at usage ≥ 1000 kWh |
+| Plan ID | Name | Energy $/kWh | Base $/month | Delivery $/kWh | Delivery $/month | Credit |
+| --- | --- | --- | --- | --- | --- | --- |
+| `demo-oncor-simple` | Demo Simple | 0.105 | 0 | 0.05 | 5 | None |
+| `demo-oncor-credit` | Demo Usage Credit | 0.13 | 5 | 0.05 | 5 | $40 at usage ≥ 1000 kWh |
+| `demo-centerpoint-simple` | Demo Simple | 0.10 | 0 | 0.055 | 5 | None |
+| `demo-centerpoint-credit` | Demo Usage Credit | 0.125 | 5 | 0.055 | 5 | $40 at usage ≥ 1000 kWh |
 
 All four plans have source `Synthetic fixture: data/plans.json`.
 
@@ -74,8 +74,8 @@ All four plans have source `Synthetic fixture: data/plans.json`.
 | `id` | Newly generated UUID4 string. |
 | `created_at` | UTC timestamp serialized with Python `isoformat()`. |
 | `data_mode` | `"demo"`. |
-| `tdu` | Requested delivery area. |
-| `assumptions` | Statements covering synthetic offers, USD and constant 12-month rates, excluded taxes/enrollment/early-termination fees, manual area selection, and monthly line-item rounding. |
+| `zip_code` | Requested ZIP string; null when reading legacy snapshots. |
+| `assumptions` | Statements covering synthetic offers, USD and constant 12-month rates, excluded taxes/enrollment/early-termination fees, demo ZIP plan coverage without verified eligibility, and monthly line-item rounding. |
 | `recommendations` | All matching plans, ordered by annual cost and then plan ID. |
 
 Each recommendation contains `plan_id`, `name`, `term_months`, `annual_cost`, `monthly_costs`, `explanation`, and `source`. Each monthly entry contains `month` (1–12), `kwh`, `energy`, `base_fee`, `delivery`, `credit`, and `total`.
@@ -98,7 +98,7 @@ annual_cost = sum(the 12 monthly totals)
 
 | ID | Implemented requirement |
 | --- | --- |
-| PRICE-01 | Filter plans by exact delivery-area equality before calculating. If no plans match, raise `No demo plans are available for this delivery area.` |
+| PRICE-01 | Filter catalog by the requested ZIP's mapped plan IDs. Reject unmapped ZIPs or ZIPs with no available catalog matches. |
 | PRICE-02 | Calculate each month independently using Decimal arithmetic. Do not substitute average usage for the monthly profile. |
 | PRICE-03 | Apply the credit at an inclusive threshold. Round the energy amount, combined delivery amount, base fee, and credit separately before calculating the monthly total. |
 | PRICE-04 | Sum monthly totals to get annual cost. Sort ascending by `(annual_cost, plan_id)` and return every eligible plan. |
@@ -111,10 +111,11 @@ There is no minimum-total clamp, tax calculation, time-of-use calculation, varia
 | ID | Method and route | Success behavior | Implemented error behavior |
 | --- | --- | --- | --- |
 | API-01 | `GET /api/health` | 200: `{"status":"ok","data_mode":"demo","storage":"sqlite"}` after checking storage and reading the catalog. | 503 with `detail: "Storage or plan source is unavailable"` if either check raises an exception. |
-| API-02 | `GET /api/plans` | 200: `data_mode`, sorted distinct `tdus`, and the full validated `plans` list. Current area order is `CenterPoint`, `Oncor`. | No custom catalog-failure response is implemented for this endpoint. |
+| API-02 | `GET /api/plans` | 200: data_mode and the validated plans list; no tdus or plan TDU fields. | No custom catalog-failure response. |
 | API-03 | `POST /api/comparisons` | 201: calculate, save, and return a `ComparisonResult`. | 422 for invalid requests; comparison-service `ValueError` messages become string `detail` responses, including an unsupported area. |
 | API-04 | `GET /api/comparisons/{comparison_id}` | 200: return the stored comparison without recalculation. | 422 for an invalid UUID; 404 with `detail: "Comparison not found"` for a valid UUID with no saved result. |
 | API-05 | `GET /` and `/static/*` | Serve `frontend/index.html` and files from `frontend/`, respectively. | Standard framework file-serving behavior. |
+| API-07 | Removed: `/api/service-areas` | No active endpoint. | 404. |
 | API-06 | `GET /docs` | Expose FastAPI's interactive API documentation. | Standard framework behavior. |
 
 FastAPI validation errors use the framework's structured `detail` format. Storage failures during save/retrieval and other uncaught errors have no custom application error mapping. The API does not return a successful creation response before storage succeeds.
@@ -126,7 +127,7 @@ FastAPI validation errors use the framework's structured `detail` format. Storag
 | STORE-01 | Use SQLite at application-relative `.data/advisor.sqlite3` by default. Allow `ADVISOR_DB_PATH` to override the path; an explicit `create_app(db_path=...)` argument takes precedence. |
 | STORE-02 | On application startup, create parent directories and initialize `comparisons (id TEXT PRIMARY KEY, payload TEXT NOT NULL)` if absent. Read the catalog during startup so invalid catalog data prevents normal startup. |
 | STORE-03 | Insert the complete serialized comparison as a snapshot, keyed by its generated ID. Read and validate the saved JSON when retrieving it. Provide no update, deletion, or listing endpoint. |
-| STORE-04 | Preserve saved comparisons across application restarts using the same database file. Retrieval does not recalculate against current rates, although the browser loads the current catalog before requesting a saved comparison. |
+| STORE-04 | Preserve saved comparisons across application restarts using the same database file. Retrieval does not recalculate against current rates, and the browser displays saved results even when current ZIP coverage cannot be resolved. |
 | OPS-01 | For requests that return through the middleware, log HTTP method, URL path, response status, and elapsed milliseconds using the `uvicorn.error` logger. Log exceptions encountered by the readiness check. |
 | OPS-02 | Use FastAPI and Uvicorn as runtime dependencies, with HTTPX added for API tests. Run locally on loopback as documented in the README. |
 
@@ -161,9 +162,9 @@ These scenarios describe the existing automated tests in `tests/test_advisor.py`
 | Oncor credit plan at 999, 1000, and 1001 kWh | Monthly totals are $189.82, $150.00, and $150.18 respectively. | `PricingTests.test_credit_threshold` |
 | Oncor usage alternates 500 and 1500 kWh for 12 months | Simple ranks first at $1920.00; credit plan costs $2040.00; only Oncor plans appear. | `PricingTests.test_variable_months_are_not_replaced_with_average` |
 | Load app, JavaScript, health and catalog | Root and JavaScript return 200, health reports `ok`, and catalog contains four plans. | `ApiTests.test_comparison_persists_across_app_restarts` |
-| Submit Oncor with 1000 kWh in every month | Creation returns 201; first recommendation costs $1800.00 annually. | `ApiTests.test_comparison_persists_across_app_restarts` |
+| Submit ZIP 75201 with 1000 kWh in every month | Creation returns 201; first recommendation costs $1800.00 annually. | `ApiTests.test_comparison_persists_across_app_restarts` |
 | Restart with the same database, then retrieve the saved ID | Retrieved JSON equals the original result. A missing all-zero UUID returns 404. | `ApiTests.test_comparison_persists_across_app_restarts` |
-| Submit an unknown area, one usage value, negative usage, or `NaN` | Each request returns 422. | `ApiTests.test_rejects_invalid_or_unsupported_input` |
+| Submit an obsolete tdu field, one usage value, negative usage, or `NaN` | Each request returns 422. | `ApiTests.test_rejects_invalid_or_unsupported_input` |
 
 Other behaviors above were confirmed by source inspection, not by dedicated existing tests. Coverage gaps include browser interaction, rounding edge cases, tie-breaking, CenterPoint-specific expected bills, extra-field/precision limits, malformed UUIDs, readiness failures, and catalog changes after saving.
 
@@ -178,7 +179,7 @@ The initial specification review could not run Python tests because the workspac
 
 ## 9. Not implemented
 
-The current baseline does not include live plan feeds, real tariff or eligibility verification, address/ZIP lookup, bill uploads, OCR, extraction of approved pricing rules into the calculator, Smart Meter Texas integration, interval usage, forecasts, usage scenarios, customer accounts, authentication, enrollment/switching, notifications, scheduled refresh, hosted application/database deployment, or production monitoring dashboards. PDF text extraction and cited RAG question answering are implemented separately as described below.
+The current baseline includes only the demo in-memory ZIP plan mapping in section 12 and does not include live plan feeds, real tariff or eligibility verification, authoritative address/ZIP lookup, bill uploads, OCR, extraction of approved pricing rules into the calculator, Smart Meter Texas integration, interval usage, forecasts, usage scenarios, customer accounts, authentication, enrollment/switching, notifications, scheduled refresh, hosted application/database deployment, or production monitoring dashboards. PDF text extraction and cited RAG question answering are implemented separately as described below.
 
 These exclusions are scope boundaries, not commitments for future releases. Planned behavior should be specified separately and incorporated into this baseline when implemented and verified.
 
@@ -205,3 +206,62 @@ Initial chunk sizes and retrieval limits are engineering defaults exercised on t
 Implementation: `backend/knowledge/` contains configuration, extraction/chunking, providers, ingestion/CLI, LangGraph and API modules. `frontend/` contains the document-question form. See [RAG architecture and setup](smart-power-plan-advisor/docs/rag.md), [evaluation cases](smart-power-plan-advisor/docs/rag-evaluation.json), and `tests/test_knowledge.py` under the application directory. The original architecture review is a historical comparison-path baseline.
 
 Verification on 2026-09-11: 20 automated Python tests passed (four calculator and 16 RAG tests); JavaScript syntax and DOM-stub checks passed. A new dedicated Pinecone index was created and two chunks from the unique EFL page were uploaded. Six live evaluation cases returned HTTP 200; the three supported factual questions returned page-1 citations, and missing-TDU/bill-total requests abstained. The injection case safely rejected the invented claim with valid evidence but returned `abstained=false` in the final run, a known model-label inconsistency (five of six exact expected-flag checks matched). A citation-validation failure can also cause conservative abstention rather than a detailed explanation. Full browser visual QA was unavailable because no connected browser was exposed. The local server's page, health and configured/indexed status endpoints were checked successfully.
+
+## 11. In-memory ZIP lookup MVP - historical, superseded by section 12
+
+Authorized 2026-09-11. This amendment supersedes UI-01/UI-02/UI-06/UI-10,
+DATA-01, the request/result contracts, and the ZIP exclusion in section 9 where
+specified below. Other behavior, including pricing and document Q&A, is unchanged.
+
+- ZIP-01: Add a required five-ASCII-digit string ZIP input above Delivery area.
+  An explicit lookup button queries GET /api/service-areas?zip_code=.... Return
+  zip_code, sorted tdus and data_mode=demo. Invalid syntax returns 422; valid
+  unmapped ZIPs return 200 with an empty list and a coverage message in the UI.
+- ZIP-02: Use only a Python in-memory dictionary of demo mappings: 75201 and
+  75001 -> Oncor; 77002 and 77007 -> CenterPoint. Do not persist lookup data, call
+  external services, or claim verified eligibility. Support lists of candidates
+  and intersect them with the current plan catalog. Multi-area behavior is tested
+  with an injected fictional mapping, not a claimed real overlap.
+- ZIP-03: Auto-select a sole candidate; require explicit selection for multiple
+  candidates. For this MVP an unmapped ZIP cannot create a new comparison; explain
+  limited demo coverage and show supported examples. Editing ZIP clears the area,
+  results and saved URL. Ignore stale lookup/comparison/load responses after edits.
+- ZIP-04: New comparison requests require zip_code; validate the selected TDU
+  against its in-memory mapping before calculating. Reject missing/invalid ZIPs,
+  unmapped ZIPs and area mismatches with 422. Retain existing monthly pricing.
+- ZIP-05: Save ZIP with each new result in the existing SQLite JSON snapshot.
+  Existing records without ZIP remain readable with zip_code=null and render
+  without guessing a ZIP; request a ZIP before a new comparison. Restore ZIP,
+  usage and area for new saved comparisons. Mapping changes cannot prevent viewing
+  saved results, but new calculations must satisfy current mappings.
+- ZIP-06: Add backend tests for malformed/missing/leading-zero/unmapped ZIPs,
+  single/multiple candidates, catalog filtering, mismatched areas and legacy JSON.
+  Add dependency-free DOM tests for lookup, area selection, stale responses and
+  saved-result restoration. Run calculator tests, DOM tests and JS syntax checks.
+
+Verification 2026-09-11: eight calculator/API Python tests passed (including four ZIP test methods); five dependency-free DOM-stub tests passed; JavaScript syntax check passed. Tests cover leading-zero preservation, malformed/unmapped ZIPs, multiple candidates, catalog filtering, mismatch rejection, legacy JSON, saved restoration, lookup failure and stale responses. No real-browser visual verification or live ZIP eligibility verification was performed.
+
+## 12. ZIP-only comparisons - implemented
+
+Authorized 2026-09-11. Supersedes delivery-area behavior in UI-01/UI-02/UI-06/UI-10,
+DATA-01, PRICE-01, API-02/API-07 and section 11 (historical after this change).
+
+- ZIP-01/ZIP-03 revised: ZIP and monthly usage are the only comparison inputs.
+  Remove Delivery area, lookup button/status and lookup requests. A valid ZIP
+  enables submission; unknown coverage is reported by the comparison endpoint.
+  Keep stale-response protection and restore ZIP/usage for saved results.
+- ZIP-02 revised: Replace utility-based mapping with an in-memory ZIP-to-plan-ID
+  mapping in integrations.py. Preserve the existing four ZIPs and eligible demo
+  plans. Remove service_areas.py, all TDU model/catalog fields, area choices and
+  /api/service-areas. /api/plans returns data_mode and plans without tdus.
+- ZIP-04 revised: POST comparisons accepts only zip_code and monthly_kwh; reject
+  obsolete tdu input as an extra field. Filter by mapped plan IDs. Invalid or
+  unsupported ZIP and empty matched catalog return 422. Prices are unchanged.
+- ZIP-05 revised: New responses contain ZIP, no tdu. Older snapshots containing
+  tdu or lacking ZIP remain readable without recalculation; unknown legacy fields
+  are ignored and missing ZIP is null. No old database files are rewritten.
+- ZIP-06 revised: Replace area lookup/selection tests with ZIP-only filtering,
+  obsolete-route/field removal, legacy snapshot and UI submission/restore/stale
+  response tests. Update current README/architecture guidance and specification.
+
+Verification: eight calculator/API tests and five DOM-stub UI tests passed; JavaScript syntax check passed. Covers ZIP-only filtering/submission, removed endpoint and fields, invalid/unsupported ZIPs, missing catalog entries, legacy snapshot loading and stale responses. No full browser visual test was performed.
