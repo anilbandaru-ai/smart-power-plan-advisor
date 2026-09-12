@@ -11,7 +11,7 @@ This optional feature answers questions about locally supplied electricity facts
 | Generation | OpenAI `gpt-4.1-mini` through Responses structured output, configurable with `OPENAI_RAG_MODEL`. A practical default for short grounded answers, not a claim of best performance across models. |
 | Parent chunks | Complete PDF pages, capped at 1,800 tokens. Ruled tables are serialized by row and cell before chunking; pricing tables, footnotes, and adjacent conditions remain together in the LLM context. Oversized pages require review rather than silent splitting. |
 | Child chunks | Up to approximately 450 tokens, with 60-token overlap and a preference for line boundaries. Children never cross pages or documents. They locate relevant parent pages; they are not the only text sent to the LLM. |
-| Duplicate handling | Exact extracted-text duplicate pages within a PDF are indexed once, with the first original page number retained. |
+| Duplicate handling | Exact extracted-text duplicate pages within a PDF are indexed once, with the first original page number retained. Completely blank pages (no text or PDF objects) are skipped and recorded in the manifest; original page numbers remain unchanged. All-blank documents and scanned/nonblank unreadable pages still require review. |
 | Retrieval | Query at most eight child vectors in the active versioned namespace, optionally filtered by document ID. Discard scores below 0.25 and mismatched metadata; deduplicate to at most four full parent pages. This score is a heuristic, not a calibrated confidence probability. |
 
 This is **table-aware page-parent/child retrieval**, using pdfplumber's ruled-table detection rather than LLM semantic segmentation. Outer tables are serialized once, retaining cell boundaries and text outside tables; unruled pages fall back to ordinary text extraction. Complex layouts still require review. The EFL is a small, table-heavy document; preserving a full page is more useful here than sending arbitrary isolated fragments of a price row. The initial PDF has two identical extracted pages; preview yields one unique parent and two children. For longer or scanned documents, review extraction and adjust the versioned policy before expanding support. OCR is not included.
@@ -103,7 +103,7 @@ python -m unittest discover -s tests -v
 node --check frontend/app.js
 ```
 
-The dedicated `power-plan-documents` index was created using the user-provided keys, and the EFL was embedded and ingested successfully. The active extraction policy is `table-page-parent-1800-child-450-overlap-60-v2`; the previous namespace was retained. Live PDF source retrieval returned 200 with `application/pdf`.
+The dedicated `power-plan-documents` index was created using the user-provided keys, and the EFL was embedded and ingested successfully. The active extraction policy is `table-page-parent-1800-child-450-overlap-60-v3-skip-blank`; the previous namespace was retained. Live PDF source retrieval returned 200 with `application/pdf`.
 
 The first live pass exposed interleaved question/answer columns in plain PDF text. Table-aware extraction corrected that issue, and the termination-fee question then returned an exact supporting excerpt. This is why extraction quality is part of the chunking design.
 
@@ -123,3 +123,16 @@ Five of six exact expected-abstention flags matched in the final evaluation. The
 Use `rag-evaluation.json` for the live check once configured. For each question, record whether the correct page was retrieved, whether abstention matched expectation, and whether every material claim is supported by its excerpt. Include the numeric inequality, missing TDU rates, termination formula and an instruction-injection question. Do not declare chunking or model quality validated based only on mocked tests.
 
 Official API references: [OpenAI embeddings](https://developers.openai.com/api/docs/guides/embeddings), [GPT-4.1 mini](https://developers.openai.com/api/docs/models/gpt-4.1-mini), [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs), [Pinecone Python SDK](https://docs.pinecone.io/reference/sdks/python/overview), and [LangGraph Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api).
+
+## Expanded corpus indexing (2026-09-11)
+
+Created `power-plan-documents` and indexed all 22 PDFs from `data/` using
+`table-page-parent-1800-child-450-overlap-60-v3-skip-blank`.
+Active namespace: `power-plans-992a431d5dda47a05af9294d`.
+All 59 vectors were fetched successfully, covering all 22 document IDs; a filtered
+semantic retrieval also passed. The active manifest is `.data/knowledge.json`.
+
+Two blank trailing pages (page 2 of `choosetexaspower/EFL-5.pdf` and `EFL-9.pdf`)
+were skipped. Original PDFs and citation page numbers were preserved. Seventeen
+RAG tests passed, including blank-page, all-blank and scanned-page cases. JSON
+catalog/metadata files are not PDF sources and were not embedded.

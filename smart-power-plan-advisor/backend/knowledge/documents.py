@@ -81,10 +81,13 @@ def build_corpus(settings: Settings):
         relative = path.relative_to(root).as_posix()
         content_hash = digest(path.read_bytes())
         document_id = digest(relative.encode())[:24]
-        seen, pages = set(), []
+        seen, pages, skipped_blank_pages = set(), [], []
         with pdfplumber.open(path) as pdf:
             for number, page in enumerate(pdf.pages, 1):
                 text = "\n".join(line.rstrip() for line in extract_page(page).splitlines()).strip()
+                if not text and getattr(page, "objects", None) == {}:
+                    skipped_blank_pages.append(number)
+                    continue
                 count = len(encoding.encode(text, disallowed_special=()))
                 if count < 20 or count > 1800:
                     raise DocumentReviewRequired(f"{relative}, page {number}: text is empty/scanned, too short, or exceeds 1800 tokens; review required")
@@ -100,7 +103,10 @@ def build_corpus(settings: Settings):
                         "document_hash": content_hash, "page": number, "parent_id": parent_id,
                         "parent_text": text, "text": child, "chunk_policy": CHUNK_POLICY,
                     }})
-        documents.append({"id": document_id, "filename": relative, "sha256": content_hash, "pages": pages})
+        if not pages:
+            raise DocumentReviewRequired(f"{relative}: no usable pages; review required")
+        documents.append({"id": document_id, "filename": relative, "sha256": content_hash,
+                          "pages": pages, "skipped_blank_pages": skipped_blank_pages})
     if not records:
         raise ValueError("No text PDFs found under data/")
     version_input = {"documents": documents, "embedding": EMBEDDING_MODEL,

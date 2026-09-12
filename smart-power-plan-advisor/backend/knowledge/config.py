@@ -8,7 +8,7 @@ from backend.knowledge.models import KnowledgeUnavailable
 ROOT = Path(__file__).resolve().parents[2]
 EMBEDDING_MODEL = "text-embedding-3-large"
 DIMENSIONS = 3072
-CHUNK_POLICY = "table-page-parent-1800-child-450-overlap-60-v2"
+CHUNK_POLICY = "table-page-parent-1800-child-450-overlap-60-v3-skip-blank"
 
 
 @dataclass(frozen=True)

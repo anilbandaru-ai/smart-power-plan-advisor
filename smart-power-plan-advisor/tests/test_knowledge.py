@@ -134,7 +134,7 @@ class CorpusTests(unittest.TestCase):
         self.assertIn("Header outside table", text)
 
     def test_chunks_preserve_text_boundaries_and_token_budget(self):
-        text = "\n".join(f"Clause {i}: Bill credit > 999 kWh; energy 12.7645¢. " for i in range(100))
+        text = "\n".join(f"Clause {i}: Bill credit > 999 kWh; energy 12.7645Â¢. " for i in range(100))
         encoding = tiktoken.get_encoding("cl100k_base")
         chunks = child_texts(text)
         self.assertGreater(len(chunks), 1)
@@ -162,6 +162,26 @@ class CorpusTests(unittest.TestCase):
                 (root / "one.pdf").write_bytes(b"pdf-v2")
                 revised, _ = build_corpus(settings)
                 self.assertNotEqual(active["namespace"], revised["namespace"])
+
+    def test_blank_pages_preserve_citations_and_all_blank_documents_fail(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "one.pdf").write_bytes(b"pdf")
+            blank = SimpleNamespace(extract_text=lambda: "", find_tables=lambda: [], objects={})
+            text = SimpleNamespace(extract_text=lambda: TEXT, find_tables=lambda: [])
+            with patch("backend.knowledge.documents.pdfplumber.open") as opened:
+                opened.return_value.__enter__.return_value.pages = [blank, text, blank]
+                active, records = build_corpus(Settings(data_dir=root))
+                self.assertEqual(active["documents"][0]["pages"], [2])
+                self.assertEqual(active["documents"][0]["skipped_blank_pages"], [1, 3])
+                self.assertTrue(all(record["metadata"]["page"] == 2 for record in records))
+                opened.return_value.__enter__.return_value.pages = [blank]
+                with self.assertRaisesRegex(ValueError, "no usable pages"):
+                    build_corpus(Settings(data_dir=root))
+                scanned = SimpleNamespace(extract_text=lambda: "", find_tables=lambda: [], objects={"image": [{}]})
+                opened.return_value.__enter__.return_value.pages = [scanned]
+                with self.assertRaisesRegex(ValueError, "review required"):
+                    build_corpus(Settings(data_dir=root))
 
     def test_scanned_and_oversized_pages_fail_before_publication(self):
         with tempfile.TemporaryDirectory() as directory:
