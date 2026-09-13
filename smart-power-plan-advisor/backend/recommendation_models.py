@@ -5,6 +5,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class RecommendationOptions(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    renewal_escalation_pct: Decimal = Field(default=Decimal("5"), ge=0, le=30, max_digits=4, decimal_places=2)
+    renewal_credit_policy: Literal["retain", "drop"] = "retain"
     usage_provenance: Literal["unknown", "estimated", "bills", "meter"] = "unknown"
     max_contract_months: int | None = Field(default=None, ge=12, le=120)
     baseline_plan_id: str | None = Field(default=None, min_length=1, max_length=200)
@@ -14,6 +16,7 @@ class RecommendationOptions(BaseModel):
 class ScenarioCost(BaseModel):
     scenario_id: str
     annual_cost: Decimal
+    horizon_cost: Decimal | None = None
     rank: int
     regret: Decimal
 
@@ -23,6 +26,12 @@ class RecommendedPlan(BaseModel):
     name: str
     term_months: int
     estimated_annual_cost: Decimal
+    horizon_cost: Decimal | None = None
+    annualized_cost: Decimal | None = None
+    initial_term_cost: Decimal | None = None
+    modeled_renewal_cost: Decimal | None = None
+    horizon_monthly_costs: list[dict] = Field(default_factory=list)
+    yearly_costs: list[dict] = Field(default_factory=list)
     recommendation_reasons: list[str]
     scenario_results: list[ScenarioCost]
     max_scenario_regret: Decimal

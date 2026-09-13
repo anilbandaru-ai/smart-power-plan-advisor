@@ -1,4 +1,4 @@
-﻿const assert = require('node:assert/strict');
+const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
@@ -182,4 +182,174 @@ test('no qualifying recommendation does not claim a winner, and invalid costs ne
   app.get('switching-cost').value='';
   await app.get('compare-form').fire('submit');
   assert.match(allText(app.get('results')),/No plan meets/);
+});
+
+
+test('saved contract preference separates longer plans while retaining baseline choices and bills', async () => {
+  const snapshot = recommendedSnapshot();
+  snapshot.recommendation_result.options.max_contract_months = 12;
+  snapshot.recommendations.push({...snapshot.recommendations[0], plan_id:'long', name:'Long contract', term_months:24});
+  const app = setup(async () => snapshot, '?comparison=saved');
+  await flush();
+  const results = app.get('results');
+  const rows = results.children.filter(n => n.className === 'plan-row');
+  assert.equal(rows.length, 1);
+  assert.ok(!allText(rows[0]).includes('Long contract'));
+  const outside = results.children.find(n => n.className === 'longer-contracts');
+  assert.ok(outside && !outside.open);
+  assert.match(allText(outside), /Long contract/);
+  assert.match(allText(outside), /Monthly cost breakdown/);
+  assert.match(allText(results), /Maximum contract: 12 months/);
+  assert.equal(app.get('baseline-plan').children.length, 3);
+  snapshot.recommendation_result.options.max_contract_months = null;
+  const unrestricted = setup(async () => snapshot, '?comparison=saved');
+  await flush();
+  assert.equal(unrestricted.get('results').children.filter(n => n.className === 'plan-row').length, 2);
+  assert.ok(!unrestricted.get('results').children.some(n => n.className === 'longer-contracts'));
+});
+const assertPreferences = text => {
+  for (const phrase of ['Applied preferences', 'up to 24 months', 'Electricity bills', 'Current plan: Current plan', 'Entered switching costs: $0.00']) assert.ok(text.includes(phrase), phrase);
+};
+test('all saved preferences are visible and negative savings are prominent', async () => {
+  const data = recommendedSnapshot();
+  data.recommendation_result.expected_savings.net_annual_savings = '-80';
+  data.recommendation_result.expected_savings.switching_cost = '200';
+  const app = setup(async () => data, '?comparison=saved');
+  await flush();
+  assertPreferences(allText(app.get('results')));
+  const panel = app.get('results').children.find(n => n.className === 'recommendation-summary');
+  assert.ok(panel.children.some(n => n.className === 'result-warning' && n.textContent.includes('Switching costs exceed')));
+});
+test('switching costs without a baseline are explicitly unapplied and unknown differs from zero', async () => {
+  for (const cost of [null, '0', '50']) {
+    const data = recommendedSnapshot();
+    data.recommendation_result.baseline = null;
+    data.recommendation_result.expected_savings = null;
+    data.recommendation_result.options.baseline_plan_id = null;
+    data.recommendation_result.options.switching_cost = cost;
+    const app = setup(async () => data, '?comparison=saved');
+    await flush();
+    const text = allText(app.get('results'));
+    assert.ok(text.includes(`Entered switching costs: ${cost === null ? 'Unknown' : cost === '0' ? '$0.00' : '$50.00'}`));
+    assert.equal(text.includes('apply these switching costs to savings'), cost !== null);
+  }
+});
+test('no eligible recommendation still displays all applied preferences', async () => {
+  const data = recommendedSnapshot();
+  data.recommendation_result.best_overall = null;
+  const app = setup(async () => data, '?comparison=saved');
+  await flush();
+  assertPreferences(allText(app.get('results')));
+});
+
+test('renewal options submit and restore and horizon totals drive visible costs', async () => {
+  const data = recommendedSnapshot();
+  const rec = data.recommendation_result;
+  rec.comparison_horizon = 24; rec.policy_version = 'horizon-renewal-v2';
+  rec.options.renewal_escalation_pct = '8'; rec.options.renewal_credit_policy = 'drop';
+  rec.best_overall.horizon_cost = '4000';
+  rec.expected_savings.gross_horizon_savings = '400'; rec.expected_savings.net_horizon_savings = '250';
+  let payload;
+  const app = setup(async (_, options) => { payload = JSON.parse(options.body); return data; });
+  enterZip(app, '75201'); app.get('max-contract').value = '24';
+  app.get('renewal-escalation').value = '8'; app.get('renewal-credits').value = 'drop';
+  await app.get('compare-form').fire('submit');
+  assert.equal(payload.recommendation_options.renewal_escalation_pct, '8');
+  assert.equal(payload.recommendation_options.renewal_credit_policy, 'drop');
+  const text = allText(app.get('results'));
+  for (const phrase of ['Estimated 24-month cost', '$4,000.00', '$166.67', 'Net after switching costs: $250.00']) assert.ok(text.includes(phrase), phrase);
+  app.get('renewal-escalation').fire('input');
+  assert.equal(app.get('results').children.length, 0);
+  const restored = setup(async () => data, '?comparison=saved');
+  await flush();
+  assert.equal(restored.get('renewal-escalation').value, '8');
+  assert.equal(restored.get('renewal-credits').value, 'drop');
+});
+
+test('average price maps EFL reference ranges including fractional boundaries without changing bills', async () => {
+  const data = saved('75201');
+  const plan = data.recommendations[0];
+  plan.efl_price_examples = [
+    {kwh:'500',cents_per_kwh:'19.7',page:1,quote:'500 kWh | 19.7 cents'},
+    {kwh:'1000',cents_per_kwh:'6.8',page:1,quote:'1000 kWh | 6.8 cents'},
+    {kwh:'2000',cents_per_kwh:'12.8',page:1,quote:'2000 kWh | 12.8 cents'}];
+  plan.efl_price_examples.reverse();
+  plan.horizon_monthly_costs = ['500','1000','2000','999.9','0','1000','500.1','1000.1','2000.1'].map((kwh,i) => ({
+    ...plan.monthly_costs[0],month:i+1,kwh,basis:i===5?'modeled_renewal':'document_terms'}));
+  const app=setup(async () => data,'?comparison=saved');
+  await flush();
+  const flatten = n => [n,...n.children.flatMap(flatten)];
+  const nodes = flatten(app.get('results'));
+  const header = nodes.find(n => n.tag==='thead').children[0].children.map(n => n.textContent);
+  assert.deepEqual(header.slice(2,5), ['Energy','Average Price / EFL reference (\u00a2/kWh)','Base fee']);
+  const rows = nodes.find(n => n.tag==='tbody').children;
+  assert.deepEqual(rows.map(row => row.children[3].textContent), ['19.7','19.7','6.8','19.7','19.7','Not available (renewal)','19.7','6.8','12.8']);
+  delete plan.efl_price_examples;
+  const legacy=setup(async () => data,'?comparison=saved');
+  await flush();
+  assert.equal(flatten(legacy.get('results')).find(n => n.tag==='tbody').children[0].children[3].textContent,'Not listed');
+});
+
+
+test('inclusive EFL estimates show their actual rate, included charges and unchanged total', async () => {
+  const data=recommendedSnapshot();
+  data.recommendation_result.policy_version='efl-average-v3';
+  for (const p of data.recommendation_result.plan_analyses) p.bill_credit_analysis={status:'included_in_average'};
+  const plan=data.recommendations[0];
+  plan.pricing_basis='efl_average';
+  plan.horizon_monthly_costs=[
+    {month:1,kwh:'1800',energy:'122.40',average_price_cents:'6.8',base_fee:'0',delivery:'0',credit:'0',total:'122.40',basis:'document_terms'},
+    {month:13,kwh:'1800',energy:'128.52',average_price_cents:'7.14',base_fee:'0',delivery:'0',credit:'0',total:'128.52',basis:'modeled_renewal'}];
+  const app=setup(async()=>data,'?comparison=saved');
+  await flush();
+  const flatten=n=>[n,...n.children.flatMap(flatten)];
+  const nodes=flatten(app.get('results'));
+  const rows=flatten(nodes.find(n=>n.className==='plan-row')).find(n=>n.tag==='tbody').children;
+  assert.deepEqual(rows[0].children.map(n=>n.textContent),['1','1800','$122.40','6.8','Included','Included','Included','$122.40','Document terms']);
+  assert.deepEqual(rows[1].children.map(n=>n.textContent),['13','1800','$128.52','7.14','Included','Included','Included','$128.52','Modeled renewal']);
+  const text=allText(app.get('results'));
+  assert.ok(text.includes('Estimated charge (all-in)'));
+  assert.ok(text.includes('Separate renewal credit settings do not apply'));
+  assert.ok(text.includes('Separate credit amounts and eligibility are not calculated'));
+  assert.ok(!text.includes('No usage-dependent credit boundaries.'));
+});
+
+
+test('custom EFL energy shows numeric fees and credits and identifies the custom total', async () => {
+  const data=recommendedSnapshot();
+  data.recommendation_result.policy_version='custom-efl-v4';
+  const plan=data.recommendations[0];
+  plan.pricing_basis='custom_efl';
+  plan.horizon_monthly_costs=[{month:1,kwh:'1800',energy:'122.40',average_price_cents:'6.8',base_fee:'0',delivery:'112.59',credit:'125',total:'109.99',basis:'document_terms'}];
+  const app=setup(async()=>data,'?comparison=saved');await flush();
+  const flatten=n=>[n,...n.children.flatMap(flatten)];
+  const nodes=flatten(app.get('results'));
+  const card=nodes.find(n=>n.className==='plan-row');
+  const row=flatten(card).find(n=>n.tag==='tbody').children[0];
+  assert.deepEqual(row.children.map(n=>n.textContent),['1','1800','$122.40','6.8','$0.00','$112.59','$125.00','$109.99','Custom estimate']);
+  assert.ok(allText(card).includes('Total (custom)'));
+  assert.ok(allText(app.get('results')).includes('not an actual tariff bill'));
+});
+
+
+test('plan details disclose only actual modeled renewal using saved percentage', async () => {
+  const data=recommendedSnapshot();
+  const plan=data.recommendations[0];
+  plan.horizon_monthly_costs=[{month:1,basis:'document_terms'}, {month:14,basis:'modeled_renewal'}, {month:13,basis:'modeled_renewal'}];
+  const flatten=n=>[n,...n.children.flatMap(flatten)];
+  for (const rate of ['8','0',null]) {
+    data.recommendation_result.options.renewal_escalation_pct=rate;
+    const app=setup(async()=>data,'?comparison=saved');await flush();
+    const notes=flatten(app.get('results')).filter(n=>n.className==='renewal-note note');
+    assert.equal(notes.length,1);
+    assert.ok(notes[0].textContent.includes(rate==null ? 'percentage not recorded' : `assumption: ${rate}%`));
+    assert.ok(notes[0].textContent.includes('from month 13 for 2 modeled month(s)'));
+    assert.ok(notes[0].textContent.includes('not a confirmed renewal offer'));
+  }
+  plan.horizon_monthly_costs=[{month:1,basis:'document_terms'}];
+  let app=setup(async()=>data,'?comparison=saved');await flush();
+  assert.equal(flatten(app.get('results')).filter(n=>n.className==='renewal-note note').length,0);
+  delete plan.horizon_monthly_costs;
+  app=setup(async()=>data,'?comparison=saved');await flush();
+  assert.equal(flatten(app.get('results')).filter(n=>n.className==='renewal-note note').length,0);
 });

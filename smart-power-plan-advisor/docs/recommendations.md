@@ -1,3 +1,64 @@
+# Recommendations over the selected contract horizon
+
+Current PDF pricing (`custom-efl-v4`): Energy = usage times the mapped EFL average / 100; add PDF base/usage fees and fixed/per-kWh delivery, then subtract eligible credits. This user-authorized custom formula repeats effects embedded in published EFL averages, so it is labeled Custom estimate, not an actual tariff bill. Each plan uses its own examples and charge conditions. Original ranges remain: first price through the second threshold, preceding price at exact thresholds, highest above its threshold. Rankings, savings and scenarios use these custom totals. Renewal escalates energy/base/delivery; retain/drop applies to separate credits. Saved older results retain their original calculation; Compare plans again to apply the new formula. Catalog validation and demo calculations remain component-based.
+
+
+Policy `horizon-renewal-v2` uses the maximum contract months as both the eligibility
+ceiling and cost period. A 24-month selection includes contracts up to 24 months,
+excludes 36-month contracts, and ranks by 24-month total cost. A 36-month selection
+uses 36-month totals. With no maximum, the period defaults to 12 months without a
+contract ceiling. The supplied 12-month usage pattern repeats; partial years are
+supported through the maximum of 120 months.
+
+Each plan uses its own document rates and billing rules through its initial term.
+After expiration, the projection assumes hypothetical renewal charges. The editable
+annual escalation default is 5% (0..30%, two decimals). At month m, renewal energy,
+base and delivery charges are multiplied by `(1 + rate/100) ** floor((m-1)/12)` and
+rounded per component. Thus a 24-month plan renewing in month 25 has two elapsed
+years of escalation from the comparison start. Original-term delivery charges are
+held constant as an assumption, not a contractual guarantee.
+
+Renewal credits either retain their original nominal amounts/conditions or are
+dropped, as selected. Future offers, credit thresholds, enrollment fees and new
+contract commitments are not known or modeled. Escalation is a scenario assumption,
+not a general-inflation forecast. Taxes and nonrecurring charges are excluded from
+plan-cost projections.
+
+When an eligible plan needs renewal, five usage profiles are crossed with three
+renewal cases: the configured base; a lower rate five percentage points below it
+(floored at zero); and a higher rate five points above it with no renewal credits.
+This produces 15 scenarios. Otherwise the five usage scenarios suffice. Primary
+ranking uses supplied usage/base renewal; maximum regret spans the same eligible
+plans over the same horizon across these scenarios. There are no probabilities.
+Confidence stays low when an eligible alternative needs assumed renewal.
+
+Savings and cumulative switching payback use the same horizon. Baselines assume a
+new full term of the selected tariff, not the customer's unknown remaining term.
+Switching costs are applied once, or zero if staying. They affect net savings,
+not the primary total-plan-cost ranking. Negative or unknown net savings remain
+visible. Initial-term and modeled-renewal amounts and yearly costs are shown.
+
+## API and saved comparisons
+
+- Options add `renewal_escalation_pct` (default 5) and `renewal_credit_policy`
+  (`retain` or `drop`, default retain).
+- Raw plan comparisons retain literal first-year `annual_cost` and `monthly_costs`;
+  new `horizon_cost`, `comparison_horizon`, and `horizon_monthly_costs` describe the
+  selected period. Raw rows are sorted by horizon cost and still include longer
+  contracts for inspection; those contracts are excluded from recommendations.
+- Recommended plans and scenarios add `horizon_cost`. Recommended plans also expose
+  `annualized_cost`, `initial_term_cost`, `modeled_renewal_cost`, `yearly_costs`, and
+  monthly projections labeled `document_terms` or `modeled_renewal`.
+- Savings add `gross_horizon_savings` and `net_horizon_savings`; the annual fields
+  retain first-year meanings. Credit analysis adds `horizon_credits`.
+- Old saved results retain their saved horizon and amounts. The UI falls back to
+  first-year fields and invites a new comparison to use the new policy.
+
+The historical notes below describe v1 behavior; the v2 rules above supersede its
+fixed 12-month ranking and five-scenario assumptions.
+
+## Historical v1 policy
+
 # Recommendation policy v1
 
 Comparisons now include `recommendation_result` in both PDF and demo mode. This is

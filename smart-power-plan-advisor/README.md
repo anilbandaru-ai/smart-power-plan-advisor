@@ -1,5 +1,8 @@
 # Smart Power Plan Advisor
 
+Current PDF pricing (`custom-efl-v4`): Energy = usage times the mapped EFL average / 100; add PDF base/usage fees and fixed/per-kWh delivery, then subtract eligible credits. This user-authorized custom formula repeats effects embedded in published EFL averages, so it is labeled Custom estimate, not an actual tariff bill. Each plan uses its own examples and charge conditions. Original ranges remain: first price through the second threshold, preceding price at exact thresholds, highest above its threshold. Rankings, savings and scenarios use these custom totals. Renewal escalates energy/base/delivery; retain/drop applies to separate credits. Saved older results retain their original calculation; Compare plans again to apply the new formula. Catalog validation and demo calculations remain component-based.
+
+
 A local demo connecting a web form, FastAPI, a JSON plan source, deterministic
 pricing, and SQLite. Calculator plans and rates are synthetic; the calculator needs no API keys.
 
@@ -145,3 +148,10 @@ form. Expand **Preferences & savings** for optional inputs. Results show annual
 cost and average monthly cost, a shortlist, and expandable plan rows. Confidence
 reasons, usage scenarios, bill credits, warnings and evidence remain available in
 disclosures. The monthly average is annual cost divided by 12; actual bills vary.
+
+
+Comparison period: setting the maximum contract to 24 or 36 months now ranks
+eligible plans over that full period. Review the editable renewal escalation and
+credit assumptions under preferences. Results separate document-term costs from
+modeled renewal costs and use the same period for savings and regret. See
+[recommendation policy](docs/recommendations.md) for details and legacy fields.

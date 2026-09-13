@@ -159,3 +159,6 @@ form.chat-composer { margin: 0; border: 1px solid #b9cbd2; padding: .6rem; borde
   .plan-cost { margin-left: auto; }
   .recommendation-summary .recommended-name { font-size: 1.2rem; }
 }
+
+.applied-preferences { padding: .65rem .8rem; margin: .7rem 0; background: #f3f7f8; border-radius: .5rem; }
+.applied-preferences h3 { margin-top: 0; }
