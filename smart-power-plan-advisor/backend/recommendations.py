@@ -190,11 +190,11 @@ def recommend(request, candidates, data_mode, today=None):
     stable = all(r.regret == 0 for r in best.scenario_results)
     source_freshness = freshness(candidates[0], today or date.today())
     known_usage = options.usage_provenance in ("bills", "meter")
-    confidence = "moderate" if data_mode == "pdf" and stable and known_usage and source_freshness == "recent" and len(candidates) > 1 and not renews else "low"
+    confidence = "moderate" if data_mode != "demo" and stable and known_usage and source_freshness == "recent" and len(candidates) > 1 and not renews else "low"
     reasons = [f"Usage provenance: {options.usage_provenance}; this is user-declared, not independently verified.",
         "The primary plan remains tied for cheapest or cheapest in all scenarios." if stable else "The cheapest plan changes across usage scenarios.",
         f"Primary plan document freshness: {source_freshness}.",
-        "Prices use published EFL examples with user-defined range mapping." if average_mode else "Pricing passed catalog checks; these are not independent tariff approval." if data_mode == "pdf" else "Prices are synthetic demo fixtures.",
+        "Prices use published EFL examples with user-defined range mapping." if average_mode else "Pricing passed catalog checks; these are not independent tariff approval." if data_mode != "demo" else "Prices are synthetic demo fixtures.",
         "Live availability is unverified, so high confidence is not assigned."]
     if average_mode:
         confidence = "low"
@@ -249,7 +249,7 @@ def recommend(request, candidates, data_mode, today=None):
     return RecommendationResult(status="recommended", best_overall=best, top_3=analyses[:3],
         category_winners={"lowest_estimated_cost": best.plan_id, "lowest_scenario_regret": resilient.plan_id},
         plan_analyses=analyses, expected_savings=savings, confidence=confidence,
-        confidence_components={"pricing_evidence": "mapped_efl_examples" if average_mode else "validated_catalog" if data_mode == "pdf" else "synthetic",
+        confidence_components={"pricing_evidence": "mapped_efl_examples" if average_mode else "validated_catalog" if data_mode != "demo" else "synthetic",
             "usage_quality": options.usage_provenance, "ranking_stable": stable, "modeled_renewal": renews,
             "document_freshness": source_freshness, "availability": "unverified"},
         confidence_reasons=reasons, key_tradeoffs=tradeoffs, break_even_conditions=conditions,

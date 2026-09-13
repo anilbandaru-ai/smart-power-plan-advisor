@@ -2,6 +2,7 @@ const form = document.querySelector('#compare-form');
 const zipInput = document.querySelector('#zip-code');
 let revision = 0;
 let busy = false;
+let roughOverrides = {};
 
 function updateButton() {
   button.disabled = busy || !/^[0-9]{5}$/.test(zipInput.value);
@@ -17,8 +18,8 @@ function invalidate() {
   updateButton();
 }
 
-zipInput.addEventListener('input', () => { clearBaseline(); invalidate(); });
-document.querySelector('#plan-source').addEventListener('change', () => { clearBaseline(); invalidate(); });
+zipInput.addEventListener('input', () => { roughOverrides = {}; clearUtility(); clearBaseline(); invalidate(); });
+document.querySelector('#txu-utility').addEventListener('change', () => { roughOverrides = {}; clearBaseline(); invalidate(); });
 for (const id of ['usage-provenance', 'baseline-plan', 'renewal-credits']) document.querySelector(`#${id}`).addEventListener('change', invalidate);
 for (const id of ['max-contract', 'switching-cost', 'renewal-escalation']) document.querySelector(`#${id}`).addEventListener('input', invalidate);
 document.querySelector('#usage').addEventListener('input', invalidate);
@@ -51,6 +52,41 @@ function clearBaseline() {
   const select = document.querySelector('#baseline-plan');
   select.replaceChildren();
   element('option', 'No baseline selected', select).value = '';
+}
+
+function clearUtility() {
+  document.querySelector('#txu-utility-field').hidden = true;
+  const select = document.querySelector('#txu-utility');
+  select.replaceChildren();
+  element('option', 'Select your utility', select).value = '';
+  select.value = '';
+}
+
+function showTxuOffers(data, utilityId) {
+  results.replaceChildren();
+  element('h2', 'Cached TXU offers', results);
+  element('p', data.fetched_at ? `Offers fetched ${data.fetched_at}${data.stale ? ' (stale)' : ''}. Address eligibility is not verified.` : 'No TXU offers have been fetched for this ZIP.', results);
+  if (data.last_error) element('p', data.last_error, results);
+  for (const offer of data.offers.filter(o => !utilityId || o.utility_id === utilityId)) {
+    const card = element('details', '', results);
+    element('summary', offer.name, card);
+    for (const issue of offer.issues) element('p', issue, card);
+    if (!offer.issues.length) element('p', 'API pricing checks passed.', card);
+    if (offer.record_url?.startsWith('/api/catalog/records/')) {
+      const line = element('p', '', card);
+      const link = element('a', 'Review catalog API data', line);
+      link.href = offer.record_url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    }
+    if (offer.efl_url?.startsWith('https://')) {
+      const link = element('a', 'Review TXU EFL', card);
+      link.href = offer.efl_url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    }
+    if (offer.document_url?.startsWith('/api/catalog/plans/')) {
+      const line = element('p', '', card);
+      const link = element('a', 'Review downloaded EFL', line);
+      link.href = offer.document_url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    }
+  }
 }
 
 function populateBaseline(data) {
@@ -229,9 +265,50 @@ function renderRecommendation(data) {
   element('p', `Policy: ${rec.policy_version}. Comparison horizon: ${rec.comparison_horizon} months.`, evidence).className = 'note';
 }
 
+function renderRoughEstimates(data) {
+  if (!data.rough_estimates?.length) return;
+  const section = element('section', '', results);
+  element('h2', 'Rough cost estimates — assumptions required', section);
+  element('p', 'These illustrations are separate from the calculated-cost ranking and are not used to select a winner. Edit assumptions, then click Compare plans to recalculate.', section);
+  const reset = element('button', 'Reset rough assumptions', section);
+  reset.type = 'button';
+  reset.addEventListener('click', () => { roughOverrides = {}; invalidate(); status.textContent = 'Assumptions reset. Click Compare plans to recalculate.'; });
+  for (const plan of data.rough_estimates) {
+    const card = element('details', '', section);
+    card.className = 'plan-row';
+    element('summary', `${plan.name} — approximately ${dollars(plan.annual_cost)} / year — ${plan.availability}`, card);
+    element('p', plan.availability, card);
+    element('p', `Calculation method: ${plan.method.replace('rough-v1:', '').replaceAll('_', ' ')}`, card);
+    if (plan.formula) element('p', `Formula: ${plan.formula}`, card);
+    for (const note of plan.notes) element('p', note, card).className = 'note';
+    const changed = element('p', '', card);
+    for (const [name, definition] of Object.entries(plan.parameters)) {
+      const label = element('label', definition.label, card);
+      const input = element('input', '', label);
+      input.type = 'number'; input.min = definition.minimum; input.max = definition.maximum;
+      input.step = definition.integer ? '1' : 'any';
+      input.value = plan.assumptions_used[name];
+      input.addEventListener('input', () => {
+        roughOverrides[plan.plan_id] = {...(roughOverrides[plan.plan_id] || {}), [name]: input.value};
+        revision++; busy = false; updateButton();
+        history.replaceState(null, '', location.pathname);
+        changed.textContent = 'Displayed costs use the previous assumptions. Click Compare plans to recalculate.';
+        status.textContent = 'Rough assumptions changed; comparison needs recalculation.';
+      });
+    }
+    const link = element('a', 'Review source catalog data', card);
+    link.href = plan.source_url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    const breakdown = element('details', '', card);
+    element('summary', 'Monthly rough estimates and original exclusions', breakdown);
+    for (const month of plan.monthly_costs) element('p', `Month ${month.month}: ${month.kwh} kWh — approximately ${dollars(month.total)}`, breakdown);
+    for (const issue of plan.pricing_issues) element('p', issue, breakdown);
+  }
+}
+
 function render(data) {
   globalThis.comparisonChat?.attach(data);
   clearResults();
+  roughOverrides = Object.fromEntries((data.rough_estimates || []).map(p => [p.plan_id, {...p.assumptions_used}]));
   populateBaseline(data);
   renderRecommendation(data);
   const maxContract = data.recommendation_result?.options?.max_contract_months;
@@ -244,6 +321,7 @@ function render(data) {
   longerPlans.className = 'longer-contracts';
   element('summary', `Longer contracts (${longer.length}) - outside your preference`, longerPlans);
   element('p', data.zip_code ? `ZIP ${data.zip_code}` : 'Legacy comparison (no ZIP saved)', results);
+  if (data.offers_fetched_at) element('p', `TXU offers fetched ${data.offers_fetched_at} · ${data.utility?.name || ''}`, results);
   const assumptions = element('details', '', results);
   element('summary', 'Calculation assumptions', assumptions);
   for (const assumption of data.assumptions) element('p', assumption, assumptions).className = 'note';
@@ -260,7 +338,7 @@ function render(data) {
     content.className = 'plan-content';
     if (outsidePreference) element('p', `Exceeds your maximum contract length of ${maxContract} months; excluded from recommendations.`, content).className = 'note';
     if (index === 0 && !outsidePreference && maxContract) element('p', 'Lowest estimated cost among plans matching your contract preference.', content);
-    else if (index === 0 && !outsidePreference) element('p', data.data_mode === 'pdf' ? 'Lowest estimated comparison-period cost among calculable PDF plans' : 'Lowest estimated cost among these demo plans', content);
+    else if (index === 0 && !outsidePreference) element('p', data.data_mode !== 'demo' ? 'Lowest estimated comparison-period cost among calculable PDF plans' : 'Lowest estimated cost among these demo plans', content);
     element('p', plan.explanation, content);
     const renewalMonths = (plan.horizon_monthly_costs || []).filter(month => month.basis === 'modeled_renewal');
     if (renewalMonths.length) {
@@ -271,7 +349,7 @@ function render(data) {
     }
     element('p', `Source: ${plan.source}`, content).className = 'note';
     if (plan.source_url) {
-      const source = element('a', 'Review source PDF', content);
+      const source = element('a', 'Review catalog API data', content);
       source.href = plan.source_url; source.target = '_blank'; source.rel = 'noopener noreferrer';
     }
     if (plan.tdu_source) {
@@ -342,9 +420,10 @@ function render(data) {
     selectYear(0);
   });
   if (longer.length) results.append(longerPlans);
+  renderRoughEstimates(data);
   if (data.excluded_plans?.length) {
     const excluded = element('details', '', results);
-    element('summary', `Plans excluded from calculation (${data.excluded_plans.length})`, excluded);
+    element('summary', `Plans excluded from calculated-cost ranking (${data.excluded_plans.length})`, excluded);
     for (const plan of data.excluded_plans) element('p', `${plan.name}: ${plan.reasons.join('; ')}`, excluded);
   }
   const link = element('a', 'Link to this saved comparison', results);
@@ -375,9 +454,26 @@ form.addEventListener('submit', async event => {
   clearResults();
   status.textContent = 'Comparing plans…';
   try {
+    const source = 'catalog';
+    let utilityId;
+    {
+      const cache = await request(`/api/catalog/txu?zip_code=${encodeURIComponent(zipInput.value)}`);
+      if (version !== revision) return;
+      const select = document.querySelector('#txu-utility');
+      const previous = select.value;
+      select.replaceChildren();
+      element('option', 'Select your utility', select).value = '';
+      const utilities = cache.stale ? [] : cache.utilities;
+      for (const utility of utilities) element('option', utility.name, select).value = utility.id;
+      select.value = utilities.some(u => u.id === previous) ? previous : utilities.length === 1 ? utilities[0].id : '';
+      document.querySelector('#txu-utility-field').hidden = utilities.length < 2;
+      utilityId = select.value;
+      showTxuOffers(cache, utilityId);
+      if (utilities.length > 1 && !utilityId) throw new Error('Select your electric utility, then compare again.');
+    }
     const data = await request('/api/comparisons', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ zip_code: zipInput.value, monthly_kwh: values, ...(Object.keys(options).length ? { recommendation_options: options } : {}), ...(document.querySelector('#plan-source').value === 'pdf' ? {data_source: 'pdf'} : {}) }),
+      body: JSON.stringify({ zip_code: zipInput.value, monthly_kwh: values, ...(Object.keys(options).length ? { recommendation_options: options } : {}), data_source: source, ...(Object.keys(roughOverrides).length ? {rough_assumptions: roughOverrides} : {}), ...(utilityId ? {utility_id: utilityId} : {}) }),
     });
     if (version !== revision) return;
     render(data);
@@ -396,8 +492,15 @@ async function initialize() {
     if (version !== revision) return;
     render(data);
     zipInput.value = data.zip_code || '';
-    document.querySelector('#plan-source').value = data.data_mode === 'pdf' ? 'pdf' : 'demo';
-    document.querySelector('#usage').value = data.recommendations[0].monthly_costs.map(month => month.kwh).join(', ');
+    if (data.utility) {
+      const select = document.querySelector('#txu-utility');
+      select.replaceChildren();
+      element('option', data.utility.name, select).value = data.utility.id;
+      select.value = data.utility.id;
+      document.querySelector('#txu-utility-field').hidden = false;
+    }
+    const usagePlan = data.recommendations[0] || data.rough_estimates?.[0];
+    if (usagePlan) document.querySelector('#usage').value = usagePlan.monthly_costs.map(month => month.kwh).join(', ');
     status.textContent = data.zip_code
       ? 'Loaded saved comparison.'
       : 'Loaded saved comparison. Enter a ZIP before comparing again.';

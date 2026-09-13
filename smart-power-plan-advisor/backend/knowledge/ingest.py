@@ -3,9 +3,11 @@ import os
 import tempfile
 
 
-def publish(settings, manifest, records, providers):
+def publish(settings, manifest, records, providers, before_activate=None):
     """An interrupted upsert must not replace the last usable corpus manifest."""
     providers.upsert(records, manifest["namespace"])
+    if before_activate is not None:
+        before_activate()
     settings.manifest_path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:

@@ -60,10 +60,14 @@
         <div class="input-grid">
           <div><label for="zip-code">ZIP code</label>
             <input id="zip-code" type="text" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" minlength="5" maxlength="5" placeholder="e.g. 75201" required aria-describedby="zip-help">
-            <p id="zip-help" class="note">Supported: 75201, 75001, 77002, 77007.</p></div>
-          <div><label for="plan-source">Plans to compare</label>
-            <select id="plan-source"><option value="pdf" selected>Extracted PDF plans</option><option value="demo">Synthetic demo plans</option></select>
-            <p class="note">PDF rates reflect the date of each document.</p></div>
+            <p id="zip-help" class="note">Enter your ZIP to compare PDF and TXU plans for your utility. Additional ZIPs require a current TXU cache.</p></div>
+          <div><p>Plans to compare</p>
+            <p class="note">Both PDF and TXU plans are included automatically when eligible for your utility.</p></div>
+        </div>
+        <div id="txu-utility-field" hidden>
+          <label for="txu-utility">Electric utility</label>
+          <select id="txu-utility"><option value="">Select your utility</option></select>
+          <p class="note">Choose the utility serving your address. Offer availability is checked from the local cache.</p>
         </div>
         <label for="usage">Monthly usage <span class="label-hint">kWh / January to December</span></label>
         <textarea id="usage" rows="2" required aria-describedby="usage-help">800, 750, 700, 850, 1100, 1400, 1600, 1500, 1200, 950, 750, 850</textarea>
@@ -92,7 +96,7 @@
         </details>
         <div class="compare-actions"><p class="note">Estimates only. Review plan terms before switching.</p><button id="submit" disabled>Compare plans</button></div>
         <details class="estimate-help"><summary>How these estimates work</summary>
-          <p class="note">PDF mode uses a custom formula: Energy = usage times mapped EFL average, plus PDF base/usage fees and delivery, minus eligible credits. This repeats effects already embedded in the average and is not an actual tariff bill. Renewal assumptions apply to these custom charges. A supported ZIP does not guarantee available PDF plans. Demo mode uses fictional rates. Bill estimates exclude taxes and switching fees; entered switching costs are reflected separately in net savings. Usage scenarios are sensitivity checks, not forecasts.</p>
+          <p class="note">PDF imports use document-date rates; TXU imports use cached API rates. Only eligible plans for your utility are compared; address eligibility is not verified. Bill estimates exclude taxes and switching fees; entered switching costs are reflected separately in net savings. Usage scenarios are sensitivity checks, not forecasts.</p>
         </details>
       </form>
     <p id="status" role="status" aria-live="polite"></p>

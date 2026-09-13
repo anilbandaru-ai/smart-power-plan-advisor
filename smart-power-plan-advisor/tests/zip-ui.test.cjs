@@ -20,7 +20,7 @@ const saved = zip => ({
   recommendations: [{ name: 'Demo', annual_cost: '1800', explanation: 'Demo', source: 'Fixture',
     monthly_costs: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, kwh: '1000', energy: '130', base_fee: '5', delivery: '55', credit: '40', total: '150' })) }],
 });
-function setup(handler, search = '', comparisonChat = undefined) {
+function setup(handler, search = '', comparisonChat = undefined, useCacheHandler = false) {
   const nodes = new Map();
   const get = id => {
     if (!nodes.has(id)) nodes.set(id, new Element(id === 'knowledge-document' ? 'select' : 'div'));
@@ -34,7 +34,7 @@ function setup(handler, search = '', comparisonChat = undefined) {
     location: { search, pathname: '/' }, history: { replaceState: (_, __, value) => { url = value; } },
     URLSearchParams, Intl, comparisonChat,
     fetch: async (path, options) => ({ ok: true, json: async () => path === '/api/knowledge/status'
-      ? { documents: [], configured: false, indexed: false } : await handler(path, options) }),
+      ? { documents: [], configured: false, indexed: false } : path.startsWith('/api/catalog/txu') && !useCacheHandler ? {utilities: [], offers: [], stale: true} : await handler(path, options) }),
   });
   return { get, url: () => url };
 }
@@ -43,7 +43,7 @@ function enterZip(app, zip) {
   app.get('zip-code').fire('input');
 }
 
-test('ZIP-only submission needs no lookup and clears results on edits', async () => {
+test('submission includes both sources and clears results on edits', async () => {
   let payload;
   const app = setup(async (url, options) => {
     assert.equal(url, '/api/comparisons');
@@ -53,7 +53,7 @@ test('ZIP-only submission needs no lookup and clears results on edits', async ()
   enterZip(app, '75201');
   assert.equal(app.get('submit').disabled, false);
   await app.get('compare-form').fire('submit');
-  assert.deepEqual(Object.keys(payload).sort(), ['monthly_kwh', 'zip_code']);
+  assert.deepEqual(Object.keys(payload).sort(), ['data_source', 'monthly_kwh', 'zip_code']);
   assert.equal(payload.zip_code, '75201');
   assert.ok(app.get('results').children.length);
   enterZip(app, '77002');
@@ -109,7 +109,7 @@ test('editing ZIP while a saved comparison loads ignores the old response', asyn
   assert.equal(app.get('results').children.length, 0);
 });
 
-test('PDF mode is explicit, renders exclusions and changing mode invalidates results', async () => {
+test('combined catalog mode renders exclusions and usage edits invalidate results', async () => {
   let payload;
   const app = setup(async (_, options) => {
     payload = JSON.parse(options.body);
@@ -117,12 +117,10 @@ test('PDF mode is explicit, renders exclusions and changing mode invalidates res
       recommendations:[{...saved('75201').recommendations[0],source_url:'/api/catalog/plans/id/document'}] };
   });
   enterZip(app, '75201');
-  app.get('plan-source').value = 'pdf';
   await app.get('compare-form').fire('submit');
-  assert.equal(payload.data_source, 'pdf');
+  assert.equal(payload.data_source, 'catalog');
   assert.ok(app.get('results').children.some(node => node.tag === 'details'));
-  app.get('plan-source').value = 'demo';
-  app.get('plan-source').fire('change');
+  app.get('usage').fire('input');
   assert.equal(app.get('results').children.length, 0);
 });
 
@@ -390,4 +388,122 @@ test('clearing and rebuilding comparisons parks the chat before deleting result 
   await app.get('compare-form').fire('submit');
   await app.get('compare-form').fire('submit');
   assert.equal(connected,true);assert.equal(inResults,true);assert.ok(parks>=5);
+});
+
+function setupWithCache(handler, search = '') { return setup(handler, search, undefined, true); }
+const txuUtility = {id:'ea0ad3a5-3fc6-4d9f-894a-e21a751c33fe',name:'Oncor'};
+const txuCache = () => ({utilities:[txuUtility],offers:[{name:'TXU Simple',utility_id:txuUtility.id,issues:[],calculation_eligible:true}],stale:false,fetched_at:'2026-09-12T12:00:00Z'});
+
+test('TXU submission checks cache and includes selected utility', async () => {
+  let body;
+  const app=setupWithCache(async (url, options) => {
+    if (url.startsWith('/api/catalog/txu')) return txuCache();
+    body=JSON.parse(options.body);
+    return {...saved('78681'),data_mode:'txu',utility:txuUtility,offers_fetched_at:'2026-09-12T12:00:00Z'};
+  });
+  enterZip(app,'78681');
+  await app.get('compare-form').fire('submit');
+  assert.equal(body.data_source,'catalog'); assert.equal(body.utility_id,txuUtility.id);
+  assert.match(allText(app.get('results')),/TXU offers fetched/);
+  assert.doesNotMatch(allText(app.get('results')),/these demo plans/);
+});
+
+test('multiple TXU utilities require selection and edits clear selection', async () => {
+  let posts=0;
+  const cache=txuCache(); cache.utilities.push({id:'other',name:'Other utility'});
+  const app=setupWithCache(async (url) => {
+    if (url.startsWith('/api/catalog/txu')) return cache;
+    posts++; return saved('78681');
+  });
+  enterZip(app,'78681');
+  await app.get('compare-form').fire('submit');
+  assert.equal(posts,0); assert.equal(app.get('txu-utility-field').hidden,false);
+  assert.match(app.get('status').textContent,/Select your electric utility/);
+  app.get('txu-utility').value=txuUtility.id;
+  app.get('txu-utility').fire('change');
+  await app.get('compare-form').fire('submit');
+  assert.equal(posts,1);
+  enterZip(app,'79756');
+  assert.equal(app.get('txu-utility').value,''); assert.equal(app.get('txu-utility-field').hidden,true);
+});
+
+test('stale and blocked TXU offers still submit to compare eligible PDF imports', async () => {
+  for (const stale of [false,true]) {
+    const cache=txuCache(); cache.stale=stale;
+    cache.offers[0].issues=['Missing rates']; cache.offers[0].calculation_eligible=false;
+    let body;
+    const app=setupWithCache(async (url, options) => {
+      if (url.startsWith('/api/catalog/txu')) return cache;
+      body=JSON.parse(options.body); return {...saved('75201'),data_mode:'catalog'};
+    });
+    enterZip(app,'75201');
+    await app.get('compare-form').fire('submit');
+    assert.equal(body.data_source,'catalog');
+    assert.equal(body.utility_id,stale ? undefined : txuUtility.id);
+    assert.equal(app.get('status').textContent,'Comparison saved locally.');
+  }
+});
+
+test('source dropdown is absent from the comparison form', () => {
+  const html=readFileSync('frontend/index.html','utf8');
+  assert.doesNotMatch(html, /id="plan-source"/);
+  assert.match(html, /Both PDF and TXU plans/);
+});
+
+test('TXU lookup arriving after an edit cannot change selection or submit', async () => {
+  const old=deferred(); let calls=0;
+  const app=setupWithCache(async () => { calls++; return old.promise; });
+  enterZip(app,'78681');
+  const pending=app.get('compare-form').fire('submit');
+  enterZip(app,'79756'); old.resolve(txuCache()); await pending;
+  assert.equal(calls,1); assert.equal(app.get('results').children.length,0);
+  assert.equal(app.get('txu-utility').value,'');
+});
+
+test('saved TXU comparison restores source and utility without cache lookup', async () => {
+  const app=setupWithCache(async url => {
+    assert.equal(url,'/api/comparisons/saved');
+    return {...saved('78681'),data_mode:'txu',utility:txuUtility};
+  },'?comparison=saved');
+  await flush();
+  assert.equal(app.get('txu-utility').value,txuUtility.id);
+});
+
+function roughSnapshot() {
+  return {...saved('75201'), data_mode:'catalog', recommendations:[], rough_estimates:[{
+    plan_id:'rough-1', name:'Example free-time plan', annual_cost:'1868.52',
+    monthly_costs:saved('75201').recommendations[0].monthly_costs,
+    method:'rough-v1:free_usage', availability:'Hypothetical — hidden offer',
+    notes:['Uniform daily usage; delivery remains payable.'],pricing_issues:['Interval usage required'],
+    parameters:{free_usage_percent:{label:'Usage during free periods (%)',minimum:0,maximum:100,integer:false}},
+    assumptions_used:{free_usage_percent:'23.333333'},source_url:'/api/catalog/records/rough-1',
+  }]};
+}
+function allNodes(node) { return [node,...node.children.flatMap(allNodes)]; }
+
+test('rough-only saved results load with notes and never populate baseline choices', async () => {
+  const app=setup(async () => roughSnapshot(),'?comparison=saved');
+  await flush();
+  const text=allText(app.get('results'));
+  assert.match(text,/Rough cost estimates/);assert.match(text,/Uniform daily usage/);
+  assert.match(text,/Hypothetical/);assert.match(text,/1,868.52/);
+  assert.doesNotMatch(text,/Lowest estimated/);
+  assert.equal(app.get('baseline-plan').children.length,1);
+  assert.equal(app.get('usage').value,Array(12).fill('1000').join(', '));
+});
+
+test('rough inputs resubmit editable assumptions and ZIP edits clear them', async () => {
+  let body;
+  const app=setup(async (url, options) => {
+    if (url.endsWith('/saved')) return roughSnapshot();
+    body=JSON.parse(options.body);return roughSnapshot();
+  },'?comparison=saved');
+  await flush();
+  const input=allNodes(app.get('results')).find(n=>n.tag==='input');
+  input.value='40';input.fire('input');
+  assert.match(allText(app.get('results')),/previous assumptions/);
+  await app.get('compare-form').fire('submit');
+  assert.equal(body.rough_assumptions['rough-1'].free_usage_percent,'40');
+  enterZip(app,'77002');await app.get('compare-form').fire('submit');
+  assert.equal(body.rough_assumptions,undefined);
 });

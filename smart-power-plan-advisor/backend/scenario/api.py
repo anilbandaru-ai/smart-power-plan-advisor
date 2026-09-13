@@ -80,6 +80,8 @@ def router(store,catalog,source,interpreter=None):
     def start(payload:Start):
         result=store.get(str(payload.comparison_id))
         if result is None: raise HTTPException(404,'Comparison not found. Run Compare plans first.')
+        if result.data_mode not in ('pdf', 'demo'):
+            raise HTTPException(409, 'Comparison chat currently supports PDF custom and demo comparisons only; use the catalog comparison controls for this result.')
         if not result.zip_code or not result.recommendations: raise HTTPException(409,'This legacy result lacks inputs. Run Compare plans again.')
         if result.scenario_context:
             frozen=copy.deepcopy(result.scenario_context['frozen'])

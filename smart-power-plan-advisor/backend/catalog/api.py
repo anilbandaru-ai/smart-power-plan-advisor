@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 
 
 def create_router(store, data_root):
-    router = APIRouter(prefix='/api/catalog', tags=['PDF plan catalog'])
+    router = APIRouter(prefix='/api/catalog', tags=['Plan catalog'])
 
     def find(plan_id):
         if not re.fullmatch('[a-f0-9]{24}', plan_id):
@@ -18,6 +18,35 @@ def create_router(store, data_root):
     @router.get('/status')
     def status():
         return {'data_mode': 'pdf', **store.status()}
+
+    @router.get('/txu')
+    def txu(zip_code: str = Query(..., pattern=r'^[0-9]{5}$', min_length=5, max_length=5)):
+        from backend.catalog.txu import public_cache
+        return public_cache(store, zip_code)
+
+    @router.get('/records')
+    def records(source_type: str | None = Query(None, pattern='^(pdf|txu)$'),
+                zip_code: str | None = Query(None, pattern=r'^[0-9]{5}$'),
+                utility_id: str | None = Query(None, max_length=36),
+                calculable: bool | None = None,
+                limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0)):
+        from backend.catalog.records import records as read_records, CONTRACT_VERSION
+        values = read_records(store, source_type, zip_code)
+        if utility_id:
+            values = [p for p in values if p['utility_id'] == utility_id]
+        if calculable is not None:
+            values = [p for p in values if p['calculation_eligible'] == calculable]
+        return {'schema_version': CONTRACT_VERSION, 'total': len(values),
+                'limit': limit, 'offset': offset, 'records': values[offset:offset + limit]}
+
+    @router.get('/records/{record_id}')
+    def record(record_id: str):
+        from backend.catalog.records import records as read_records
+        if re.fullmatch('[a-f0-9]{24}', record_id):
+            result = next((p for p in read_records(store) if p['id'] == record_id), None)
+            if result:
+                return result
+        raise HTTPException(404, 'Catalog record not found')
 
     @router.get('/plans')
     def plans(limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0),

@@ -34,6 +34,7 @@ class Settings:
             cloud=os.getenv("PINECONE_CLOUD", "aws"),
             region=os.getenv("PINECONE_REGION", "us-east-1"),
             manifest_path=Path(os.getenv("RAG_MANIFEST_PATH") or ROOT / ".data" / "knowledge.json"),
+            data_dir=Path(os.getenv("PLAN_DATA_DIR") or ROOT / "data"),
         )
 
     @property

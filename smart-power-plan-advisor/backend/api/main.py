@@ -77,7 +77,7 @@ def create_app(db_path: Path | None = None, plan_source: PlanSource | None = Non
     @app.post("/api/comparisons", response_model=ComparisonResult, status_code=201)
     def create_comparison(payload: ComparisonRequest):
         try:
-            if payload.data_source == "pdf":
+            if payload.data_source in ("pdf", "txu", "catalog"):
                 from backend.catalog.compare import compare_catalog
                 result = compare_catalog(payload, catalog)
             else:

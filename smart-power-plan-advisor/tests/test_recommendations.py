@@ -118,8 +118,8 @@ class RecommendationTests(unittest.TestCase):
     def test_pdf_adapter_produces_page_evidence_and_matching_cost(self):
         plan = fixture()
         row = {'id':'pdf','revision_id':'rev','sources':['plan.pdf'],'document_url':'/api/catalog/plans/pdf/document',
-            'calculation_eligible':True,'calculation_issues':[],'plan':plan.model_dump(mode='json')}
-        result = compare_catalog(request(), SimpleNamespace(all_plans=lambda:[row]))
+            'calculation_eligible':True,'calculation_issues':[], 'price_checks': [], 'source_documents': [],'plan':plan.model_dump(mode='json')}
+        result = compare_catalog(request().model_copy(update={"data_source": "pdf"}), SimpleNamespace(all_plans=lambda:[row]))
         self.assertEqual(result.recommendations[0].annual_cost,result.recommendation_result.best_overall.estimated_annual_cost)
         published = result.recommendations[0].efl_price_examples
         self.assertEqual([e.cents_per_kwh for e in published], [e.cents_per_kwh for e in plan.examples])

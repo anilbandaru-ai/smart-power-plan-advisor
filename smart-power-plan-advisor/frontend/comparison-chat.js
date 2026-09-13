@@ -95,6 +95,7 @@
     },
     attach(data) {
       if(painting)return;
+      if(data.data_mode === 'catalog' || data.data_mode === 'txu') { this.detach(); return; }
       generation++;working=false;session=null;retry=null;conflict=false;comparison=data;panel.hidden=false;
       $('scenario-messages').replaceChildren();$('scenario-state').textContent='Start chat to explore this saved comparison.';message.textContent='';controls();
       try {const saved=JSON.parse(localStorage.getItem('comparison-chat:'+data.id));if(saved)void load(saved);}catch(_){}

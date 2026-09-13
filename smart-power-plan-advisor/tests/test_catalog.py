@@ -153,7 +153,9 @@ class RealPdfParserTests(unittest.TestCase):
         except ImportError as error:
             self.skipTest(str(error))
         root=Path(__file__).resolve().parents[1]/'data'
-        files=list(root.rglob('*.pdf'));self.assertGreaterEqual(len(files),22)
+        # Managed provider downloads have separate review/exclusion tests and
+        # are not part of the checked-in, reviewed local-PDF fixture collection.
+        files=[p for p in root.rglob('*.pdf') if '_txu' not in p.relative_to(root).parts];self.assertGreaterEqual(len(files),22)
         results={}
         for path in files:
             pages,warnings=read_pages(path.read_bytes())

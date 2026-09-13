@@ -1,5 +1,6 @@
 from decimal import Decimal
 from typing import Annotated, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 from backend.recommendation_models import RecommendationOptions, RecommendationResult
@@ -16,7 +17,9 @@ class ComparisonRequest(BaseModel):
 
     zip_code: ZipCode
     recommendation_options: RecommendationOptions = Field(default_factory=RecommendationOptions)
-    data_source: Literal["demo", "pdf"] = "demo"
+    data_source: Literal["demo", "pdf", "txu", "catalog"] = "demo"
+    utility_id: UUID | None = None
+    rough_assumptions: dict[str, dict[str, Decimal]] = Field(default_factory=dict, max_length=100)
     monthly_kwh: list[NonNegative] = Field(min_length=12, max_length=12)
 
 
@@ -68,6 +71,7 @@ class PlanComparison(BaseModel):
     source_url: str | None = None
     source_revision: str | None = None
     tdu_source: dict | None = None
+    offer_sources: list[dict] = Field(default_factory=list)
 
 
 class ComparisonResult(BaseModel):
@@ -79,4 +83,7 @@ class ComparisonResult(BaseModel):
     assumptions: list[str]
     recommendations: list[PlanComparison]
     excluded_plans: list[dict] = Field(default_factory=list)
+    rough_estimates: list[dict] = Field(default_factory=list)
     recommendation_result: RecommendationResult | None = None
+    utility: dict | None = None
+    offers_fetched_at: str | None = None
