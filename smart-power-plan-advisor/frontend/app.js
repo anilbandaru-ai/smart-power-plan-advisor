@@ -8,9 +8,10 @@ function updateButton() {
 }
 
 function invalidate() {
+  globalThis.comparisonChat?.detach();
   revision++;
   busy = false;
-  results.replaceChildren();
+  clearResults();
   status.textContent = '';
   history.replaceState(null, '', location.pathname);
   updateButton();
@@ -24,6 +25,10 @@ document.querySelector('#usage').addEventListener('input', invalidate);
 const button = document.querySelector('#submit');
 const status = document.querySelector('#status');
 const results = document.querySelector('#results');
+function clearResults() {
+  globalThis.comparisonChat?.park();
+  results.replaceChildren();
+}
 const dollars = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value));
 
 function element(tag, text, parent) {
@@ -225,7 +230,8 @@ function renderRecommendation(data) {
 }
 
 function render(data) {
-  results.replaceChildren();
+  globalThis.comparisonChat?.attach(data);
+  clearResults();
   populateBaseline(data);
   renderRecommendation(data);
   const maxContract = data.recommendation_result?.options?.max_contract_months;
@@ -273,6 +279,8 @@ function render(data) {
       tdu.href = plan.tdu_source.url; tdu.target = '_blank'; tdu.rel = 'noopener noreferrer';
     }
     const details = element('details', '', content);
+    details.className = 'monthly-breakdown';
+    details.open = true;
     element('summary', 'Monthly cost breakdown', details);
     const examples = [...(plan.efl_price_examples || [])].sort((a, b) => Number(a.kwh) - Number(b.kwh));
     if (examples.length) {
@@ -287,19 +295,51 @@ function render(data) {
     const inclusive = plan.pricing_basis === 'efl_average';
     const projected = plan.horizon_monthly_costs?.length > 0;
     if (projected) element('p', 'Document terms are held constant during the initial contract. Later months use hypothetical renewal assumptions.', details).className = 'note';
-    const wrapper = element('div', '', details);
-    wrapper.className = 'table-scroll';
-    const table = element('table', '', wrapper);
-    element('caption', custom ? 'Custom estimate: Energy = kWh times displayed EFL reference / 100; Total = Energy + base/usage fees + delivery - eligible credits. This repeats fee/credit effects embedded in the published average, not an actual tariff bill. Renewal rates are hypothetical.' : inclusive ? 'Estimated charge and Total both equal kWh times the displayed average price / 100, rounded to cents. Base fees, delivery and credits are embedded in that price and are not applied again. These user-defined EFL ranges approximate costs; renewal rows use a hypothetical escalated average.' : 'Charges in USD; credits are subtracted. Average Price is an EFL reference mapped to your requested usage ranges: use the first price through the second usage threshold, then the preceding example at each exact threshold; above the highest threshold use its price. These ranges are not published tariff rules or calculated effective prices. Renewal prices are not documented.', table);
+    const formula = element('details', '', details);
+    element('summary', custom ? 'Custom estimate: how it is calculated' : 'How this estimate is calculated', formula);
+    element('p', custom ? 'Energy = kWh times the displayed EFL reference / 100. Total = Energy + fees + delivery - credits. This repeats effects embedded in the published average and is not an actual tariff bill.' : inclusive ? 'The displayed average includes fees, delivery and credits. Total equals the all-in charge; included charges are not applied again.' : 'Energy, fees and delivery are calculated separately; credits are subtracted. The EFL reference uses your selected ranges and is not the effective bill rate.', formula);
+    if (custom) element('p', 'Custom estimate', details).className = 'estimate-badge';
+    const months = projected ? plan.horizon_monthly_costs : plan.monthly_costs;
+    const navigation = element('div', '', details); navigation.className = 'breakdown-years'; navigation.role = 'group'; navigation.ariaLabel = 'Year of monthly breakdown';
+    const phase = element('p', '', details); phase.className = 'breakdown-phase';
+    const wrapper = element('div', '', details); wrapper.className = 'monthly-table-wrap';
+    const table = element('table', '', wrapper); table.className = 'monthly-table';
+    element('caption', 'Monthly amounts in USD. Credits are subtracted from the total.', table);
     const head = element('tr', '', element('thead', '', table));
-    for (const label of ['Month', 'kWh', inclusive ? 'Estimated charge (all-in)' : custom ? 'Energy (custom)' : 'Energy', inclusive ? 'Average Price used (\u00a2/kWh)' : 'Average Price / EFL reference (\u00a2/kWh)', custom ? 'Base / usage fee' : 'Base fee', 'Delivery', 'Credit', custom ? 'Total (custom)' : 'Total', ...(projected ? ['Basis'] : [])]) element('th', label, head).scope = 'col';
+    const headers = ['Month', 'Usage (kWh)', inclusive ? 'All-in charge' : 'Energy', 'EFL reference (\u00a2/kWh)', 'Fees', 'Delivery', 'Credit', 'Total'];
+    for (const label of headers) element('th', label, head).scope = 'col';
     const body = element('tbody', '', table);
-    for (const month of (projected ? plan.horizon_monthly_costs : plan.monthly_costs)) {
+    const mobile = element('div', '', details); mobile.className = 'monthly-cards';
+    const items = [];
+    for (const month of months) {
       const row = element('tr', '', body);
       const example = examples.reduce((selected, example) => Number(month.kwh) > Number(example.kwh) ? example : selected, examples[0]);
       const averagePrice = (inclusive || custom) && month.average_price_cents != null ? String(month.average_price_cents) : month.basis === 'modeled_renewal' ? 'Not available (renewal)' : example ? String(example.cents_per_kwh) : 'Not listed';
-      for (const value of [month.month, month.kwh, dollars(month.energy), averagePrice, ...['base_fee', 'delivery', 'credit', 'total'].map(key => inclusive && key !== 'total' ? 'Included' : dollars(month[key])), ...(projected ? [month.basis === 'modeled_renewal' ? 'Modeled renewal' : custom ? 'Custom estimate' : 'Document terms'] : [])]) element('td', String(value), row);
+      const values = [month.month, month.kwh, dollars(month.energy), averagePrice, ...['base_fee', 'delivery', 'credit', 'total'].map(key => inclusive && key !== 'total' ? 'Included' : dollars(month[key]))];
+      for (const value of values) element('td', String(value), row);
+      const card = element('details', '', mobile); card.className = 'monthly-card';
+      element('summary', `Month ${month.month} | ${month.kwh} kWh | ${dollars(month.total)}`, card);
+      element('p', month.basis === 'modeled_renewal' ? 'Modeled renewal' : 'Initial contract', card).className = 'note';
+      const list = element('dl', '', card);
+      for (let i = 2; i < headers.length; i++) { element('dt', headers[i], list); element('dd', String(values[i]), list); }
+      items.push({row, card, month});
     }
+    const yearButtons = [];
+    function selectYear(year) {
+      items.forEach((item, index) => { item.row.hidden = item.card.hidden = Math.floor(index / 12) !== year; });
+      yearButtons.forEach((button, index) => { button.ariaPressed = String(index === year); button.className = index === year ? 'year-button selected' : 'year-button'; });
+      const selected = months.slice(year * 12, year * 12 + 12);
+      const original = selected.filter(m => m.basis !== 'modeled_renewal');
+      const renewal = selected.filter(m => m.basis === 'modeled_renewal');
+      const range = values => values.length === 1 ? `month ${values[0].month}` : `months ${values[0].month}-${values[values.length - 1].month}`;
+      const rate = data.recommendation_result?.options?.renewal_escalation_pct;
+      phase.textContent = [original.length ? `Initial contract: ${range(original)}` : '', renewal.length ? `Modeled renewal: ${range(renewal)} | ${rate == null ? 'annual rate not recorded' : rate + '% annually'}` : ''].filter(Boolean).join(' / ');
+    }
+    if (months.length > 12) for (let i = 0; i < Math.ceil(months.length / 12); i++) {
+      const button = element('button', `Year ${i + 1}`, navigation); button.type = 'button';
+      button.addEventListener('click', () => selectYear(i)); yearButtons.push(button);
+    }
+    selectYear(0);
   });
   if (longer.length) results.append(longerPlans);
   if (data.excluded_plans?.length) {
@@ -309,6 +349,7 @@ function render(data) {
   }
   const link = element('a', 'Link to this saved comparison', results);
   link.href = `/?comparison=${encodeURIComponent(data.id)}`;
+  globalThis.comparisonChat?.place();
 }
 
 form.addEventListener('submit', async event => {
@@ -320,16 +361,18 @@ form.addEventListener('submit', async event => {
   }
   const values = document.querySelector('#usage').value.split(',').map(value => value.trim());
   if (values.length !== 12 || values.some(value => !/^\d+(\.\d{1,4})?$/.test(value) || Number(value) > 99999999.9999)) {
+    globalThis.comparisonChat?.detach();
     status.textContent = 'Enter 12 non-negative usage numbers with no more than four decimal places.';
-    results.replaceChildren();
+    clearResults();
     return;
   }
   let options;
   try { options = recommendationOptions(); } catch (error) { status.textContent = error.message; return; }
+  globalThis.comparisonChat?.detach();
   const version = ++revision;
   busy = true;
   updateButton();
-  results.replaceChildren();
+  clearResults();
   status.textContent = 'Comparing plans…';
   try {
     const data = await request('/api/comparisons', {

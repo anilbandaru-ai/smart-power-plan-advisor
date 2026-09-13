@@ -155,3 +155,7 @@ eligible plans over that full period. Review the editable renewal escalation and
 credit assumptions under preferences. Results separate document-term costs from
 modeled renewal costs and use the same period for savings and regret. See
 [recommendation policy](docs/recommendations.md) for details and legacy fields.
+
+## Comparison chat
+
+After comparing plans, select **Explore alternatives** to explore contracts, usage, renewal assumptions and hypothetical rates/credits. Successful scenarios update the same comparison results; invalid or failed requests retain the last result. See [comparison chat](docs/comparison-chat.md) for examples, supported actions, configuration and recovery behavior.

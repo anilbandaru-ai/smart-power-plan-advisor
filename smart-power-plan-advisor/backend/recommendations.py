@@ -27,6 +27,7 @@ class Candidate:
     evidence: list
     issue_date: str | None = None
     pricing_basis: str = "components"
+    renewal_calculate: Callable | None = None
 
 
 def annual(months):
@@ -79,13 +80,16 @@ def recommend(request, candidates, data_mode, today=None):
     average_mode = any(c.pricing_basis in ("efl_average", "custom_efl") for c in candidates)
     custom_mode = any(c.pricing_basis == "custom_efl" for c in candidates)
     options = request.recommendation_options
-    horizon = options.max_contract_months or 12
+    horizon = options.comparison_horizon or options.max_contract_months or 12
     baseline_candidate = None
     if options.baseline_plan_id:
         baseline_candidate = next((c for c in candidates if c.plan_id == options.baseline_plan_id), None)
         if baseline_candidate is None:
             raise ValueError("Current plan must be a calculable plan for this ZIP in the selected data source.")
-    excluded = [c for c in candidates if options.max_contract_months and c.term_months > options.max_contract_months]
+    excluded = [c for c in candidates if
+        (options.max_contract_months and c.term_months > options.max_contract_months)
+        or (options.exact_contract_months and c.term_months != options.exact_contract_months)
+        or (options.exclude_bill_credit_plans and c.boundaries)]
     candidates = [c for c in candidates if c not in excluded]
     usage = [request.monthly_kwh[i % 12] for i in range(horizon)]
     scenarios = [{"id": key, "multiplier": factor,
@@ -116,7 +120,7 @@ def recommend(request, candidates, data_mode, today=None):
     if options.baseline_plan_id is None:
         warnings.append("No current-plan baseline supplied; savings and switching payback are unavailable.")
     if excluded:
-        warnings.append(f"{len(excluded)} plan(s) exceed your maximum contract length.")
+        warnings.append(f"{len(excluded)} plan(s) do not meet your contract or credit filters.")
     if renews:
         warnings.append("Some eligible plans require modeled renewal rates and credit terms. Multi-year estimates are uncertain.")
     if average_mode:

@@ -71,6 +71,7 @@ class PlanComparison(BaseModel):
 
 
 class ComparisonResult(BaseModel):
+    scenario_context: dict | None = None
     id: str
     created_at: str
     data_mode: str = "demo"

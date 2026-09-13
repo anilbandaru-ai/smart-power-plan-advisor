@@ -8,6 +8,7 @@
   <script src="/static/tabs.js" defer></script>
   <script src="/static/app.js" defer></script>
   <script src="/static/agent.js" defer></script>
+  <script src="/static/comparison-chat.js" defer></script>
 </head>
 <body>
   <main>
@@ -95,7 +96,19 @@
         </details>
       </form>
     <p id="status" role="status" aria-live="polite"></p>
+    <div class="comparison-workspace">
     <section id="results" aria-label="Comparison results"></section>
+    <aside id="comparison-chat" hidden aria-label="Explore comparison alternatives">
+      <div class="scenario-heading"><div><p class="eyebrow">YOUR NEXT SCENARIO</p><h2>Explore alternatives</h2></div><button id="scenario-start" class="secondary-button" type="button">Explore alternatives</button></div>
+      <p class="note">Ask about contract lengths, usage, rates or credits. Hypothetical changes stay in this conversation. Custom PDF estimates are not actual tariff bills.</p>
+
+      <div class="scenario-controls"><button id="scenario-original" class="secondary-button" type="button" disabled>Original / Reset</button><button id="scenario-previous" class="secondary-button" type="button" disabled>Previous scenario</button><button id="scenario-reload" class="text-link" hidden type="button" disabled>Reload chat</button></div>
+      <details id="scenario-state-panel"><summary>Scenario settings</summary><pre id="scenario-state"></pre></details>
+      <div id="scenario-messages" role="log" aria-live="polite" aria-relevant="additions text"></div>
+      <p id="scenario-status" role="status"></p>
+      <form id="scenario-form"><label for="scenario-input">Ask a what-if question</label><textarea id="scenario-input" rows="2" maxlength="2000" required placeholder="Compare over 36 months with a maximum 36-month contract" disabled></textarea><button id="scenario-send" disabled>Send</button><button id="scenario-retry" class="text-link" type="button" hidden>Retry last request</button></form>
+      <div class="scenario-suggestions" aria-label="Suggested questions"><button id="scenario-suggest-contract" type="button">Compare 36 months</button><button id="scenario-suggest-credit" type="button">Avoid bill credits</button><button id="scenario-suggest-why" type="button">Explain recommendation</button></div>
+    </aside></div>
     </section>
     <footer><a href="/docs">API documentation</a> · <a href="/api/health">Service health</a></footer>
   </main>

@@ -20,7 +20,7 @@ const saved = zip => ({
   recommendations: [{ name: 'Demo', annual_cost: '1800', explanation: 'Demo', source: 'Fixture',
     monthly_costs: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, kwh: '1000', energy: '130', base_fee: '5', delivery: '55', credit: '40', total: '150' })) }],
 });
-function setup(handler, search = '') {
+function setup(handler, search = '', comparisonChat = undefined) {
   const nodes = new Map();
   const get = id => {
     if (!nodes.has(id)) nodes.set(id, new Element(id === 'knowledge-document' ? 'select' : 'div'));
@@ -32,7 +32,7 @@ function setup(handler, search = '') {
   vm.runInNewContext(source, {
     document: { querySelector: selector => get(selector.slice(1)), createElement: tag => new Element(tag) },
     location: { search, pathname: '/' }, history: { replaceState: (_, __, value) => { url = value; } },
-    URLSearchParams, Intl,
+    URLSearchParams, Intl, comparisonChat,
     fetch: async (path, options) => ({ ok: true, json: async () => path === '/api/knowledge/status'
       ? { documents: [], configured: false, indexed: false } : await handler(path, options) }),
   });
@@ -281,7 +281,7 @@ test('average price maps EFL reference ranges including fractional boundaries wi
   const flatten = n => [n,...n.children.flatMap(flatten)];
   const nodes = flatten(app.get('results'));
   const header = nodes.find(n => n.tag==='thead').children[0].children.map(n => n.textContent);
-  assert.deepEqual(header.slice(2,5), ['Energy','Average Price / EFL reference (\u00a2/kWh)','Base fee']);
+  assert.deepEqual(header.slice(2,5), ['Energy','EFL reference (\u00a2/kWh)','Fees']);
   const rows = nodes.find(n => n.tag==='tbody').children;
   assert.deepEqual(rows.map(row => row.children[3].textContent), ['19.7','19.7','6.8','19.7','19.7','Not available (renewal)','19.7','6.8','12.8']);
   delete plan.efl_price_examples;
@@ -305,10 +305,10 @@ test('inclusive EFL estimates show their actual rate, included charges and uncha
   const flatten=n=>[n,...n.children.flatMap(flatten)];
   const nodes=flatten(app.get('results'));
   const rows=flatten(nodes.find(n=>n.className==='plan-row')).find(n=>n.tag==='tbody').children;
-  assert.deepEqual(rows[0].children.map(n=>n.textContent),['1','1800','$122.40','6.8','Included','Included','Included','$122.40','Document terms']);
-  assert.deepEqual(rows[1].children.map(n=>n.textContent),['13','1800','$128.52','7.14','Included','Included','Included','$128.52','Modeled renewal']);
+  assert.deepEqual(rows[0].children.map(n=>n.textContent),['1','1800','$122.40','6.8','Included','Included','Included','$122.40']);
+  assert.deepEqual(rows[1].children.map(n=>n.textContent),['13','1800','$128.52','7.14','Included','Included','Included','$128.52']);
   const text=allText(app.get('results'));
-  assert.ok(text.includes('Estimated charge (all-in)'));
+  assert.ok(text.includes('All-in charge'));
   assert.ok(text.includes('Separate renewal credit settings do not apply'));
   assert.ok(text.includes('Separate credit amounts and eligibility are not calculated'));
   assert.ok(!text.includes('No usage-dependent credit boundaries.'));
@@ -326,8 +326,8 @@ test('custom EFL energy shows numeric fees and credits and identifies the custom
   const nodes=flatten(app.get('results'));
   const card=nodes.find(n=>n.className==='plan-row');
   const row=flatten(card).find(n=>n.tag==='tbody').children[0];
-  assert.deepEqual(row.children.map(n=>n.textContent),['1','1800','$122.40','6.8','$0.00','$112.59','$125.00','$109.99','Custom estimate']);
-  assert.ok(allText(card).includes('Total (custom)'));
+  assert.deepEqual(row.children.map(n=>n.textContent),['1','1800','$122.40','6.8','$0.00','$112.59','$125.00','$109.99']);
+  assert.ok(allText(card).includes('Custom estimate'));
   assert.ok(allText(app.get('results')).includes('not an actual tariff bill'));
 });
 
@@ -352,4 +352,42 @@ test('plan details disclose only actual modeled renewal using saved percentage',
   delete plan.horizon_monthly_costs;
   app=setup(async()=>data,'?comparison=saved');await flush();
   assert.equal(flatten(app.get('results')).filter(n=>n.className==='renewal-note note').length,0);
+});
+
+
+test('monthly breakdown switches years and preserves mobile charges and renewal labels',async()=>{
+ const data=saved('75201');const plan=data.recommendations[0];
+ plan.horizon_monthly_costs=Array.from({length:25},(_,i)=>({...plan.monthly_costs[0],month:i+1,basis:i<12?'document_terms':'modeled_renewal'}));
+ const app=setup(async()=>data,'?comparison=saved');await flush();
+ const flatten=n=>[n,...n.children.flatMap(flatten)];const nodes=flatten(app.get('results'));
+ const rows=nodes.find(n=>n.tag==='tbody').children;
+ assert.equal(rows.filter(r=>!r.hidden).length,12);
+ const buttons=nodes.find(n=>n.className==='breakdown-years').children;
+ assert.equal(buttons.length,3);buttons[2].fire('click');
+ assert.equal(rows.filter(r=>!r.hidden).length,1);assert.equal(rows[24].children[0].textContent,'25');
+ const cards=nodes.find(n=>n.className==='monthly-cards').children;
+ assert.equal(cards.filter(c=>!c.hidden).length,1);
+ assert.ok(flatten(cards[24]).some(n=>n.textContent==='$150.00'));
+ assert.ok(nodes.find(n=>n.className==='breakdown-phase').textContent.includes('Modeled renewal: month 25'));
+ buttons[0].fire('click');assert.equal(rows[0].hidden,false);assert.equal(rows[24].hidden,true);
+});
+
+
+test('clearing and rebuilding comparisons parks the chat before deleting result children',async()=>{
+  let inResults=false, connected=true, parks=0;
+  const chat={
+    park(){connected=true;inResults=false;parks++;},
+    detach(){assert.equal(connected,true,'chat controls must remain in the document');},
+    attach(){assert.equal(connected,true,'chat messages must remain in the document');},
+    place(){inResults=true;}
+  };
+  const app=setup(async()=>saved('75201'),'',chat);
+  const target=app.get('results');const clear=target.replaceChildren.bind(target);
+  target.replaceChildren=()=>{if(inResults)connected=false;clear();};
+  enterZip(app,'75201');await app.get('compare-form').fire('submit');
+  assert.equal(inResults,true);
+  enterZip(app,'75001');enterZip(app,'75201');
+  await app.get('compare-form').fire('submit');
+  await app.get('compare-form').fire('submit');
+  assert.equal(connected,true);assert.equal(inResults,true);assert.ok(parks>=5);
 });

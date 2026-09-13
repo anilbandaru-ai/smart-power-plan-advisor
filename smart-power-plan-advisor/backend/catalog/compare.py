@@ -49,12 +49,14 @@ def compare_catalog(request, store):
             for example in plan.examples)
         if plan.tdu_lookup and plan.tdu_lookup.source:
             evidence.append({"kind": "delivery_source", **plan.tdu_lookup.source.model_dump(mode='json')})
+        renewal_plan = ExtractedPlan.model_validate(record['renewal_plan']) if record.get('renewal_plan') else None
         candidates.append(Candidate(plan_id=record['id'], name=plan.name.value,
             term_months=int(plan.contract_term.value),
             calculate=lambda usage, month, plan=plan: calculate_custom(plan, usage, month),
             boundaries=[value for component in plan.components if component.kind == "credit"
                 for value in (component.minimum_kwh, component.maximum_kwh) if value is not None], pricing_basis="custom_efl",
-            evidence=evidence, issue_date=plan.issue_date.value))
+            evidence=evidence, issue_date=plan.issue_date.value,
+            renewal_calculate=(lambda usage, month, plan=renewal_plan: calculate_custom(plan, usage, month)) if renewal_plan else None))
         months = [calculate_custom(plan, usage, i + 1) for i, usage in enumerate(request.monthly_kwh)]
         annual = sum((month.total for month in months), Decimal('0'))
         tdu = plan.tdu_lookup.source if plan.tdu_lookup and plan.tdu_lookup.status == 'resolved' else None

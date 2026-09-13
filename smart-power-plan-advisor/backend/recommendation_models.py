@@ -1,10 +1,20 @@
 from decimal import Decimal
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class RecommendationOptions(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    comparison_horizon: int | None = Field(default=None, ge=12, le=120)
+    exact_contract_months: int | None = Field(default=None, ge=12, le=120)
+    exclude_bill_credit_plans: bool = False
+
+    @model_validator(mode="after")
+    def consistent_contract(self):
+        if self.exact_contract_months and self.max_contract_months and self.exact_contract_months > self.max_contract_months:
+            raise ValueError("Exact contract length exceeds the maximum contract length")
+        return self
+
     renewal_escalation_pct: Decimal = Field(default=Decimal("5"), ge=0, le=30, max_digits=4, decimal_places=2)
     renewal_credit_policy: Literal["retain", "drop"] = "retain"
     usage_provenance: Literal["unknown", "estimated", "bills", "meter"] = "unknown"
