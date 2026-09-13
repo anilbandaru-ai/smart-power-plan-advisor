@@ -108,7 +108,7 @@ class CatalogTests(unittest.TestCase):
             response=client.post('/api/comparisons',json={'zip_code':'75201','monthly_kwh':[1000]*12,'data_source':'pdf'})
             self.assertEqual(response.status_code,201,response.text)
             saved=response.json();self.assertEqual(saved['data_mode'],'pdf')
-            self.assertEqual(saved['recommendations'][0]['annual_cost'],'1380.00')
+            self.assertEqual(saved['recommendations'][0]['annual_cost'],'2100.00')
         path.unlink();sync(self.store,self.root,self.extractor)
         with TestClient(create_app(db,catalog_path=self.store.path)) as client:
             self.assertEqual(client.get('/api/comparisons/'+saved['id']).json(),saved)
@@ -118,7 +118,7 @@ class CatalogTests(unittest.TestCase):
         self.write();sync(self.store,self.root,self.extractor)
         request=ComparisonRequest(zip_code='75201',data_source='pdf',monthly_kwh=[1000]*12)
         result=compare_catalog(request,self.store)
-        self.assertEqual(result.data_mode,'pdf');self.assertEqual(result.recommendations[0].annual_cost,Decimal('1380'))
+        self.assertEqual(result.data_mode,'pdf');self.assertEqual(result.recommendations[0].annual_cost,Decimal('2100'))
         self.assertTrue(result.recommendations[0].source_revision)
         request.zip_code='77002'
         with self.assertRaises(ValueError):compare_catalog(request,self.store)

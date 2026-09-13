@@ -34,6 +34,8 @@ class Plan(BaseModel):
 
 
 class MonthlyCost(BaseModel):
+    pricing_basis: Literal["components", "efl_average", "custom_efl"] = "components"
+    average_price_cents: Decimal | None = None
     month: int
     kwh: Decimal
     energy: Decimal
@@ -43,11 +45,23 @@ class MonthlyCost(BaseModel):
     total: Decimal
 
 
+class EflPriceExample(BaseModel):
+    kwh: Decimal
+    cents_per_kwh: Decimal
+    page: int | None = None
+    quote: str
+
+
 class PlanComparison(BaseModel):
+    pricing_basis: Literal["components", "efl_average", "custom_efl"] = "components"
+    efl_price_examples: list[EflPriceExample] = Field(default_factory=list)
     plan_id: str
     name: str
     term_months: int
     annual_cost: Decimal
+    horizon_cost: Decimal | None = None
+    comparison_horizon: int = 12
+    horizon_monthly_costs: list[dict] = Field(default_factory=list)
     monthly_costs: list[MonthlyCost]
     explanation: str
     source: str

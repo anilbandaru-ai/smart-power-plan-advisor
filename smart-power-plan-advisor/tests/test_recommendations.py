@@ -121,6 +121,12 @@ class RecommendationTests(unittest.TestCase):
             'calculation_eligible':True,'calculation_issues':[],'plan':plan.model_dump(mode='json')}
         result = compare_catalog(request(), SimpleNamespace(all_plans=lambda:[row]))
         self.assertEqual(result.recommendations[0].annual_cost,result.recommendation_result.best_overall.estimated_annual_cost)
+        published = result.recommendations[0].efl_price_examples
+        self.assertEqual([e.cents_per_kwh for e in published], [e.cents_per_kwh for e in plan.examples])
+        self.assertEqual([e.quote for e in published], [e.evidence.quote for e in plan.examples])
+        from backend.models import ComparisonResult
+        restored = ComparisonResult.model_validate_json(result.model_dump_json())
+        self.assertEqual(restored.recommendations[0].efl_price_examples, published)
         self.assertTrue(any(ref.get('page') == 1 and ref.get('quote') for ref in result.recommendation_result.evidence_refs))
         ids = {ref['id'] for ref in result.recommendation_result.evidence_refs}
         self.assertTrue(set(result.recommendation_result.best_overall.evidence_refs) <= ids)
@@ -143,3 +149,67 @@ class RecommendationTests(unittest.TestCase):
                 finally: connection.close()
                 legacy=client.get('/api/comparisons/'+data['id']).json()
                 self.assertIsNone(legacy['recommendation_result'])
+
+class HorizonTests(unittest.TestCase):
+    def plan(self, name, months, fee, **kwargs):
+        return Plan(id=name, name=name, term_months=months, base_fee=D(fee), energy_rate=0,
+                    delivery_rate=0, delivery_fee=0, credit_amount=0, source=name + '.pdf', **kwargs)
+
+    def test_24_and_36_month_rankings_use_own_rates_and_exclude_longer_terms(self):
+        plans = [self.plan('short',12,'100'),self.plan('medium',24,'105'),self.plan('long',36,'108')]
+        result = recommend(request(max_contract_months=24,renewal_escalation_pct='20'),[candidate(p) for p in plans],'pdf')
+        self.assertEqual(result.comparison_horizon,24)
+        self.assertEqual(result.best_overall.plan_id,'medium')
+        self.assertEqual(result.best_overall.horizon_cost,D('2520'))
+        short=next(p for p in result.plan_analyses if p.plan_id=='short')
+        self.assertEqual(short.estimated_annual_cost,D('1200'))
+        self.assertEqual(short.horizon_cost,D('2640'))
+        self.assertEqual(short.initial_term_cost,D('1200'))
+        self.assertEqual(short.modeled_renewal_cost,D('1440'))
+        self.assertEqual(len(result.scenarios),15)
+        self.assertNotIn('long',[p.plan_id for p in result.plan_analyses])
+        self.assertEqual(result.confidence,'low')
+        for i in range(15):
+            self.assertEqual(min(p.scenario_results[i].regret for p in result.plan_analyses),0)
+        result = recommend(request(max_contract_months=36,renewal_escalation_pct='20'),[candidate(p) for p in plans],'pdf')
+        self.assertEqual(result.best_overall.plan_id,'long')
+        self.assertEqual(result.best_overall.horizon_cost,D('3888'))
+        self.assertEqual(next(p.horizon_cost for p in result.plan_analyses if p.plan_id=='short'),D('4368'))
+        self.assertEqual(next(p.horizon_cost for p in result.plan_analyses if p.plan_id=='medium'),D('4334.40'))
+
+    def test_partial_horizon_credit_policies_and_repeated_usage(self):
+        from backend.projections import project
+        plan=self.plan('credit',12,'100').model_copy(update={'credit_amount':D('20'),'credit_threshold':D('1000')})
+        months,_=project(candidate(plan),[D(1000)]*12,24,D(20),'retain')
+        self.assertEqual(sum(m.total for m in months),D('2160'))
+        months,_=project(candidate(plan),[D(1000)]*12,24,D(20),'drop')
+        self.assertEqual(sum(m.total for m in months),D('2400'))
+        self.assertEqual(months[11].credit,D('20'))
+        self.assertEqual(months[12].credit,0)
+        months,details=project(candidate(self.plan('partial',18,'100')),[D(500),D(1500)]*6,25,D(20),'retain')
+        self.assertEqual(sum(m.total for m in months),D('2664'))
+        self.assertEqual([m.kwh for m in months[:12]],[m.kwh for m in months[12:24]])
+        self.assertEqual(details[17]['basis'],'document_terms')
+        self.assertEqual(details[18]['basis'],'modeled_renewal')
+        self.assertEqual(months[-1].month,25)
+
+    def test_horizon_baseline_payback_and_saved_contract(self):
+        plans=[self.plan('target',24,'100'),self.plan('baseline',36,'110')]
+        result=recommend(request(max_contract_months=24,baseline_plan_id='baseline',switching_cost='150'),[candidate(p) for p in plans],'demo')
+        self.assertEqual(result.expected_savings['gross_horizon_savings'],D('240'))
+        self.assertEqual(result.expected_savings['net_horizon_savings'],D('90'))
+        self.assertEqual(result.expected_savings['net_annual_savings'],D('-30'))
+        self.assertEqual(result.expected_savings['sustained_payback_month'],15)
+        self.assertEqual(len(result.expected_savings['cumulative_net_savings']),24)
+        with tempfile.TemporaryDirectory() as tmp, TestClient(create_app(Path(tmp)/'saved.sqlite3',catalog_path=Path(tmp)/'catalog.sqlite3')) as client:
+            body=request(max_contract_months=36,renewal_escalation_pct='5',renewal_credit_policy='drop').model_dump(mode='json')
+            response=client.post('/api/comparisons',json=body)
+            self.assertEqual(response.status_code,201,response.text)
+            data=response.json()
+            self.assertEqual(data['recommendation_result']['comparison_horizon'],36)
+            self.assertEqual(len(data['recommendations'][0]['horizon_monthly_costs']),36)
+            self.assertEqual(len(data['recommendations'][0]['monthly_costs']),12)
+            self.assertEqual(client.get('/api/comparisons/'+data['id']).json(),data)
+            for value in ['-1','31','NaN','1.234']:
+                body['recommendation_options']['renewal_escalation_pct']=value
+                self.assertEqual(client.post('/api/comparisons',json=body).status_code,422)

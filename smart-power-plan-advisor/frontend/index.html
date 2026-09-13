@@ -54,7 +54,7 @@
     </section>
     <section id="compare-panel" class="calculator-panel" role="tabpanel" aria-labelledby="compare-tab" tabindex="0" hidden>
       <div class="compare-heading"><div><h2>Find the right plan for your usage</h2>
-        <p class="note">Compare estimated costs over 12 months.</p></div><span class="compare-badge">Personalized comparison</span></div>
+        <p class="note">Compare total costs over your selected period.</p></div><span class="compare-badge">Personalized comparison</span></div>
       <form id="compare-form">
         <div class="input-grid">
           <div><label for="zip-code">ZIP code</label>
@@ -73,19 +73,25 @@
           <div class="input-grid">
             <div><label for="usage-provenance">Usage figures from</label>
               <select id="usage-provenance" aria-describedby="provenance-help"><option value="unknown">Not specified</option><option value="estimated">Estimates</option><option value="bills">Electricity bills</option><option value="meter">Meter records</option></select><p id="provenance-help" class="note">Informs recommendation confidence, not plan prices.</p></div>
-            <div><label for="max-contract">Maximum contract (months)</label>
-              <input id="max-contract" type="number" min="12" max="120" step="1" placeholder="No preference"></div>
+            <div><label for="max-contract">Comparison period / maximum contract (months)</label>
+              <input id="max-contract" type="number" min="12" max="120" step="1" placeholder="12-month comparison; no contract limit"></div>
+            <div><label for="renewal-escalation">Annual renewal escalation (%)</label>
+              <input id="renewal-escalation" type="number" min="0" max="30" step="0.01" value="5" aria-describedby="renewal-help">
+              <p id="renewal-help" class="note">Hypothetical increase after a plan expires, compounded from today. Lower/higher scenarios also tested; not an inflation forecast.</p></div>
+            <div><label for="renewal-credits">Bill credits after renewal</label>
+              <select id="renewal-credits" aria-describedby="renewal-credits-help"><option value="retain">Assume same credit amounts and conditions</option><option value="drop">Assume no renewal bill credits</option></select><p id="renewal-credits-help" class="note">Controls separately calculated credits after the initial contract, for custom PDF estimates and demo pricing.</p>
+              <p class="note">Future credit offers are unknown. The higher-cost scenario removes renewal credits.</p></div>
             <div><label for="baseline-plan">Current plan</label>
               <select id="baseline-plan" aria-describedby="baseline-help"><option value="">No baseline selected</option></select>
               <p id="baseline-help" class="note">Compare once to populate this list. Select your current plan and compare again for savings.</p></div>
             <div><label for="switching-cost">Switching costs ($)</label>
               <input id="switching-cost" type="number" min="0" max="9999999999.99" step="0.01" placeholder="Unknown" aria-describedby="switching-help">
-              <p id="switching-help" class="note">Reduces net savings against your current plan; does not change annual-cost ranking. Include cancellation and enrollment fees. Blank means unknown; 0 means no costs.</p></div>
+              <p id="switching-help" class="note">Reduces net savings against your current plan; does not change total-cost ranking. Include cancellation and enrollment fees. Blank means unknown; 0 means no costs.</p></div>
           </div>
         </details>
         <div class="compare-actions"><p class="note">Estimates only. Review plan terms before switching.</p><button id="submit" disabled>Compare plans</button></div>
         <details class="estimate-help"><summary>How these estimates work</summary>
-          <p class="note">PDF mode uses document-date rates, not live offers or verified address eligibility. A supported ZIP does not guarantee available PDF plans. Demo mode uses fictional rates. Bill estimates exclude taxes and switching fees; entered switching costs are reflected separately in net savings. Usage scenarios are sensitivity checks, not forecasts.</p>
+          <p class="note">PDF mode uses a custom formula: Energy = usage times mapped EFL average, plus PDF base/usage fees and delivery, minus eligible credits. This repeats effects already embedded in the average and is not an actual tariff bill. Renewal assumptions apply to these custom charges. A supported ZIP does not guarantee available PDF plans. Demo mode uses fictional rates. Bill estimates exclude taxes and switching fees; entered switching costs are reflected separately in net savings. Usage scenarios are sensitivity checks, not forecasts.</p>
         </details>
       </form>
     <p id="status" role="status" aria-live="polite"></p>
