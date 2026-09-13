@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 logger = logging.getLogger("uvicorn.error")
 
 
-def create_app(db_path: Path | None = None, plan_source: PlanSource | None = None, catalog_path: Path | None = None) -> FastAPI:
+def create_app(db_path: Path | None = None, plan_source: PlanSource | None = None, catalog_path: Path | None = None, scenario_interpreter=None) -> FastAPI:
     source = plan_source or JsonPlanSource(ROOT / "data" / "plans.json")
     store = ComparisonStore(db_path if db_path is not None else Path(
         os.environ.get("ADVISOR_DB_PATH", str(ROOT / ".data" / "advisor.sqlite3"))
@@ -31,9 +31,13 @@ def create_app(db_path: Path | None = None, plan_source: PlanSource | None = Non
     catalog = CatalogStore(catalog_path or Path(os.getenv("PLAN_CATALOG_DB_PATH", str(ROOT / ".data" / "plans.sqlite3"))))
     agent_router, close_agent = create_agent_router()
 
+    from backend.scenario.api import router as scenario_router
+    chat_router, initialize_chat = scenario_router(store, catalog, source, scenario_interpreter)
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         store.initialize()
+        initialize_chat()
         catalog.initialize()
         source.list_plans()  # Fail early when the local catalog is invalid.
         try:
@@ -44,6 +48,7 @@ def create_app(db_path: Path | None = None, plan_source: PlanSource | None = Non
     app = FastAPI(title="Smart Power Plan Advisor", version="0.1.0", lifespan=lifespan)
     app.include_router(create_router())
     app.include_router(agent_router)
+    app.include_router(chat_router)
     app.include_router(create_catalog_router(catalog, Path(os.getenv("PLAN_DATA_DIR", str(ROOT / "data")))))
 
     @app.middleware("http")

@@ -11,8 +11,9 @@ def cash(value):
 def project(candidate, usage, horizon, escalation, credit_policy):
     months, details = [], []
     for index in range(horizon):
-        original = candidate.calculate(usage[index % 12], index % 12 + 1)
         renewal = index >= candidate.term_months
+        calculator = candidate.renewal_calculate if renewal and candidate.renewal_calculate else candidate.calculate
+        original = calculator(usage[index % 12], index % 12 + 1)
         factor = (1 + escalation / 100) ** (index // 12) if renewal else D(1)
         energy, base, delivery = (cash(getattr(original, field) * factor) for field in ('energy', 'base_fee', 'delivery'))
         credit = D('0.00') if renewal and credit_policy == 'drop' else original.credit
@@ -35,7 +36,7 @@ def project(candidate, usage, horizon, escalation, credit_policy):
 
 
 def attach_projections(results, candidates, request):
-    horizon = request.recommendation_options.max_contract_months or 12
+    horizon = request.recommendation_options.comparison_horizon or request.recommendation_options.max_contract_months or 12
     options = request.recommendation_options
     by_id = {candidate.plan_id: candidate for candidate in candidates}
     for result in results:
