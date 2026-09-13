@@ -12,9 +12,35 @@ def applies(component, usage):
             and (high is None or (usage <= high if component.maximum_inclusive else usage < high)))
 
 
+def energy_structure(components):
+    flat = [c for c in components if c.kind == 'energy']
+    tiers = [c for c in components if c.kind == 'energy_tier']
+    if not tiers:
+        return [] if len(flat) == 1 else ['Exactly one stated energy charge required']
+    error = ['Energy tiers must be contiguous, nonoverlapping blocks from zero to unlimited usage without flat energy charges']
+    if flat or any(c.minimum_kwh is None for c in tiers):
+        return error
+    tiers = sorted(tiers, key=lambda c: c.minimum_kwh)
+    if tiers[0].minimum_kwh != 0 or not tiers[0].minimum_inclusive or tiers[-1].maximum_kwh is not None:
+        return error
+    for i, tier in enumerate(tiers):
+        if tier.maximum_kwh is not None and tier.maximum_kwh <= tier.minimum_kwh:
+            return error
+        if i and (tiers[i-1].maximum_kwh != tier.minimum_kwh or
+                  not tiers[i-1].maximum_inclusive or tier.minimum_inclusive):
+            return error
+    return []
+
+
 def calculate(plan, usage, month):
     totals = {key: Decimal('0') for key in ('energy', 'base_fee', 'delivery', 'credit')}
     for component in plan.components:
+        if component.kind == 'energy_tier':
+            if energy_structure(plan.components):
+                raise ValueError('Invalid energy tier structure')
+            block = max(Decimal(0), min(usage, component.maximum_kwh if component.maximum_kwh is not None else usage) - component.minimum_kwh)
+            totals['energy'] += component.amount * block / 100
+            continue
         if not applies(component, usage):
             continue
         value = component.amount * usage / 100 if component.unit == 'cents_per_kwh' else component.amount
@@ -52,7 +78,7 @@ def validate(plan, pages):
     if term < 12:
         issues.append('Contract does not cover the 12-month comparison horizon')
     raw = ' '.join(texts.values()).lower()
-    for phrase in ('free nights', 'free overnight', 'free days', 'free flex', 'summer bill credit', 'energy charge: (>'):
+    for phrase in ('free nights', 'free overnight', 'free days', 'free flex', 'summer bill credit'):
         if phrase in raw:
             issues.append(f'Unsupported pricing rule: {phrase}')
     by_kind = {}
@@ -80,7 +106,7 @@ def validate(plan, pages):
             'The above price disclosure is based on the following prices:')
         if component.amount not in quoted and not derived_zero:
             issues.append(f'{component.kind}: amount not present in source excerpt')
-        expected = 'cents_per_kwh' if component.kind in ('energy', 'delivery_energy') else 'usd_per_month'
+        expected = 'cents_per_kwh' if component.kind in ('energy', 'energy_tier', 'delivery_energy') else 'usd_per_month'
         if component.unit != expected:
             issues.append(f'{component.kind}: incompatible unit')
         if any(v is not None and (v < 0 or v not in quoted) for v in (component.minimum_kwh, component.maximum_kwh)):
@@ -89,7 +115,8 @@ def validate(plan, pages):
             issues.append(f'{component.kind}: reversed usage range')
         if component.kind in ('energy', 'delivery_energy', 'delivery_fixed', 'base') and (component.minimum_kwh is not None or component.maximum_kwh is not None):
             issues.append(f'{component.kind}: tiered/conditional rate not supported')
-    for key in ('energy', 'delivery_energy', 'delivery_fixed'):
+    issues.extend(energy_structure(plan.components))
+    for key in ('delivery_energy', 'delivery_fixed'):
         if len(by_kind.get(key, [])) != 1:
             issues.append(f'Exactly one stated {key} charge required')
     if len(by_kind.get('base', [])) > 1:
@@ -99,7 +126,7 @@ def validate(plan, pages):
     if any(component.minimum_kwh is None and component.maximum_kwh is None for component in by_kind.get('usage_charge', [])):
         issues.append('Usage charge needs an explicit applicability range')
     checks = []
-    complete_rates = all(len(by_kind.get(key, [])) == 1 for key in ('energy', 'delivery_energy', 'delivery_fixed'))
+    complete_rates = not energy_structure(plan.components) and all(len(by_kind.get(key, [])) == 1 for key in ('delivery_energy', 'delivery_fixed'))
     for example in plan.examples:
         if not evidence_ok(example.evidence) or not {Decimal(example.kwh), example.cents_per_kwh} <= numbers(example.evidence.quote):
             issues.append('Invalid average-price example evidence')

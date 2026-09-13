@@ -27,7 +27,8 @@ class Turn(BaseModel):
 
 def explanation(result):
     rec=result.recommendation_result
-    if not rec or not rec.best_overall: return 'No recommendation is recorded in this comparison.'
+    if not rec or not rec.best_overall:
+        return 'This comparison contains separate rough estimates, not a ranked recommendation. Change usage or contract preferences to explore scenarios.' if result.rough_estimates else 'No recommendation is recorded in this comparison.'
     best=rec.best_overall
     cost=best.horizon_cost if best.horizon_cost is not None else best.estimated_annual_cost
     text=f'{best.name} is recommended at ${cost:,.2f} over {rec.comparison_horizon} months. Confidence: {rec.confidence}. '
@@ -80,9 +81,21 @@ def router(store,catalog,source,interpreter=None):
     def start(payload:Start):
         result=store.get(str(payload.comparison_id))
         if result is None: raise HTTPException(404,'Comparison not found. Run Compare plans first.')
-        if not result.zip_code or not result.recommendations: raise HTTPException(409,'This legacy result lacks inputs. Run Compare plans again.')
+        if not result.zip_code or not (result.recommendations or result.rough_estimates): raise HTTPException(409,'This legacy result lacks inputs. Run Compare plans again.')
+        options=result.recommendation_result.options.model_dump(mode='json') if result.recommendation_result else {}
+        options['comparison_horizon']=result.recommendation_result.comparison_horizon if result.recommendation_result else 12
+        usage=[m.kwh for m in result.recommendations[0].monthly_costs] if result.recommendations else [m['kwh'] for m in result.rough_estimates[0]['monthly_costs']]
+        request=ComparisonRequest(zip_code=result.zip_code,data_source=result.data_mode, monthly_kwh=usage,
+            utility_id=result.utility['id'] if result.utility else None, recommendation_options=options,
+            rough_assumptions={p['plan_id']:p['assumptions_used'] for p in result.rough_estimates})
         if result.scenario_context:
             frozen=copy.deepcopy(result.scenario_context['frozen'])
+        elif result.data_mode in ('catalog','txu'):
+            from backend.scenario.catalog import freeze
+            try:
+                frozen=freeze(request,result,catalog)
+            except ValueError as error:
+                raise HTTPException(409,str(error)) from None
         elif result.data_mode=='pdf':
             frozen=catalog.all_plans()
             known={p.plan_id for p in result.recommendations} | {p['plan_id'] for p in result.excluded_plans if 'plan_id' in p}
@@ -92,10 +105,6 @@ def router(store,catalog,source,interpreter=None):
                 raise HTTPException(409,'The source catalog changed. Run Compare plans again to start a new chat.')
         else:
             frozen=[p.model_dump(mode='json') for p in source.list_plans()]
-        options=result.recommendation_result.options.model_dump(mode='json') if result.recommendation_result else {}
-        options['comparison_horizon']=result.recommendation_result.comparison_horizon if result.recommendation_result else 12
-        request=ComparisonRequest(zip_code=result.zip_code,data_source=result.data_mode,
-            monthly_kwh=[m.kwh for m in result.recommendations[0].monthly_costs],recommendation_options=options)
         initial=copy.deepcopy(result.scenario_context['state']) if result.scenario_context else {'request':request.model_dump(mode='json'),'overrides':[]}
         state={'original_id':result.id,'frozen':frozen,'history':[{'parent':None,'result_id':result.id,'state':initial}],
             'active':0,'attempts':[],'pending':None,'needs_migration':result.data_mode=='pdf' and any(p.pricing_basis!='custom_efl' for p in result.recommendations)}
@@ -132,7 +141,7 @@ def router(store,catalog,source,interpreter=None):
         if before is None: raise HTTPException(404,'Current comparison is missing. Start a new chat.')
         context={'state':current['state'],'pending':state['pending'],
             'recent_attempts':state['attempts'][-6:],
-            'plans':[{'id':r['id'],'name':r['plan']['name']['value'],'calculation_eligible':r['calculation_eligible'],'calculation_issues':r['calculation_issues'],'components':[{k:v for k,v in c.items() if k!='evidence'} for c in r['plan']['components']]} if 'plan' in r else {'id':r['id'],'name':r['name']} for r in state['frozen']]}
+            'plans':[{'id':r['id'],'name':r['plan']['name']['value'],'calculation_eligible':r['calculation_eligible'],'calculation_issues':r['calculation_issues'],'components':[{k:v for k,v in c.items() if k!='evidence'} for c in r['plan']['components']]} if 'plan' in r else {'id':r['id'],'name':r['name'],'source_type':r.get('source_type','demo'),'calculation_eligible':r.get('calculation_eligible',True),'components':r.get('components',[])} for r in state['frozen']]}
         try:
             action=Action.model_validate(interpreter(payload.message,context))
         except Exception:

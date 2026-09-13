@@ -24,6 +24,8 @@ class CatalogStore:
 
     def initialize(self):
         with self.connection() as db:
+            from backend.catalog.txu import initialize
+            initialize(db)
             db.execute('CREATE TABLE IF NOT EXISTS revisions (id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, version TEXT NOT NULL, model TEXT NOT NULL, payload TEXT, pages TEXT, warnings TEXT NOT NULL, issues TEXT NOT NULL, checks TEXT NOT NULL, status TEXT NOT NULL, extracted_at TEXT NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS sources (path TEXT PRIMARY KEY, sha256 TEXT, revision_id TEXT, active INTEGER NOT NULL, status TEXT NOT NULL, error TEXT, synced_at TEXT NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, summary TEXT)')
@@ -49,7 +51,7 @@ class CatalogStore:
     def deactivate_missing(self, present, timestamp):
         with self.connection() as db:
             old = [r[0] for r in db.execute('SELECT path FROM sources WHERE active=1')]
-            missing = set(old) - set(present)
+            missing = {path for path in set(old) - set(present) if not path.startswith('_txu/')}
             db.executemany('UPDATE sources SET active=0,status="missing",synced_at=? WHERE path=?', [(timestamp, path) for path in missing])
             return len(missing)
 
@@ -65,8 +67,8 @@ class CatalogStore:
                 issues = json.loads(row['issues'])
                 result.append({'id': row['sha256'][:24], 'revision_id': row['id'], 'document_sha256': row['sha256'],
                     'extraction_version': row['version'],
-                    'extraction_method': 'deterministic' if 'Recognized deterministic EFL parser' in plan.get('extraction_notes', []) else 'model',
-                    'extraction_model': None if 'Recognized deterministic EFL parser' in plan.get('extraction_notes', []) else row['model'], 'extracted_at': row['extracted_at'],
+                    'extraction_method': 'deterministic' if 'Recognized deterministic EFL parser' in plan.get('extraction_notes', []) else 'review_required' if row['model'].startswith('txu-reviewed-parser-') else 'model',
+                    'extraction_model': None if 'Recognized deterministic EFL parser' in plan.get('extraction_notes', []) or row['model'].startswith('txu-reviewed-parser-') else row['model'], 'extracted_at': row['extracted_at'],
                     'calculation_eligible': not issues, 'calculation_issues': issues, 'warnings': json.loads(row['warnings']),
                     'price_checks': json.loads(row['checks']), 'sources': sources, 'plan': plan,
                     'source_documents': [{'filename': path, 'sha256': row['sha256']} for path in sources],
@@ -85,6 +87,9 @@ class CatalogStore:
                 if identity_payload.get('tdu_lookup') and identity_payload['tdu_lookup'].get('source'):
                     identity_payload['tdu_lookup']['source'].pop('fetched_at', None)
                 identity = sha256(json.dumps(identity_payload, sort_keys=True).encode()).hexdigest()[:24]
+                if item['extraction_method'] == 'review_required':
+                    # Empty unknown-layout payloads are not evidence of equal tariffs.
+                    identity = item['document_sha256'][:24]
                 if identity in grouped:
                     current = grouped[identity]
                     current['sources'] = sorted(set(current['sources'] + item['sources']))

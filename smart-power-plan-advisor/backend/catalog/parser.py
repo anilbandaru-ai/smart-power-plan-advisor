@@ -54,21 +54,26 @@ def parse_known(pages):
                 return match
         return None
     date = find(r'(?:Issue Date:|Date:)\s*([A-Za-z]+ \d{1,2}, \d{4}|\d{2}/\d{2}/\d{4})') or find(r'(\d{4}-\d{2}-\d{2}|September \d{1,2}, \d{4})')
-    term = find(r'Contract Term:?\s*\|\s*(\d+)\s*months')
+    term = find(r'Contract Term:?\s*\|\s*(\d+)\s*months') or find(r'Contract Term:?\s*\|\s*(Month to Month)')
     product = find(r'Type of Product:?\s*\|\s*(Fixed Rate|Fixed|Variable)')
     termination = find(r'Do I have a termination fee[^|]+\|\s*([^|]+?)(?= Can my price|$)')
     components, unsupported, notes = [], [], []
     def component(kind, amount, quote, low=None, inclusive=True, high=None, high_inclusive=False):
-        components.append(dict(kind=kind, amount=str(amount), unit='cents_per_kwh' if kind in ('energy','delivery_energy') else 'usd_per_month',
+        components.append(dict(kind=kind, amount=str(amount), unit='cents_per_kwh' if kind in ('energy','energy_tier','delivery_energy') else 'usd_per_month',
             minimum_kwh=low,minimum_inclusive=inclusive,maximum_kwh=high,maximum_inclusive=high_inclusive,evidence=proof(quote)))
     energy = find(r'Energy Charge[: |]+' + N + r'\s*¢\s*per kWh') or find(r'Energy Rate\s*\(¢\)\s*per kWh:\s*' + N + r'\s*¢') or find(r'Energy Charge:\s*Per kWh \(¢\) All kWh\s*' + N + r'\s*¢')
+    tier_first = find(r'Energy Charge:\s*\(0 to (\d+) kWh\)\s*' + N + r'\s*¢\s*per kWh')
+    tier_next = find(r'Energy Charge:\s*\(>\s*(\d+) kWh\)\s*' + N + r'\s*¢\s*per kWh')
+    if tier_first and tier_next and tier_first.group(1) == tier_next.group(1):
+        component('energy_tier', tier_first.group(2), tier_first.group(0), low='0', high=tier_first.group(1), high_inclusive=True)
+        component('energy_tier', tier_next.group(2), tier_next.group(0), low=tier_next.group(1), inclusive=False)
     if energy:
         component('energy', energy.group(1), energy.group(0))
     base = find(r'Base Charge[: |]+\$' + N + r'\s*(?:per billing cycle|per month)') or find(r'Base Charge:\s*Per Month \(\$\)\s*\$?' + N) or find(r'Base Charge \(\$\) per month:\s*\$' + N)
     if base:
         component('base', base.group(1), base.group(0))
     for _, content in normalized:
-        for label in re.finditer(r'(?:Oncor Electric Delivery Delivery Charges|Energy Delivery Charges|TDU Delivery Charges)[: |]+',content,re.I):
+        for label in re.finditer(r'(?:Oncor Electric Delivery Monthly Charges|Oncor Electric Delivery Delivery Charges|Energy Delivery Charges|TDU Delivery Charges)[: |]+',content,re.I):
             rest=content[label.end():]
             fixed=re.match(r'\$'+N+r'\s*per (?:billing cycle|month)(?:\s+and\s+'+N+r'\s*¢\s*per kWh)?',rest,re.I)
             variable=re.match(N+r'\s*¢\s*per kWh(?:\s+and\s+\$'+N+r'\s*per month)?',rest,re.I)
@@ -78,6 +83,9 @@ def parse_known(pages):
             kinds=['delivery_fixed','delivery_energy'] if fixed else ['delivery_energy','delivery_fixed']
             for kind,amount in zip(kinds,match.groups()):
                 if amount is not None and not any(c['kind']==kind for c in components):component(kind,amount,quote)
+    daytime_delivery = find(r'Oncor Electric Delivery Daytime Delivery\s*' + N + r'\s*¢\s*per kWh\s*Charges') or find(r'Oncor Electric Delivery Daytime Delivery Charges[: |]+' + N + r'\s*¢\s*per kWh')
+    if daytime_delivery and not any(c['kind'] == 'delivery_energy' for c in components):
+        component('delivery_energy', daytime_delivery.group(1), daytime_delivery.group(0))
     usage=find(r'Usage Charge:\s*\$'+N+r'\s*per billing cycle\s*<\s*(\d+)\s*kWh\s*\$'+N+r'\s*per billing cycle\s*≥\s*(\d+)\s*kWh')
     if usage:
         component('usage_charge',usage.group(1),usage.group(0),high=usage.group(2))
@@ -96,8 +104,10 @@ def parse_known(pages):
         elif provider == 'Frontier Utilities' and 'The above price disclosure is based on the following prices:' in text:
             quote='The above price disclosure is based on the following prices:'
             component('base','0',quote);notes.append('Zero base derived from recognized Frontier exhaustive price table')
-    for pattern,label in [(r'Energy Charge:\s*\(', 'Tiered energy rates require a tiered calculator'),(r'Free Overnight|Free Nights|Free Days|Free Flex', 'Interval usage is required for free-time pricing'),(r'summer bill credit','Seasonal credit pricing is not supported'),(r'Type of Product:?\s*\|\s*Variable','Variable-rate pricing is not supported')]:
-        if re.search(pattern,joined,re.I):unsupported.append(label)
+    for pattern,label in [(r'Energy Charge:\s*\(', 'Tiered energy rates require a tiered calculator'),(r'Free Overnight|Free Nights|Free Days|Free Flex|Free Pass', 'Interval usage is required for free-time pricing'),(r'summer bill credit','Seasonal credit pricing is not supported'),(r'Type of Product:?\s*\|\s*Variable','Variable-rate pricing is not supported')]:
+        if re.search(pattern,joined,re.I) and not (label.startswith('Tiered energy') and tier_first and tier_next and tier_first.group(1) == tier_next.group(1)):unsupported.append(label)
+    if '0.000%' in joined and 'Free Pass' in joined:
+        unsupported.append('PDF states 0.000% free usage but advertised prices are below the energy charge; benchmark is not a reconciled tariff')
     # If another credit/usage mechanism exists but wasn't understood, block calculation.
     if re.search(r'(?:Usage Credit|Bill Credit|\$[\d.]+ credit)',text,re.I) and not any(c['kind']=='credit' for c in components):
         unsupported.append('Credit condition could not be parsed')

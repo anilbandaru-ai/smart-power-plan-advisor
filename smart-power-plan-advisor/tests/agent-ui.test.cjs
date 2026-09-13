@@ -11,7 +11,7 @@ class Element {
   fire(name) { return this.listeners[name]?.({ preventDefault() {} }); }
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
-function setup(handler) {
+function setup(handler, readiness = () => ({ configured: true, indexed: true, dependencies_available: true, documents: [{id:'doc', filename:'Plan.pdf'}] })) {
   const nodes = new Map();
   const get = id => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id); };
   get('document').append(new Element());
@@ -20,7 +20,7 @@ function setup(handler) {
     document: { querySelector: selector => get(selector.replace('#agent-', '')), createElement: () => new Element(), querySelectorAll: () => [] },
     crypto: { randomUUID: () => `request-${++id}` },
     fetch: async (url, options) => {
-      if (url === '/api/agent/status') return { ok: true, json: async () => ({ configured: true, indexed: true, dependencies_available: true, documents: [{id:'doc', filename:'Plan.pdf'}] }) };
+      if (url === '/api/agent/status') return { ok: true, json: async () => readiness() };
       const result = await handler(url, options);
       return { ok: !result.error, status: result.error || 200, json: async () => result.body || result };
     },
@@ -114,4 +114,33 @@ test('chat completion retains its answer without focusing a hidden assistant', a
   await pending;
   assert.equal(get('question').focusCount || 0, 0);
   assert.equal(get('messages').children.at(-1).children[1].textContent, '12 months');
+});
+
+
+test('missing index explains disabled Send and recheck preserves draft', async () => {
+  let indexed = false;
+  const get = setup(async () => { throw new Error('Must not send while unavailable'); },
+    () => ({configured:true, indexed, dependencies_available:true, documents:[]}));
+  await flush();
+  get('question').value = 'Explain my plan';
+  assert.equal(get('submit').disabled, true);
+  assert.match(get('status').textContent, /SQLite plan imports do not create/);
+  assert.doesNotMatch(get('status').textContent, /configuration is missing|dependencies are missing/);
+  assert.equal(get('recheck').hidden, false);
+  await get('form').fire('submit');
+  assert.equal(get('messages').children.length, 0);
+  indexed = true;
+  await get('recheck').fire('click');
+  assert.equal(get('submit').disabled, false);
+  assert.equal(get('recheck').hidden, true);
+  assert.equal(get('question').value, 'Explain my plan');
+});
+
+test('missing configuration and dependencies have separate recovery guidance', async () => {
+  const get = setup(async () => ({}), () => ({configured:false, indexed:true, dependencies_available:false, documents:[]}));
+  await flush();
+  assert.equal(get('submit').disabled, true);
+  assert.match(get('status').textContent, /--env-file .env/);
+  assert.match(get('status').textContent, /requirements-rag.txt/);
+  assert.doesNotMatch(get('status').textContent, /not indexed/);
 });

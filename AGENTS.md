@@ -18,3 +18,14 @@ For every new requirement, feature, bug fix, or change to application behavior:
 If a requested implementation is absent from or conflicts with `spec.md`, update the specification first within the authorized task scope. Ask for clarification only when the intended behavior cannot reasonably be determined.
 
 For internal refactors, document the intended change and the behavior that must remain unchanged in `spec.md` before modifying implementation code. Documentation-only edits that do not change requirements or application behavior do not require an artificial specification change.
+
+## PDF and provider-API source separation
+
+Treat PDF plans and provider-API offers as independent source records, including
+TXU. Never merge their pricing, overwrite one with the other, or require a matching
+API offer to import a PDF. Keep provenance, validation and availability claims
+specific to each source. A PDF under `_txu/` is still a PDF; folder origin alone
+is not a validation failure. API active/hidden status, ZIP listings and freshness
+apply to API offers, not PDF import eligibility. PDF imports retain document-date
+pricing and do not claim verified live availability. Follow spec.md section 32
+for the recorded policy; section 33 implements independent strict PDF ingestion.

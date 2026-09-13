@@ -2,6 +2,9 @@
 __pycache__/
 *.pyc
 .data/
+data/_txu/
 .env
 .env.*
 !.env.example
+
+.DS_Store

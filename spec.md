@@ -1,6 +1,7 @@
 # Smart Power Plan Advisor — Implemented Specification
 
 Status: current implementation baseline, API version `0.1.0`.
+
 Reviewed: 2026-09-11.
 
 This specification records the functionality present in the repository. Requirement IDs describe existing behavior unless explicitly marked planned or deferred. Future changes can reference these IDs and update their acceptance criteria alongside implementation and tests. All source paths below are relative to the application directory, [`smart-power-plan-advisor/`](smart-power-plan-advisor/).
@@ -581,3 +582,868 @@ Verification: 33 existing UI tests passed, followed by all 20 comparison UI test
 CHAT-02/03 correction: recognize standalone "contract term 24 months" (and equivalent explicit term wording) as exact_contract_months=24 without model inference or changes to other filters/horizon. Preserve credit exclusion and maximum constraints; do not silently relax them. For no matches, report the proposed exact/max term and credit filter, the count of calculable source plans meeting the contract criteria before credit exclusion, and whether all are excluded by their credit conditions. Mention that retaining credit exclusion may require another term; suggest allowing credits only as an explicit next action. Record proposed changes even for failed/no-match attempts. Verification must cover the observed saved case (24-month period, prior exact 12, max 24, exclude credits true), successful exact 24 with credits allowed, and truly absent contract terms. Preserve active results on no matches.
 
 Verification: all 16 scenario tests passed. Read-only reproduction from the reported saved session confirmed two 24-month plans excluded by its active no-credit filter; permitting credits on an in-memory copy returned SimpleSaver 24 and Reliant Power Savings 24. Tests cover exact-term parsing, retained constraints, recorded attempted changes, explicit relaxation, successful recommendations and genuinely absent terms. No saved user preferences or catalog data were modified. git diff --check passed.
+
+## 20. TXU integration — implemented (2026-09-12)
+
+This section extends CATALOG-01–CATALOG-10 and supersedes the no-remote-discovery
+scope only for explicit TXU ingestion. Existing demo, local-PDF and chat behavior
+remains unchanged; TXU comparisons use a new explicit `data_source: "txu"`.
+
+- TXU-01: Add an explicit `sync-txu --zip ZIP [--zip ZIP ...]` catalog CLI command.
+  Fetch `shop.txu.com/api/utilities/?zipCode=ZIP`, read `data.utilities`, then fetch
+  the top-level plan array from `/api/plans/` for every returned utility using the
+  same ZIP. Validate ZIPs, utility IDs, response shapes and offer utility/provider
+  identity. Use bounded timeouts, response sizes and transient retries. No API key
+  or model call is required for TXU ingestion.
+- TXU-02: SQLite stores immutable per-ZIP refresh snapshots, utilities, raw offers,
+  timestamps, external offer IDs and EFL source/revision associations. Publish a
+  ZIP only after all its utility listings succeed; failed listing refreshes retain
+  history and mark the previous snapshot stale. A successful empty result removes
+  current availability only for that ZIP. Availability expires after 24 hours and
+  stale results remain browsable but cannot enter new TXU comparisons. Unrelated
+  ZIPs, providers, local PDFs and saved comparisons are preserved.
+- TXU-03: Download only HTTPS EFL URLs on reviewed TXU document hosts, validating
+  each redirect, size and PDF signature. Store immutable content-addressed PDFs
+  under reserved `data/_txu/`, reusing extraction by bytes/version. Ordinary local
+  catalog sync skips that directory and does not deactivate its records. Retain
+  downloadable source evidence and per-offer errors; a missing/failed EFL must not
+  reuse prior pricing for a changed offer. Unknown layouts are review-required,
+  with no automatic model extraction or inference from marketing copy.
+  The observed API uses `shopping.txu.com` and `www.txu.com`, and the latter
+  redirects to `residential.txu.com`; allow those exact hosts and validate every
+  redirect. Expose controlled error categories (HTTP
+  status, non-PDF response, missing EFL, unapproved host) without response bodies.
+  Managed downloads are ignored by Git. Catalog metadata identifies unparsed
+  TXU documents as review-required rather than claiming model extraction.
+  Unparsed TXU documents retain content-hash identities: empty extraction fields
+  must not collapse unrelated EFLs into one tariff. The cache provides a verified
+  local document URL when a source revision is available, alongside the TXU URL.
+- TXU-04: Use reviewed EFL parsers and existing Decimal pricing/evidence checks.
+  Normalize API energy/delivery rates from USD/kWh to cents/kWh for cross-checking
+  against EFL components; monthly fees stay USD. Check standard usage examples,
+  name/term/area identity and reject discrepancies. Empty `billCredits` does not
+  establish no credits. Free-time, solar-buyback, tiered and seasonal pricing stay
+  excluded unless independently supported by reviewed rules. Implement only EFL
+  layouts whose actual documents can be inspected; unavailable documents stay
+  blocked rather than being approved from API fields alone.
+- TXU-05: Expose read-only cached `GET /api/catalog/txu?zip_code=ZIP` with utilities,
+  offers, freshness, last failure and calculation exclusions; it never fetches the
+  network. Extend comparison request with `data_source: "txu"` and optional UUID
+  `utility_id`. Auto-select exactly one utility; require selection for multiple and
+  reject IDs outside the requested ZIP. Rank only active, visible offers tied to
+  that ZIP/utility and a validated matching EFL revision. Deduplicate identical
+  tariffs; snapshot offer IDs, fetch time and document revisions in results.
+- TXU-06: Add TXU cached offers as a form source. On submission use the cached
+  lookup; expose a labeled utility selector when needed, show freshness/errors,
+  and display blocked offers when no plan can be calculated. Preserve edit-driven
+  invalidation and saved-result restoration, including utility selection. Existing
+  PDF/demo submissions and saved reads require no extra lookup. TXU downloads do
+  not publish to Pinecone or change the assistant corpus.
+- TXU-07: Verify response contracts, matching ZIP propagation, multi-utility and
+  empty results, malformed/mismatched responses, redirects and size limits,
+  unchanged/changed EFLs, missing-credit safeguards, unit conversion, refresh
+  failure/expiry, ZIP isolation, duplicate tariffs, local-sync preservation,
+  deterministic costs, API snapshots and frontend stale-response handling.
+  Record live verification and any unavailable-provider limitations honestly.
+
+Implementation: TXU-01–TXU-07 are implemented for explicit discovery, cached
+availability, controlled EFL ingestion, existing reviewed-parser validation and
+comparison/UI integration. No new TXU tariff layout has been approved; unfamiliar
+or incomplete EFLs remain review-required. The supported comparison path is tested
+with a scripted reviewed tariff, not represented as a verified live TXU price.
+
+Verification 2026-09-12: all 81 Python tests and 23 JavaScript DOM-stub tests passed;
+JavaScript syntax and git diff --check passed. Tests include 14 TXU-specific Python
+methods and five new browser-script cases. A final live sync queried both 79756
+and 78681 using their returned Oncor utility, saving 43 listings per ZIP (86
+associations), with no listing failures and all 86 excluded from calculation.
+There were 43 distinct EFL URLs across the ZIPs: the shopping host returned 28
+non-PDF responses; the legacy www host redirected to residential.txu.com and
+provided 15 PDF files. Thirteen parsed into review-required records, and two were
+rejected by existing page text-length checks. Fourteen listings per ZIP were
+hidden by TXU. No unavailable, hidden or unreviewed offer was ranked.
+
+HTTP TestClient verification against the populated local cache returned 200 for
+both ZIP lookups and the hash-checked local document endpoint; each ZIP exposed
+13 distinct local EFL links. New TXU comparisons correctly returned actionable
+422 errors because no offer passed the full gate. Scripted comparison tests
+verified $162.31/month and $1,947.72/year at 1,000 kWh/month, utility selection,
+ZIP isolation, deduplication, source snapshots and retrieval after withdrawal.
+Existing reviewed local-PDF fixture tests intentionally skip managed downloads.
+A downloaded Simple Rate 24 EFL page was rendered and visually inspected; it
+omits numerical TDU charges and its offer is hidden. No live tariff was approved,
+no model or Pinecone operation was used, and no full browser visual test was run.
+See smart-power-plan-advisor/docs/txu-integration.md for usage and limitations.
+
+## 21. Cross-platform combined data update — implemented
+
+Requested 2026-09-12. Add one Python entry point, `update_data.py` in the inner
+application directory, to update the SQLite catalog and the existing RAG index.
+This extends CATALOG-02 and RAG-04; the separate existing CLIs remain available.
+
+- UPDATE-01: Use portable Python/pathlib and the current Python interpreter;
+  no Bash, PowerShell activation, shell subprocess, or platform-specific path
+  assumptions. Paths default to the application directory regardless of launch
+  directory. Load its existing `.env` by default, with environment variables
+  taking precedence, and support explicit env/data/SQLite/manifest paths.
+  Honor PLAN_DATA_DIR in RAG Settings as well as the existing catalog configuration;
+  custom script paths require the server to use matching paths.
+- UPDATE-02: Before writes or provider calls, check ingestion dependencies, both
+  credential presence (never values), existing data directory, distinct output
+  paths and ZIP syntax. `--check` prints a read-only configuration/dependency/file
+  summary; it does not create files, extract PDFs, call providers, validate live
+  credentials or modify either store. Missing packages identify the exact Python
+  environment and the requirements-rag.txt installation command.
+- UPDATE-03: An optional repeatable `--zip` refreshes TXU SQLite snapshots first;
+  absent ZIPs do not fetch TXU. Then prepare RAG documents, incrementally sync
+  ordinary local PDFs to SQLite (retry prior failures), and publish the prepared
+  RAG corpus using existing embedding, index compatibility and atomic-manifest
+  code. Preserve original relative source paths and citations. No implicit index
+  creation, namespace deletion, credential changes, or modification of pricing
+  validation/eligibility. Report TXU saved/blocked counts separately.
+- UPDATE-04: The combined command excludes reserved `_txu/` downloads from RAG
+  by default. `--include-txu-rag` explicitly includes them as document evidence,
+  not proof of current offer eligibility. Preserve the strict RAG page validation:
+  unreadable documents fail preparation with a source-specific error, never get
+  silently skipped or published as a partial replacement corpus. Existing RAG CLI
+  discovery is unchanged; extend build_corpus with optional explicit source paths
+  for this command, including case-insensitive PDF discovery and root validation.
+- UPDATE-05: If the prepared manifest exactly matches the active local manifest,
+  skip redundant embeddings/upserts and report `unchanged`; this does not verify
+  remote index contents. `--force` reextracts catalog files and republishes RAG.
+  `--refresh-tdu` forwards the existing explicit delivery-rate refresh option.
+  Verify prepared source hashes before publication and again after upserts before
+  activating the local manifest; changed files fail the run. Extend the existing
+  publisher with an optional pre-activation check; other callers stay unchanged.
+- UPDATE-06: Serialize combined runs sharing a manifest using the existing
+  Windows/POSIX lock helper. Print progress and a structured stage summary; return
+  nonzero for failed stages, distinguish not-started/updated/unchanged/partial,
+  sanitize provider errors and close resources on errors. SQLite and Pinecone
+  are not a distributed transaction: completed SQLite changes remain if RAG fails,
+  but the old active manifest survives failed upserts. A rerun retries the work.
+- UPDATE-07: Document exact macOS and Windows setup/check/update commands, optional
+  TXU scope, existing index prerequisite, external embedding/upsert costs and
+  partial-failure semantics. Verify preflight without mutation, path independence,
+  optional TXU flags, ordering, unchanged/forced publishing, excluded TXU documents,
+  source changes, failures/resource cleanup, and existing regressions using mocked
+  provider calls. Record native OS and live-provider verification limits honestly.
+
+Implementation: UPDATE-01–UPDATE-07 are implemented in `update_data.py` and
+`backend/update_data.py`, with optional source selection and pre-activation checks
+in the existing RAG helpers. Existing standalone ingestion defaults are preserved.
+README and `docs/update-data.md` include explicit commands for both operating
+systems and distinguish configuration checks from real updates.
+
+Verification 2026-09-12: all 103 Python tests and 23 JavaScript tests passed;
+git diff --check passed. Fourteen new updater tests cover read-only preflight,
+configuration/path resolution, existing env precedence, same-interpreter package
+guidance, source containment/uppercase PDFs, stage ordering, optional TXU scope,
+unchanged/forced RAG, partial SQLite failures, provider errors, source mutation
+during upserts, resource closure, and preservation of the prior manifest. A real
+uppercase-named PDF retains working source citations. Native macOS checks using
+the inner application venv succeeded both from the application folder and from
+an unrelated working directory. Read-only preparation selected all 22 ordinary
+PDFs into 59 chunks, excluding managed TXU downloads. Declared RAG dependencies
+were installed into that venv; existing key presence was checked without revealing
+values. No live embeddings, Pinecone mutations or production SQLite update were
+performed for this task. Windows execution was not available: the script uses
+portable Python paths and the existing Windows/POSIX lock implementation, with
+Windows invocation documented but not claimed as natively tested.
+
+## 22. Shared catalog API pricing flow — implemented
+
+Requested 2026-09-12. This supersedes section 20's mandatory TXU EFL comparison
+gate. Extend CATALOG-02: PDF extraction and provider APIs both feed the SQLite
+catalog; the catalog API and comparison engine consume the same structured plan
+contract. RAG remains a document evidence path, never a price calculator.
+
+- FLOW-01: Expose `/api/catalog/records` and `/api/catalog/records/{id}` with a
+  versioned, source-independent contract: identity/revision, provider, area,
+  contract term, recurring components with explicit units and usage boundaries,
+  examples, eligibility/issues, and source provenance. Preserve all extracted PDF
+  fields and the complete TXU offer in source details. Existing PDF audit/document
+  endpoints remain compatible. Use SQLite's existing immutable revisions and TXU
+  refresh snapshots as storage; a shared adapter projects these into API records.
+  Reads require no PDF access, extraction, provider fetch, RAG or model call.
+- FLOW-02: Comparison must consume precisely these API records through the same
+  server-side catalog service (no self-HTTP request, client-supplied rates or
+  direct PDF extraction objects). Preserve `pdf` and `txu` source filters, ZIP and
+  utility selection, deterministic Decimal arithmetic, PDF validation outcomes,
+  source citations and saved comparisons. PDF validation occurs at ingestion;
+  deleting a PDF after ingestion does not prevent calculation from stored terms.
+- FLOW-03: TXU sync stores complete API offers and validates API pricing directly.
+  EFL downloads become optional (`--download-efls`), with separate document issues
+  that do not determine API pricing eligibility. Support complete fixed flat
+  tariffs covering at least twelve months: four explicit recurring charges and
+  reconciled 500/1000/2000 kWh examples. Reject missing/duplicate/invalid rates,
+  unrecognized rate types, unmodeled credits, usage conditions, interval/seasonal
+  or solar rules. Never derive a tariff from average prices or marketing text.
+  Availability/hidden flags, 24-hour freshness, failed refresh invalidation and
+  ZIP/utility isolation remain mandatory. Old cached raw offers use the same new
+  adapter without re-downloading documents or changing their freshness timestamps.
+- FLOW-04: All PDF fields remain accessible as source details, including unsupported
+  rules and evidence. Unsupported records are visible but excluded from ranking.
+  API provenance identifies its URL, snapshot timestamp/hash and external offer;
+  never invent a PDF page, quote or issue date for provider API data. Distinct
+  external offer IDs remain distinct API records. Comparison source links use
+  the catalog record endpoint; PDF documents remain optional evidence links.
+- FLOW-05: Update UI labels and documentation to explain PDF/API → SQLite catalog
+  API → comparison, alongside PDF → RAG for explanations. Existing source choices
+  select the ingestion origin, not a separate calculation path. Combined updater
+  must retain explicit optional TXU PDF ingestion for RAG. No public write endpoint
+  is introduced; existing local sync commands are the trusted ingestion boundary.
+
+Acceptance: tests demonstrate identical API/comparison terms and revisions for
+both sources, PDF-independent comparisons, no mandatory EFL calls, correct direct
+API cost ($162.31/month at 1,000 kWh for the fixed-rate fixture), incomplete rules
+excluded, old raw snapshots reusable, source isolation/freshness and retained
+saved results. Run relevant Python and UI regressions; record actual verification.
+
+
+Implementation: FLOW-01–FLOW-05 are implemented. `backend/catalog/records.py`
+projects existing SQLite PDF revisions and TXU snapshots into `catalog-v1` records.
+The records API and comparison use the same service and recurring-component model;
+comparison no longer constructs PDF extraction objects. Complete API tariffs use
+API provenance, while optional EFL ingestion records document issues separately.
+The existing `pdf`/`txu` choices now identify catalog ingestion origins in the UI.
+The combined updater requests optional PDFs when TXU RAG inclusion is selected.
+README, `docs/data-flow.md`, catalog, TXU and updater guides describe the flow.
+No additional database migration or public write endpoint is needed.
+
+Verification 2026-09-12: all 109 Python tests and 23 JavaScript DOM-stub tests
+passed; JavaScript syntax and git diff --check passed. Six new contract tests
+cover both source adapters/API/comparison parity, PDF-independent pricing,
+legacy raw snapshots with obsolete EFL errors, unchanged freshness, source
+withdrawal/versioning, unsupported PDF rules, and fourteen malformed/incomplete
+API pricing cases. Existing TXU tests now verify optional EFL ingestion/security
+without gating API pricing, distinct offer identities, failed/expired/empty
+refreshes, ZIP/utility isolation and immutable saved comparisons. The combined
+updater test confirms explicit TXU RAG inclusion requests PDF downloads.
+
+A SQLite backup of the populated local catalog was exercised through FastAPI
+TestClient without modifying production data or calling external providers.
+Each of ZIPs 79756 and 78681 returned 43 TXU records, two eligible, and successful
+HTTP 201 comparisons: Simple Value 24 ($1,947.72/year) and Simple Rate 12
+($1,995.72/year), each at 1,000 kWh/month. Source revisions matched the catalog
+record endpoints. These are estimates from existing cached API snapshots, not a
+new live-price verification. The same catalog exposed 20 ordinary PDF records,
+nine eligible. No PDFs were downloaded, no embeddings or Pinecone writes occurred,
+and no native Windows or full browser visual test was performed in this change.
+
+## 23. Compare both catalog sources — implemented
+
+- FLOW-06: Remove the UI's "Plans to compare" source dropdown. Every new UI
+  comparison requests `data_source: "catalog"`, combining eligible ordinary PDF
+  imports and TXU API imports. Demo and individual-source API modes remain backward
+  compatible; reopening an old saved result preserves its snapshot, but a new
+  submission uses both real sources.
+- FLOW-07: Combine only records for the same delivery area. A fresh TXU utility
+  lookup can resolve the ZIP's area for PDF imports, including ZIPs absent from
+  the static mapping. Multiple utilities still require explicit selection. Missing,
+  failed or stale TXU caches must not prevent comparison of PDF plans for a known
+  static ZIP; unavailable TXU data must not enter ranking or establish a new ZIP
+  mapping. Report that limitation in assumptions. No eligible source produces an
+  actionable error; never fall back to demo. Retain separate source identities.
+
+Acceptance: UI submits both sources without a source control, retains utility
+selection and edit/race guards, and loads old saved comparisons. API tests verify
+mixed results, utility/area isolation, PDF-only and TXU-only availability, stale
+TXU exclusion, missing-area rejection and unchanged legacy modes.
+
+
+Implementation and verification: FLOW-06–FLOW-07 are implemented in the UI and
+shared catalog comparison service. All 112 Python tests and 24 JavaScript tests
+passed. Three new API tests verify combined results, fresh utility-based ZIP
+resolution, area isolation, PDF-only and TXU-only results, stale/missing-cache
+handling and multi-utility selection. UI tests verify absence of the dropdown,
+`catalog` submissions, cached utility selection, stale/blocked TXU fallback to
+PDF comparison, saved-result loading and edit/race guards. Documentation now
+matches the automatic combined flow. No live provider calls, database refreshes
+or native browser visual verification were performed for this change.
+
+## 24. Assumption-based cost comparisons — implemented
+
+- ESTIMATE-01: Add a separate persisted `rough_estimates` result list for excluded
+  PDF and TXU catalog plans where sufficient trustworthy numerical inputs exist.
+  Never promote estimates into recommendations, baseline choices, savings or
+  best-plan rankings. Hidden/inactive TXU offers may appear only as explicitly
+  hypothetical estimates. Stale/failed TXU snapshots cannot supply rough prices;
+  retain ZIP/utility matching. Existing saved results lacking the field still load.
+- ESTIMATE-02: Free Pass 12 with complete unambiguous API recurring charges uses
+  a versioned seven-free-days scenario: each supplied month is treated as a 30-day
+  cycle, uniform daily consumption, energy charge waived for 7/30 of usage; base
+  and all delivery charges remain. These are unverified assumptions, not extracted
+  contract rules. Round the final monthly total once to cents, then sum 12 months.
+- ESTIMATE-03: Other excluded fixed plans covering twelve months can use valid
+  published 500/1000/2000 kWh examples. Convert each average into a benchmark bill;
+  linearly interpolate total bills between benchmarks. Outside the range, multiply
+  usage by the nearest benchmark average rate and prominently mark extrapolation.
+  No inferred credit/free-time entitlement or itemized charge breakdown. For PDF
+  records reject invalid source/example evidence; for API records validate examples
+  independently of duplicated/missing component rates. Never estimate from absent,
+  duplicated, negative, non-finite or malformed examples. Other Free Pass records
+  without a complete scenario input can use the generic example method.
+- ESTIMATE-04: Show monthly/annual rough totals, original pricing exclusions, source
+  revision/link, availability, explicit formula/method, and notes that examples may
+  assume a different usage pattern (including solar exports), miss threshold jumps,
+  and exclude taxes/nonrecurring costs. Hold rates constant for twelve months.
+  Allow a successful comparison containing only rough estimates, with no winner.
+  Show the assumptions directly in the rough-estimate section and preserve them
+  when loading saved results. Full calculators and eligibility remain unchanged.
+
+Acceptance: independent formula/interpolation/extrapolation checks, invalid-input
+rejection, fresh utility isolation, hidden/stale handling, mixed and rough-only
+results, no recommendation contamination, saved reload and visible UI notes.
+
+### Section 24 refinement after plan-by-plan review — implemented
+
+The user expanded scope to every current plan and reusable future-provider rules,
+and selected editable assumptions. This supersedes ESTIMATE-02's single Free Pass
+preset and ESTIMATE-03's fixed-plan-only fallback. Audit every distinct local PDF
+catalog plan and current TXU offer; record source fingerprints, observations,
+missing terms and selected methods in a checked-in review registry/report.
+
+- ESTIMATE-05: Use a provider-independent scenario engine with reviewed profiles
+  for recurring rates/threshold credits, marginal tiers, free-usage shares,
+  seasonal energy discounts/credits, solar export credits, non-bill rewards,
+  variable/short-term projections and benchmark bills. Provider adapters bind
+  reviewed profiles to source fingerprints; never select a billing rule from a
+  name/keyword alone at runtime. Changed/unreviewed sources use only validated
+  benchmark estimates and a review-needed note. Unknown or invalid inputs stay
+  excluded. Future providers can bind the same schema without new calculators.
+- ESTIMATE-06: Publish per-record rough-estimate capability, method, notes and
+  editable parameter definitions in the catalog API. Accept per-plan numerical
+  overrides with server-side range/unknown-field validation; reject stale or
+  unsupported override IDs. Defaults and edits are visible and persisted in the
+  comparison result. Rough-only results and historical reload work in the UI.
+- ESTIMATE-07: Only use unambiguous positive recurring API rates for component
+  scenarios; zero placeholders or duplicate rates fall back to independently
+  validated benchmark examples. For reliable PDF credit thresholds, benchmark
+  interpolation adds the known credit back before interpolation and subtracts
+  the applicable credit afterward, avoiding a fictitious smooth credit threshold.
+  Short/variable plans explicitly assume unchanged prices after term/first cycle,
+  with an editable price-change scenario, never a twelve-month price guarantee.
+- ESTIMATE-08: Free Pass API and linked EFL conflict in both rate and waiver terms.
+  Keep the API illustration explicitly hypothetical (editable free-use share and
+  delivery waiver); cite the conflict in notes. Do not merge numerical terms from
+  different source revisions. Reliant overnight/Flextra profiles may use reviewed
+  same-document rates and the stated 32% example share with both energy and
+  per-kWh delivery waived, retaining fixed delivery. Tiered Reliant EFL profiles
+  use marginal tiers as supported by their benchmark calculations.
+- ESTIMATE-09: Solar scenarios treat entered usage as grid imports, separately
+  assume exports/buyback rate, floor bills at zero and explicitly omit rollover.
+  Missing export compensation is an editable assumption, never inferred from a
+  green-energy label. Non-bill reward realization defaults to zero. Unsupported
+  fees/unknown splits can only use benchmark estimates, with no invented breakdown.
+  Preserve full verified ranking semantics; all new profiles remain rough-only.
+
+
+Implementation: ESTIMATE-01–ESTIMATE-09 are implemented with the later refinement
+superseding the initial narrow Free Pass proposal. `plan_reviews.json` records 63
+reviewed snapshots, their source fingerprints, selected scenarios, notes and
+original issues; `docs/plan-rule-review.md` documents every plan and the cross-plan
+findings. `rough.py` supplies shared formulas, strict override ranges, benchmark
+validation and source-change fallback. Catalog records expose capabilities and
+comparison snapshots retain estimates, formulas, notes, parameters, availability
+and source revisions. UI controls recalculate through the server and invalidate
+old assumptions on ZIP/utility changes; rough plans never enter ranking/baselines.
+
+Verification 2026-09-12: 121 Python tests and 26 JavaScript DOM-stub tests passed.
+Tests cover independent free-usage, threshold, seasonal, marginal-tier, solar,
+reward, future-price, interpolation and extrapolation arithmetic; malformed
+examples/overrides; source changes and reusable provider-independent profiles;
+rough-only/mixed API results; hidden/stale exclusion; persistence; and editable
+UI controls with saved-result restoration. Git diff --check and JS syntax passed.
+All 63 source records were inventoried and reviewed. Local PDF text and stored
+source facts were inspected; first pages of Free Pass 12, Reliant Overnight and
+Reliant Get More Save More 36 were rendered and visually reviewed. No live price
+refresh was performed, and missing/unavailable EFL terms remain explicitly unknown.
+
+Integration verification used a backup of the populated SQLite catalog. Both
+79756 and 78681 returned HTTP 201 with 11 calculated plans and 52 separate rough
+estimates at 1000 kWh/month. The Free Pass API illustration produced $155.71/month
+and $1868.52/year; changing free usage to 40% and delivery waiver to 100% produced
+$1418.88/year. All rough source revisions matched the catalog record endpoints,
+and saved results were unchanged after edits. These are hypothetical results from
+cached snapshots, not live tariffs or verified customer bills. No production
+SQLite/RAG changes, model calls, or full native-browser visual test were performed.
+
+## 25. Preserve independent TXU fields during normalization — implemented
+
+- TXU-DATA-01: A duplicate, invalid or unsupported rate must not discard other
+  independent valid rates. Normalize known rate types separately. Preserve all
+  original data in source_details; omit only an ambiguous/invalid normalized type,
+  never choose a duplicate value. Retain valid examples, base and delivery charges.
+- TXU-DATA-02: Identify the exact invalid/duplicate type. Distinguish genuinely
+  absent entries from invalid or ambiguous entries. If recurring inputs are
+  incomplete, expose existing examples with price_checks marked not_checked rather
+  than falsely missing or reconciled. Unknown types/applicability fields continue
+  to block exact ranking; partial normalization never grants eligibility.
+- TXU-DATA-03: Existing cached snapshots are repaired in the read projection without
+  changing raw responses, refresh timestamps or reviewed rough profiles. Preserve
+  unit conversion, exact ranking and rough-estimate outcomes. Verify raw-to-public
+  equality and all independent fields for both cached ZIPs using a database copy.
+
+Acceptance: duplicate energy retains three examples and the other three charges;
+malformed/duplicate example isolates just that example; true absence is labeled
+missing; units remain Decimal-safe; incomplete prices stay excluded, rough results
+and source history remain unchanged, and existing suites pass.
+
+
+Verification: TXU-DATA-01–TXU-DATA-03 implemented in the catalog adapter.
+The root cause was all-or-nothing normalization: normalized_rates raised for an
+ambiguous EnergyCharge, leaving the caller's entire rates map empty. The adapter
+now groups and validates each rate type independently while the strict helper's
+existing behavior remains compatible for other callers.
+
+All 123 Python tests passed. New tests cover duplicate energy, invalid/duplicate/
+absent examples, unknown types and applicability fields, preserving independent
+rates, raw data and rough support, and explicitly not-checked price comparisons.
+TestClient verification against a SQLite backup confirmed all 86 raw offer records
+unchanged, all 258 normalized examples retained, original refresh timestamps
+unchanged, and repaired output for Saver's Choice 12, Solar Saver 12, Value Edge 12,
+e-Saver 10 and e-Saver 12 in each ZIP. Each combined comparison still returned
+11 calculated plans and 52 rough estimates. No provider requests or production
+SQLite changes were required. git diff --check passed.
+
+## 26. Sequential validated-only import — implemented
+
+- IMPORT-01: Add `catalog.cli import-validated` for the clean rebuild. Discover PDFs
+  sequentially in deterministic path order, or accept repeated `--file` selections
+  within the configured data root. Preserve all source files. Use reviewed parsers
+  only; no model fallback. Default is offline; approved TDU enrichment is explicit
+  via `--refresh-tdu`. Unknown layouts and missing/unsupported terms are rejected.
+- IMPORT-02: Validate all existing identity/evidence/rate/term/example checks before
+  publishing. Recheck file hash. Commit the validated revision and source association
+  in one SQLite transaction. No rejected revision/source is inserted. Withdraw a
+  previous active association if its selected file now fails, preserving historical
+  valid revisions. Unselected files remain unchanged. Managed `_txu/` documents
+  cannot establish ZIP availability; log them as skipped rather than import them.
+- IMPORT-03: Persist one flushed JSONL event per file with sequence, path, hash,
+  name if known, outcome, stage, exact validation issues, warnings, price checks,
+  revision ID and time. Produce summary JSON and readable Markdown issue report.
+  Continue after per-file failures; logging/DB/infrastructure failures stop the run.
+  Serialize writes using the catalog lock. Report counts separately, and return
+  nonzero for rejected files without rolling back independently imported good files.
+- IMPORT-04: Tests cover good/bad/good order, no rejected rows, atomic publication,
+  repeat imports, source mutation, previous-source withdrawal, scoped selection,
+  unknown/managed sources, full issue logs and no model/provider calls by default.
+  Run this importer against preserved local sources after tests, verify every
+  published catalog record is eligible, and report real outcomes and log locations.
+  RAG, remote Pinecone and TXU availability remain untouched. Existing diagnostic
+  sync commands retain their behavior; document this strict command for clean runs.
+
+
+Implementation and verification: IMPORT-01–IMPORT-04 implemented in
+`catalog/validated.py` and exposed as `import-validated`, with README and dedicated
+guide. All 129 Python tests passed, including six new tests for mixed valid/invalid
+order, complete logs, idempotent selected imports, withdrawal, unknown/managed
+sources, no default model/network calls, source mutation, transaction rollback
+and path containment. git diff --check passed.
+
+The real offline run processed all 112 preserved PDF files sequentially:
+9 source files imported, 13 rejected and 90 managed TXU PDFs skipped. Nine valid
+revisions/sources produce 8 distinct plans after existing semantic deduplication.
+Both catalog APIs returned exactly 8 records, all calculation_eligible=true; SQL
+confirmed no revision with validation issues. TXU refreshes remain empty. The
+run journal has one event for every file, with exact issues, warnings and checks.
+Logs: `.data/import-logs/2026-09-13T003833.158945_0000-dfb4bc05/` in the inner app.
+Rejected reasons include missing delivery rates, short/variable terms, interval,
+tiered and seasonal rules. No model, provider, RAG or Pinecone call occurred.
+Source PDFs and the reset backup were preserved. Native Windows execution was
+not available; implementation uses portable pathlib and existing OS lock helper.
+
+## 27. Reviewed Flextra estimate import — implemented
+
+- IMPORT-05: Recognize the separately stated Oncor monthly delivery charge with
+  page evidence. Do not infer missing values or require a website when the PDF
+  already supplies both delivery charges.
+- IMPORT-06: Add explicit `import-validated --allow-reviewed-estimates`. Default
+  strict imports remain unchanged. An estimate import requires an explicitly
+  approved, fingerprint-matched review, complete valid source evidence and rates,
+  only the review's allowed exact-calculation limitations, and all three published
+  examples reconciled within the existing 0.15 cent tolerance using reviewed
+  assumptions. Unknown/changed sources, missing facts and other issues still fail.
+  Persist exact-calculation limitations so estimates never enter exact ranking;
+  log estimate mode, assumptions and assumption-based checks separately.
+- FLEXTRA-01: Approve only the inspected Flextra PDF snapshot initially. Use energy
+  21.5394 cents/kWh, delivery 6.0295 cents/kWh, fixed delivery $4.06 and base $0;
+  default editable free usage 32%, delivery waiver 100%. Notes describe two highest
+  days per Sunday–Saturday week, billing-period caps/proration and fixed charges.
+  Exact daily allocation is not modeled. Existing rough API/UI handles estimates.
+
+Acceptance: source $4.06 extracted; strict mode still rejects free-day pricing;
+explicit reviewed mode imports as rough only; 500/1000/2000 checks pass; edited
+assumptions change costs; missing rates, changed fingerprint or bad examples reject.
+Reimport only the selected PDF, preserve source/history and update the original
+report with reconciled counts and explicit exact-versus-estimate classification.
+
+Verification: IMPORT-05, IMPORT-06 and FLEXTRA-01 implemented. All 130 Python
+tests passed, including source-charge extraction, strict rejection, reviewed-only
+acceptance, source fingerprint mismatch, missing rates/facts, changed examples,
+idempotence and editable assumptions. API integration against the real catalog
+returned 10 records, with 9 exact comparison results and 1 rough Flextra estimate
+at $191.53/month for 1,000 kWh; a 40% free-share override changed its cost. Test
+comparisons used temporary storage. Backed up SQLite before selected reimport;
+source PDFs and prior reports/journals preserved. Original report reconciled to
+12 imported PDFs (9 exact plans + 1 estimate after dedup), 10 rejected, 90 skipped.
+No provider, RAG, Pinecone or model calls were needed. Native UI was not retested;
+existing rough-assumption API/UI contract is unchanged.
+
+## 28. Reviewed nine-month contract import — implemented
+
+- SHORT-TERM-01: Approve the inspected Reliant Power Savings 9 snapshot for the
+  existing explicit reviewed-estimate import path. Preserve term_months=9 and
+  validate all source charges, the inclusive 1,000 kWh $75 credit and examples.
+  Use the actual flat tariff, not interpolation: energy 12.9674 cents/kWh,
+  delivery 6.0295 cents/kWh plus $4.06/cycle and zero base.
+- SHORT-TERM-02: A shorter contract is not bad source data. The existing annual
+  comparison still requires an estimate after expiry: apply editable percentage
+  change to the monthly bill only after month 9, default zero change with explicit
+  unknown-renewal-pricing notes. Do not imply a 12-month guaranteed tariff or add
+  early termination fees when modeling completion of the full nine-month term.
+  Unreviewed snapshots and other validation failures remain rejected.
+
+Acceptance: selected import succeeds with preserved nine-month term, all price
+examples pass; credit activates at 1,000 kWh; post-term adjustment affects only
+months 10–12; fingerprint changes reject. API exposes reviewed flat estimate,
+not exact annual ranking. Update original report and preserve backup/history.
+
+Verification: SHORT-TERM-01–02 implemented as a reviewed source profile using
+the existing flat calculator and explicit import gate. Eight validated-import tests
+passed, including the new nine-month source/credit-boundary/post-term-adjustment
+regression. Real SQLite reimport accepted the selected PDF after backup. API
+verification returned 11 records and 9 exact + 2 rough comparison results; the
+9-month term is retained and a +20% adjustment changes only months 10–12. Test
+comparisons were isolated in temporary storage. The original report now records
+13 imported source PDFs, 9 rejected and 90 skipped. No provider/model/RAG calls
+or native UI checks were needed.
+
+## 29. Explicit block-tier energy tariffs — implemented
+
+- TIER-01: Accept a single flat energy charge when no tiers are stated. Also accept
+  explicitly parsed marginal/block energy tiers, represented as `energy_tier`
+  components (cents_per_kwh with source-backed lower/upper kWh boundaries). Never
+  manufacture tiers, interpret whole-usage bands as marginal tiers, or bypass
+  incomplete charges. Recognize the reviewed Reliant 0–1000 / >1000 PDF layouts.
+- TIER-02: Require tiers to cover zero through unlimited usage contiguously, with
+  positive-width nonoverlapping blocks and no mixed flat/tier energy charges.
+  Charge only consumption within each block. Existing flat rates, credits and
+  delivery calculations stay unchanged. Shared catalog API and comparison use
+  the same explicit component semantics; only fully validated plans enter exact
+  ranking. All three published example checks must pass.
+- TIER-03: Document import rules for flat, explicit tiered and reviewed-estimate
+  plans. Reimport the two reviewed Reliant tier PDFs individually after checks.
+  Reconcile the original report from journals, show current SQLite import status,
+  charges and example checks for every imported file; preserve report history.
+
+Acceptance: both 12/36-month tier plans validate and compare exactly; boundary
+calculations at 0/999/1000/1001/2000 work; malformed/mixed tiers reject; flat-rate
+regression stays valid. No source PDF changes, invented rates or external calls.
+
+Verification: TIER-01–03 implemented in parser, component schemas, validator and
+shared calculator. All 134 Python tests passed, including both real tier sources,
+0/999/1000/1001/2000 boundaries, flat-rate regression and malformed/mixed tier
+rejection. Both selected PDFs imported strictly after SQLite backup. API verified
+13 records, 11 exact annual results and 2 reviewed estimates. Tier totals were
+checked through the API at 1,000/2,000 kWh; comparison test writes were isolated.
+All 15 imported source entries in the original report now include active SQLite
+charges, contract terms, revisions, assumptions where needed and price checks.
+Reconciled totals: 15 imported PDFs, 7 rejected, 90 skipped; 13 distinct plans.
+Source PDFs, journals and prior report preserved; no provider/model/RAG calls.
+README and import guide describe flat versus block-tier handling. Native UI was
+not retested. git diff --check passed.
+
+## 30. Reviewed overnight import — implemented
+
+- NIGHT-01: Recognize the reviewed Reliant daytime delivery label even when PDF
+  extraction places its numeric rate before the final word Charges. Retain the
+  quoted source evidence. Missing or ambiguous rates are never inferred.
+- NIGHT-02: Explicitly approve the inspected Free Overnight 12 source fingerprint
+  for `--allow-reviewed-estimates`: daytime energy 18.5982 cents/kWh, daytime
+  delivery 6.0295 cents/kWh, fixed delivery $4.06 and base $0. Free hours are
+  9 p.m.–6 a.m. daily; both variable charges are zero then. Default editable free
+  usage is the EFL's 32%; variable delivery waiver 100%. Fixed delivery remains.
+  Annual results are estimates, not exact rankings; no invented interval usage.
+  Only matching reviewed sources passing all evidence and example checks import.
+- NIGHT-03: Document this class of reviewed free-time plans, back up SQLite,
+  import the selected PDF and refresh all imported report entries from SQLite.
+
+Acceptance: correct charges with source quotes, three assumption-based examples
+pass, strict import still rejects interval pricing, reviewed import succeeds,
+changed source/missing rates reject, editable free share changes comparison cost.
+
+Verification: NIGHT-01–03 implemented. All 135 Python tests passed, including
+source delivery extraction, strict rejection/reviewed acceptance, fingerprint and
+missing-rate rejection, all examples and edited free usage. Backed up SQLite and
+imported the selected overnight PDF. API returned 14 plans and 11 exact + 3 rough
+results. Overnight cost at 1,000 kWh was $171.53; a 40% free-share scenario gave
+$151.83. Test comparisons used temporary storage. All 16 imported file entries
+were refreshed from SQLite in the original report (6 rejected, 90 skipped remain).
+Report history and sources preserved. No external/provider/model/RAG calls or
+native UI checks. Import instructions updated; git diff --check passed.
+
+## 31. Reviewed month-to-month variable import — implemented
+
+- VARIABLE-01: Parse and preserve the literal evidenced `Month to Month` contract
+  term; expose it as `contract_term` in PDF catalog records with term_months=null
+  rather than inventing a fixed term. Missing contract terms remain invalid.
+- VARIABLE-02: Approve the inspected Reliant Clear Flex snapshot only through the
+  explicit reviewed-estimate gate. Use stated energy 12.3174 cents/kWh, delivery
+  6.0295 cents/kWh plus $4.06/cycle, and $9.95 usage charge below 800 kWh, zero
+  at/above 800. Extend the flat rough calculator with reviewed conditional usage
+  charges, preserving existing profiles. No unspecified extra base fee is assumed.
+- VARIABLE-03: Apply editable bill-change percentage from month 2 onward, default
+  0%; notes explain first-cycle pricing, unknown future rates, threshold fee and
+  no termination fee. Keep outside exact annual ranking; all evidence and three
+  examples must pass and reviewed source fingerprint must match.
+- VARIABLE-04: Document variable-plan import, back up SQLite, import selected PDF,
+  refresh every imported entry in original report with current source/term/checks.
+
+Acceptance: month-to-month source and API term preserved; strict rejects variable
+pricing; explicit reviewed import succeeds; 799/800 usage threshold and first-cycle
+versus later price adjustment tested; missing term/changed source rejects. API
+comparison retains assumptions and notes; no source PDFs or prior history lost.
+
+Verification: VARIABLE-01–04 implemented. All 136 Python tests passed, including
+month-to-month extraction, missing-term/source-change rejection, strict rejection,
+reviewed import, 799/800 fee boundary and post-first-cycle adjustment. Backed up
+SQLite and imported the selected PDF. API verified 15 records, 11 exact + 4 rough
+results and literal contract_term with null term_months. At 1,000 kWh, first-cycle
+cost is $187.53; a +20% scenario changes only months 2–12 to $225.03. Comparison
+test saves were isolated. Refreshed all 17 imported file entries from SQLite in
+the original report (5 rejected, 90 skipped). Sources and history preserved. No
+provider/model/RAG calls or native UI checks. git diff --check passed.
+
+## 32. Independent PDF and provider-API sources — implemented for strict PDF import (section 33)
+
+- SOURCE-01: PDF-derived plans and provider-API offers are independent source
+  records, including when both name TXU. Do not join, merge, overwrite or fill
+  pricing fields across those sources based on name, provider or folder. A shared
+  catalog endpoint or comparison view does not make them one source record.
+- SOURCE-02: PDF validation uses its own document evidence, supported explicit
+  delivery lookups and reviewed assumptions. No provider API offer match, API
+  active/hidden flag, ZIP listing or API freshness is a PDF import prerequisite.
+  Preserve document-date pricing and unverified live availability. API imports
+  separately validate their own rates, utility/ZIP availability and freshness;
+  a PDF cannot establish or repair API-offer eligibility.
+- SOURCE-03: A PDF under `_txu/` is still a PDF source. Its directory/download
+  origin alone must not skip it. Apply ordinary PDF parsing, evidence, pricing
+  and reviewed-estimate gates, logging actual document validation failures.
+  This supersedes the managed-document skip policy in IMPORT-02/IMPORT-04.
+
+Status: README, repository instructions and import guide updated. Runtime removal
+of the existing `_txu/` skip is planned, not implemented in this documentation-only
+request. Existing skipped report entries describe historical behavior and remain
+unchanged; no data was imported or API-linked during this update.
+Acceptance for the future implementation: a valid `_txu/` PDF imports without
+provider requests/snapshots; bad PDFs reject for evidence/pricing issues; importing
+one source never mutates the other; provenance and source-specific filters remain.
+
+## 33. Free Pass 24 document benchmark import — implemented
+
+- PDF-BENCH-01: Implement SOURCE-03 for import-validated: parse `_txu/` PDFs as
+  independent documents, without provider API calls or availability prerequisites.
+  Unknown layouts reject normally. Legacy diagnostic sync remains unchanged.
+- PDF-BENCH-02: Approve only the inspected Free Pass 24 PDF fingerprint for a
+  published-example benchmark estimate. Its missing TDU charges remain absent;
+  retain the contradictory 0.000% free-usage disclosure as a warning. Record the
+  seasonal 7/9-day rules and variable-charge waiver in notes. No inferred rates or
+  free-usage percentage. This explicitly extends IMPORT-06: approved benchmarks
+  may retain reviewed missing-rate issues, but all identity/example evidence and
+  the exact approved snapshot must match. No claim of tariff reconciliation.
+- PDF-BENCH-03: Benchmark checks are labeled published_benchmark (reproduction,
+  not independent validation), with original exact checks retained. API exposes
+  warnings and benchmark adjustment; exclude from exact ranking and live-offer
+  claims. Back up SQLite and import only the selected PDF, update its report entry.
+
+Acceptance: strict rejection versus approved benchmark import, source/identity
+mutation rejection, no provider call, API PDF provenance, unchanged API offers.
+
+Verification: PDF-BENCH-01–03 implemented. Removed folder-based skip from strict
+import and PDF API projection. Added reviewed layout and fingerprint-specific
+benchmark approval. All 137 tests passed, including independent `_txu/` import,
+strict rejection, approved benchmark, missing-rate preservation, source mutation
+rejection and no network calls. Backed up SQLite and imported only selected PDF.
+API verified 16 records, 11 exact + 5 estimates; benchmark at 1,000 kWh is $171.00.
+TXU refresh table remains empty; no API linking occurred. Original report updated
+to 18 imported files, 5 rejected and 89 historical skips. Those other files have
+not been retried. The pending status recorded in section 32 is superseded for
+strict import; legacy diagnostic sync and RAG selection are unchanged. Source
+PDF and report history preserved. git diff --check passed.
+
+## Main integration September 13 — implemented and verified
+
+Preserve incoming main contract-horizon projections, custom PDF compatibility mode
+and comparison chat alongside local independent PDF/API catalog ingestion,
+component-based combined comparisons and reviewed estimates. Default UI remains
+combined catalog; explicit legacy PDF mode retains upstream custom pricing.
+Resolve overlapping UI handlers to preserve renewal controls, utility selection,
+rough assumptions and chat lifecycle. Retain all distinct tests and histories.
+Acceptance: no conflicts, local work preserved, Python and UI suites pass.
+
+Integration constraint: incoming comparison chat currently supports only explicit
+PDF custom and demo comparisons. Combined catalog/TXU results must not fall through
+to its demo branch. Hide chat for those modes and reject session creation clearly;
+retain their existing rough-assumption controls. Extending scenario chat to the
+combined source model is outside this pull reconciliation.
+
+Integration verification: fast-forwarded feature/jagdish to origin/main c509b26
+and restored local tracked/untracked work. Resolved seven overlapping files while
+retaining the original stash as backup. All 161 Python tests and 42 UI tests pass.
+Real catalog check returned 16 plans, 11 calculated results and 5 reviewed rough
+estimates; test comparisons used temporary storage. Combined-mode chat rejects
+unsupported session creation rather than using synthetic data. No unresolved Git
+conflicts remain; changes are unstaged and uncommitted. git diff --check passed.
+
+Commit portability check — implemented: store the reviewed Free Pass PDF used by the
+benchmark regression as a dedicated test fixture, and point the test there so a
+fresh checkout does not require ignored download-cache files. Preserve identical
+PDF bytes/fingerprint and all test behavior; keep runtime caches/databases ignored.
+
+Portability verification: all 11 validated-import tests passed with the committed
+fixture path. The preceding integrated suites passed 161 Python and 42 UI tests;
+only fixture location and ignore rules changed afterward.
+
+## 34. ZIP delivery-utility discovery — implemented
+
+- ZIP-01: On comparison submission, query a dedicated utilities endpoint that
+  resolves the ZIP through TXU get_utilities, caching only utility identity/name
+  for 24 hours independently of offer snapshots. Never fetch plans, import PDFs,
+  or refresh offer availability as a side effect. Empty/error responses must be
+  explicit; no stale success is presented as a live lookup.
+- ZIP-02: Use resolved utility to filter all providers' PDF catalog plans by
+  normalized delivery area and API offers by utility ID. Keep provenance/pricing
+  separate. Normalize known Oncor/Oncor Electric Delivery and CenterPoint aliases;
+  never guess unknown utilities. Multiple utilities require explicit selection.
+  UI resolution errors stop submission rather than silently using static ZIPs.
+  Existing direct comparison compatibility may use existing snapshot/static map
+  only when no dedicated utility lookup has been attempted for that ZIP.
+- ZIP-03: Add GET /api/catalog/utilities?zip_code=...; UI calls before comparing,
+  shows selected utility, retains ZIP-change/race protection. Existing /txu cache
+  stays read-only for offers. ZIP-filtered catalog records use utility resolution
+  too, including PDF records when utility_id is supplied.
+
+Acceptance: previously unmapped ZIP finds Oncor PDFs from all providers without
+API offers; aliases, multiple/invalid selection, empty/error/stale cache and ZIP
+race behavior tested; cached offers remain independent; no import side effects.
+
+Verification: ZIP-01–03 implemented. All 163 Python and 43 UI tests passed.
+Live TXU utilities request for 79756 returned Oncor with ID
+ea0ad3a5-3fc6-4d9f-894a-e21a751c33fe. End-to-end verification on a temporary
+catalog copy found 16 matching records, 11 calculated and 5 rough results; no
+plan-offer fetch/import occurred. Unit checks cover independent cache, aliases,
+multiple utilities, empty/error/stale lookup, no offer writes and UI ZIP races.
+README updated; source records remain independent. git diff --check passed.
+Native UI was not manually inspected. Changes are not committed or pushed.
+
+## 35. Catalog comparison chat — implemented
+
+- CHAT-CATALOG-01: Show Explore alternatives for catalog/TXU results, including
+  rough-only results. Start from the saved comparison's usage, utility, preferences
+  and rough assumptions. Freeze relevant shared catalog records and reviewed rough
+  profiles; verify result revision/fingerprint and eligibility against the source
+  before starting. Reject changed sources, never substitute demo or PDF-custom
+  pricing. Scenario turns use frozen data without network/import/catalog writes.
+- CHAT-CATALOG-02: Reuse component-based comparison and horizon projections for
+  exact catalog candidates. Preserve rough estimates separately (12-month labeled
+  illustrations, never promoted to winners). Support usage/preferences/renewal
+  changes and hypothetical existing component overrides on exact candidates,
+  including energy/tier rates; reject average-price overrides for component plans
+  and component overrides for rough-only plans. Preserve source evidence unchanged.
+  Preserve reviewed rough assumptions during usage changes and history/reset.
+- CHAT-CATALOG-03: Retain auth, optimistic concurrency, atomic failure, history,
+  restore and source isolation. Interpreter context exposes source/pricing mode
+  and editable component indices. Existing PDF-custom/demo behavior remains.
+  Explain rough-only results without claiming a recommendation. Current key reused;
+  automated integration uses mocked interpretation and no paid model calls.
+
+Acceptance: UI panel visible in catalog and TXU modes; mixed PDF/API session can
+change usage, term, credit filters, component and renewal assumptions using the
+same prices as normal comparison. API prices remain separate from PDF prices;
+unknown targets/rough overrides fail without changing results. Rough-only results,
+reset/previous, frozen-source drift and no provider access tested. No live bills,
+PDFs or production saved comparisons are modified by tests.
+
+Verification: CHAT-CATALOG-01–03 implemented. All 167 Python and 44 UI tests
+passed. Added mixed PDF/API, rough-only, API-only, frozen-source drift, energy and
+renewal overrides, invalid/atomic no-match and reset/previous coverage. The UI
+regression confirms the panel opens for catalog/TXU results. A temporary copy of
+the real catalog completed chat startup and a 36-month scenario with 11 calculated
+plans plus 5 separate 12-month rough estimates; source records remained unchanged.
+Tests used injected interpretation, no paid model/provider calls and no production
+saved-comparison writes. Existing configured key retained. README/chat guide
+updated; the earlier catalog-chat exclusion is superseded by this section.
+Native browser visual QA was not performed. Changes are uncommitted; git diff
+--check passed.
+
+## 36. Unverifiable ZIP utility message — implemented
+
+- ZIP-04: Distinguish malformed/incomplete TXU utility data (blank names, invalid
+  IDs, duplicate entries or malformed response) from transient connection errors.
+  Invalid data must reject the entire lookup, never select its remaining named
+  entry. Show: "We couldn't verify the delivery utility for ZIP {zip}. The lookup
+  returned incomplete or invalid utility information. Check the utility name on
+  your electricity bill or confirm service for your exact address with your local
+  utility. We haven't selected a provider or compared plans for this ZIP."
+- ZIP-05: Retain generic retry guidance for transport/provider outages, do not
+  expose raw responses, and cache failure as unusable so it cannot enable plan
+  selection. Do not hardcode PEC/AEP coverage from ZIP or claim the ZIP invalid.
+  Existing HTTP error propagation displays the guidance in comparison status.
+
+Acceptance: mocked 78641 response with unnamed entries and AEP North yields the
+specific guidance, no partial utility selection; malformed IDs/JSON also classify
+as data problems. Timeout retains retry guidance. Existing valid lookups work.
+
+Verification: ZIP-04–05 implemented with a typed invalid-utilities error and safe
+user guidance. Four utility tests and 14 TXU tests passed; all 45 UI tests passed.
+Tests include 78641-style unnamed/AEP response, invalid IDs, whitespace-only names,
+malformed JSON, timeout distinction, unusable failure cache and UI no-submission.
+No live provider requests or catalog-plan writes were needed. README updated;
+git diff --check passed. Changes are not yet committed or pushed.
+
+## 37. Plan Assistant readiness recovery — implemented
+
+AGENT-05: When Send is disabled by the local readiness check, identify each missing
+prerequisite separately: provider configuration, optional dependencies, or the
+active document index. Explain that SQLite catalog imports do not index assistant
+documents. Provide a Check again action that refreshes readiness without clearing
+the draft or conversation; hide it when ready. Do not bypass readiness guards or
+trigger remote ingestion from the browser. Link the composer to its status for
+accessibility. Document the existing ingestion command and its provider uploads.
+Acceptance: unavailable states give specific guidance, prevent submission, and
+recover after a successful status refresh while preserving the draft. Existing
+conversation, clarification, retry and reset tests must pass.
+
+Verification: all 47 UI tests passed, including missing-index submission guards,
+specific setup messages and readiness recovery preserving the draft. Local
+settings loaded from .env report configured=true, indexed=false; all four checked
+assistant dependencies are installed. No live backend was reachable on port 8000.
+No remote indexing/model calls or native browser verification were performed.
+The UI recovery is implemented; subsequent authorized ingestion restored the local
+corpus, as verified below in section 38.
+
+## 38. Standalone assistant ingestion source selection — implemented
+
+RAG-01 / UPDATE-04 revision: standalone knowledge CLI preview and ingest exclude
+reserved top-level `_txu/` downloads by default, matching the combined updater.
+Add `--include-txu-rag` to explicitly include these PDFs as document evidence.
+Ordinary provider PDFs (including user supplied TXU PDFs outside that cache) stay
+included. Preserve strict page validation and atomic publication: invalid selected
+PDFs still fail preparation, without remote upserts or replacing the manifest.
+Do not modify SQLite or delete PDFs. Acceptance: source-selection tests cover
+normal PDF, uppercase extension and explicit cache inclusion; offline preview of
+the local ordinary corpus succeeds. Supersedes the standalone discovery exception
+in UPDATE-04. Correct README and RAG guide recovery commands accordingly.
+
+Verification: 19 knowledge/CLI tests passed. Offline preview successfully prepared
+22 ordinary source PDFs into 59 chunks. No page validation was relaxed. Remote
+ingestion failed with ConnectError under sandbox restrictions; elevated retry was
+rejected by automatic approval review because explicit authorization to upload
+these 22 PDFs to OpenAI/Pinecone was required. The user subsequently explicitly
+approved this upload. Retried ingestion successfully upserted 59 chunks from 22
+documents and published the active manifest. An in-process HTTP check of
+/api/agent/status returned 200 with configured=true, indexed=true,
+dependencies_available=true and 22 documents. Remote search visibility may lag
+upserts; a live generated answer and native browser were not tested. README and
+RAG guide updated.

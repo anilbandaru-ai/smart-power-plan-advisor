@@ -182,3 +182,21 @@ Previously failed files require `--retry`. Sync locking uses a nonblocking Windo
 byte lock or POSIX flock, released on success and failure. Restart the server after
 backend updates, or use `--reload --reload-dir backend` during local development,
 so the API and browser agree on fields such as `data_source`.
+
+## TXU discovery extension
+
+The explicit `sync-txu` command discovers ZIP/utility-specific offers and optionally downloads
+EFLs (`--download-efls`) into reserved `data/_txu/`. Normal local sync skips these managed files and
+preserves their source records. TXU availability is maintained separately from
+extracted tariff identity; compare both PDF and TXU imports automatically for ZIP-scoped comparisons.
+Ordinary PDF comparisons retain their existing local-file scope. See the
+[TXU integration guide](txu-integration.md) for commands, freshness and exclusions.
+
+Both sources now use the [shared catalog API contract](data-flow.md). PDF validation
+occurs during ingestion; comparison reads stored API records, not PDF files.
+
+The comparison form automatically includes both PDF and TXU catalog imports;
+there is no source dropdown. New UI requests use `data_source: "catalog"`.
+A utility selector appears only when needed. Missing or stale TXU data does not
+block eligible PDF imports for a known delivery area. Individual-source API modes
+and existing saved comparisons remain compatible.

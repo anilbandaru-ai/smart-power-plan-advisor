@@ -71,12 +71,13 @@ def child_texts(text: str, size=450, overlap=60) -> list[str]:
     return chunks
 
 
-def build_corpus(settings: Settings):
+def build_corpus(settings: Settings, paths=None):
     encoding = tiktoken.get_encoding("cl100k_base")
     documents, records = [], []
     root = settings.data_dir.resolve()
-    for path in sorted(root.rglob("*.pdf")):
-        if not path.resolve().is_relative_to(root):
+    sources = sorted(root.rglob("*.pdf")) if paths is None else sorted(set(Path(path) for path in paths))
+    for path in sources:
+        if not path.resolve().is_relative_to(root) or path.suffix.lower() != '.pdf':
             raise ValueError("PDF path escapes data directory")
         relative = path.relative_to(root).as_posix()
         content_hash = digest(path.read_bytes())

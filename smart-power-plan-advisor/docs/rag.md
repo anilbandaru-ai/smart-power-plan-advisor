@@ -136,3 +136,15 @@ Two blank trailing pages (page 2 of `choosetexaspower/EFL-5.pdf` and `EFL-9.pdf`
 were skipped. Original PDFs and citation page numbers were preserved. Seventeen
 RAG tests passed, including blank-page, all-blank and scanned-page cases. JSON
 catalog/metadata files are not PDF sources and were not embedded.
+
+Standalone assistant `preview` and `ingest` exclude the reserved `data/_txu/`
+download cache by default. To deliberately index those downloads as PDF evidence,
+add `--include-txu-rag`; their pages must still pass text validation. Other PDFs
+remain included. A rejected selected PDF stops preparation before uploads and
+leaves any existing active manifest unchanged. SQLite imports are unaffected.
+Preview the selected documents before ingestion:
+
+```sh
+python -m backend.knowledge.cli --env-file .env preview
+python -m backend.knowledge.cli --env-file .env ingest
+```

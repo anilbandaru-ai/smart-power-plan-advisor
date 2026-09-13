@@ -26,6 +26,7 @@
   function controls() {
     submit.disabled = busy || !ready;
     reset.disabled = busy;
+    get('recheck').disabled = busy;
     scope.disabled = busy || !ready || Boolean(pending);
     question.disabled = busy;
     get('thinking').hidden = !busy;
@@ -117,6 +118,12 @@
     await initialize();
     if (!document.querySelector('#assistant-panel').hidden) question.focus();
   });
+  get('recheck').addEventListener('click', async () => {
+    if (busy) return;
+    busy = true; controls();
+    await initialize();
+    busy = false; controls();
+  });
   async function initialize() {
     try {
       const data = await api('/status');
@@ -124,8 +131,13 @@
       if (scope.children.length === 1) {
         for (const doc of data.documents) add('option', doc.filename, scope).value = doc.id;
       }
-      status.textContent = ready ? 'Ready. Ask about an indexed document.' : 'The document agent needs configured keys, dependencies and indexed documents.';
+      const issues = [];
+      if (!data.configured) issues.push('Provider configuration is missing. Configure OpenAI and Pinecone in .env and restart the backend with --env-file .env.');
+      if (!data.dependencies_available) issues.push('Document assistant dependencies are missing. Install requirements-rag.txt with the backend Python environment, then restart the backend.');
+      if (!data.indexed) issues.push('Plan documents are not indexed for the current configuration. SQLite plan imports do not create the assistant index. Follow the Plan Assistant setup in README.md to index documents, then select Check again.');
+      status.textContent = ready ? 'Ready. Ask about an indexed document.' : issues.join(' ');
     } catch (error) { status.textContent = error.message; ready = false; }
+    get('recheck').hidden = ready;
     controls();
   }
   initialize();

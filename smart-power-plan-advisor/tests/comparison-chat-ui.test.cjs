@@ -84,3 +84,14 @@ test('assistant answers expand inline without duplicating full text in status',a
  assert.equal(app.get('scenario-status').textContent,'Results updated below.');
  assert.equal(app.get('scenario-reload').hidden,true);
 });
+
+test('catalog and TXU comparisons expose Explore alternatives including rough-only results',async()=>{
+ for(const mode of ['catalog','txu']){
+  const app=setup(async()=>ok(view()));
+  app.context.comparisonChat.attach({id:'original',data_mode:mode,recommendations:[],rough_estimates:[{plan_id:'rough'}]});
+  assert.equal(app.get('comparison-chat').hidden,false);
+  assert.equal(app.get('scenario-start').disabled,false);
+  await app.get('scenario-start').fire('click');
+  assert.ok(app.requests.some(r=>r.url==='/api/comparison-chat'));
+ }
+});

@@ -24,7 +24,7 @@ class Fact(Strict):
 
 
 class Component(Strict):
-    kind: Literal['energy', 'base', 'delivery_fixed', 'delivery_energy', 'usage_charge', 'credit']
+    kind: Literal['energy', 'energy_tier', 'base', 'delivery_fixed', 'delivery_energy', 'usage_charge', 'credit']
     amount: DecimalValue = Field(ge=0, max_digits=14, decimal_places=6)
     unit: Literal['cents_per_kwh', 'usd_per_month']
     minimum_kwh: DecimalValue | None

@@ -24,7 +24,9 @@ def sync(store, root, extractor, force=False, retry=False, refresh_tdu=False, re
     paths = []
     def discovery_error(error):
         raise error
-    for directory, _, filenames in os.walk(root, onerror=discovery_error, followlinks=False):
+    for directory, directories, filenames in os.walk(root, onerror=discovery_error, followlinks=False):
+        if root.__class__(directory) == root:
+            directories[:] = [name for name in directories if name != '_txu']
         paths.extend(root.__class__(directory) / name for name in filenames if name.lower().endswith('.pdf'))
     paths.sort()
     store.initialize()

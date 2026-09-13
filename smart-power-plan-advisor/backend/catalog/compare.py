@@ -1,78 +1,70 @@
+"""Calculate exclusively from the shared catalog API record contract."""
 from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
-from backend.catalog.models import ExtractedPlan
-from backend.catalog.average import calculate_custom
+from backend.catalog.records import Tariff, ZIP_AREAS, comparison_records
+from backend.catalog.pricing import calculate
 from backend.models import ComparisonResult, PlanComparison
-from backend.projections import attach_projections
 from backend.recommendations import Candidate, recommend
+from backend.projections import attach_projections
 
-ZIP_AREAS = {'75201': 'Oncor', '75001': 'Oncor', '77002': 'CenterPoint', '77007': 'CenterPoint'}
 
-
-def compare_catalog(request, store):
-    area = ZIP_AREAS.get(request.zip_code)
-    if area is None:
-        raise ValueError('This ZIP is not mapped to a delivery area. Supported lookup ZIPs: 75201, 75001, 77002, 77007; address eligibility is not verified.')
-    records = store.all_plans()
-    relevant = [r for r in records if (r['plan'].get('service_area') or {}).get('value') == area]
-    eligible = [r for r in relevant if r['calculation_eligible']]
-    excluded = [{'plan_id': r['id'], 'name': (r['plan'].get('name') or {}).get('value', r['sources'][0]), 'reasons': r['calculation_issues']} for r in relevant if not r['calculation_eligible']]
-    if not eligible:
-        raise ValueError('No calculable PDF plans for this ZIP. Run catalog sync and check /api/catalog/status and /api/catalog/plans for missing rates or unsupported rules. No demo rates were substituted.')
-    usable = []
-    for record in eligible:
-        examples = record['plan'].get('examples', [])
-        if not examples or len({e['kwh'] for e in examples}) != len(examples):
-            excluded.append({'plan_id': record['id'], 'name': record['plan']['name']['value'],
-                'reasons': ['Unique published EFL average-price examples are required']})
-        else:
-            usable.append(record)
-    eligible = usable
-    if not eligible:
-        raise ValueError('No calculable PDF plans with unique published EFL average-price examples for this ZIP.')
+def compare_catalog(request, store, *, frozen_records=None, utility=None, fetched_at=None):
+    if frozen_records is None and request.data_source == 'pdf' and any(p['calculation_eligible'] for p in store.all_plans()):
+        from backend.catalog.pdf_custom import compare_pdf_custom
+        result = compare_pdf_custom(request, store)
+        if not any(not p['calculation_eligible'] for p in store.all_plans()):
+            return result
+        from backend.catalog.rough import estimate
+        _, _, _, _, relevant = comparison_records(request, store, include_records=True)
+        rough = [p for p in relevant if p['rough_estimate']['supported']]
+        if set(request.rough_assumptions) - {p['id'] for p in rough}:
+            raise ValueError('Rough assumptions refer to unavailable or changed plans.')
+        result.rough_estimates = [estimate(p, request.monthly_kwh, request.rough_assumptions.get(p['id'])) for p in rough]
+        return result
+    from backend.catalog.rough import estimate
+    if frozen_records is None:
+        eligible, excluded, utility, fetched_at, relevant = comparison_records(request, store, include_records=True)
+    else:
+        relevant = frozen_records
+        eligible = [p for p in relevant if p['calculation_eligible']]
+        excluded = [{'plan_id': p['id'], 'name': p['name'], 'reasons': p['calculation_issues']} for p in relevant if not p['calculation_eligible']]
+    rough_candidates = {p['id']: p for p in relevant if p['rough_estimate']['supported']}
+    if set(request.rough_assumptions) - set(rough_candidates):
+        raise ValueError('Rough assumptions refer to unavailable or changed plans. Clear assumptions and compare again.')
+    rough = [estimate(p, request.monthly_kwh, request.rough_assumptions.get(p['id']), reviewed_capability=p.get('_scenario_rough_capability')) for p in rough_candidates.values()]
+    if not eligible and not rough:
+        label = 'catalog plans' if request.data_source == 'catalog' else 'TXU offers' if request.data_source == 'txu' else 'PDF plans'
+        raise ValueError(f'No calculable {label} for this ZIP. Sync the catalog and check /api/catalog/records for missing rates or unsupported billing rules. No demo rates were substituted.')
     results, candidates = [], []
     for record in eligible:
-        plan = ExtractedPlan.model_validate(record['plan'])
-        evidence = [{"kind": "pdf", "url": record['document_url'],
-            "revision_id": record['revision_id'], "filename": record['sources'][0],
-            "page": component.evidence.page, "quote": component.evidence.quote}
-            for component in plan.components if component.evidence.page is not None]
-        for key in ('name', 'contract_term', 'issue_date', 'termination_terms'):
-            fact = getattr(plan, key)
-            if fact:
-                evidence.append({"kind": "pdf", "url": record['document_url'],
-                    "revision_id": record['revision_id'], "page": fact.evidence.page,
-                    "quote": fact.evidence.quote, "field": key})
-        evidence.extend({"kind": "pdf", "url": record['document_url'], "revision_id": record['revision_id'],
-            "page": example.evidence.page, "quote": example.evidence.quote, "field": "average_price"}
-            for example in plan.examples)
-        if plan.tdu_lookup and plan.tdu_lookup.source:
-            evidence.append({"kind": "delivery_source", **plan.tdu_lookup.source.model_dump(mode='json')})
-        renewal_plan = ExtractedPlan.model_validate(record['renewal_plan']) if record.get('renewal_plan') else None
-        candidates.append(Candidate(plan_id=record['id'], name=plan.name.value,
-            term_months=int(plan.contract_term.value),
-            calculate=lambda usage, month, plan=plan: calculate_custom(plan, usage, month),
-            boundaries=[value for component in plan.components if component.kind == "credit"
-                for value in (component.minimum_kwh, component.maximum_kwh) if value is not None], pricing_basis="custom_efl",
-            evidence=evidence, issue_date=plan.issue_date.value,
-            renewal_calculate=(lambda usage, month, plan=renewal_plan: calculate_custom(plan, usage, month)) if renewal_plan else None))
-        months = [calculate_custom(plan, usage, i + 1) for i, usage in enumerate(request.monthly_kwh)]
+        tariff = Tariff(components=record['components'])
+        renewal = Tariff(components=record['_scenario_renewal_components']) if record.get('_scenario_renewal_components') else None
+        candidates.append(Candidate(plan_id=record['id'], name=record['name'],
+            term_months=record['term_months'],
+            calculate=lambda usage, month, tariff=tariff: calculate(tariff, usage, month),
+            boundaries=[value for c in tariff.components if c.kind == 'credit'
+                        for value in (c.minimum_kwh, c.maximum_kwh) if value is not None],
+            evidence=record['provenance'], issue_date=record['issue_date'],
+            renewal_calculate=(lambda usage, month, tariff=renewal: calculate(tariff, usage, month)) if renewal else None))
+        months = [calculate(tariff, usage, i + 1) for i, usage in enumerate(request.monthly_kwh)]
         annual = sum((month.total for month in months), Decimal('0'))
-        tdu = plan.tdu_lookup.source if plan.tdu_lookup and plan.tdu_lookup.status == 'resolved' else None
-        results.append(PlanComparison(plan_id=record['id'], name=plan.name.value, term_months=int(plan.contract_term.value),
-            annual_cost=annual, monthly_costs=months, pricing_basis="custom_efl",
-            efl_price_examples=[{"kwh": example.kwh, "cents_per_kwh": example.cents_per_kwh,
-                "page": example.evidence.page, "quote": example.evidence.quote} for example in plan.examples],
-            explanation=f'Estimated first 12 months using mapped EFL average prices from the PDF issued {plan.issue_date.value}. Document contract term: {plan.contract_term.value} months. Custom estimate: mapped average replaces the energy rate; PDF fees and delivery are added and eligible credits subtracted. This repeats effects embedded in EFL averages and is not a tariff-derived bill.',
-            source=f"{plan.provider.value}: {record['sources'][0]}", source_url=record['document_url'],
-            source_revision=record['revision_id'], tdu_source=tdu.model_dump(mode='json') if tdu else None))
+        source_date = (f"PDF issued {record['issue_date']}" if record['source_type'] == 'pdf'
+            else f'TXU API snapshot fetched {fetched_at}')
+        tdu = record['tdu_source']
+        tdu_note = f" Delivery rates: provider table published {tdu['published_on']} ({tdu['url']}); held constant." if tdu else ''
+        results.append(PlanComparison(plan_id=record['id'], name=record['name'], term_months=record['term_months'],
+            annual_cost=annual, monthly_costs=months,
+            explanation=f"Estimated first 12 months using structured catalog API rates from {source_date}. Contract term: {record['term_months']} months. Rates held constant; availability and address eligibility are not verified." + tdu_note,
+            source=f"{record['provider']}: {record['source_label']}", source_url=record['record_url'],
+            source_revision=record['revision_id'], tdu_source=tdu, offer_sources=record['offer_sources']))
     attach_projections(results, candidates, request)
-    return ComparisonResult(id=str(uuid4()), created_at=datetime.now(timezone.utc).isoformat(), data_mode='pdf',
-        zip_code=request.zip_code, recommendations=results, excluded_plans=excluded,
-        recommendation_result=recommend(request, candidates, "pdf"),
-        assumptions=['PDF-derived estimates, not live offers or independently approved tariffs. Review source terms before relying on a comparison.',
-            'Custom estimate = kWh times mapped EFL average / 100 + PDF base/usage fees + delivery - eligible credits. This repeats effects already embedded in the published average; it is not an actual tariff bill.',
-            'Published averages describe example usage points. Applying them across the requested ranges is an approximation; taxes and nonrecurring charges are not added. Renewal escalation applies to the mapped energy rate, base and delivery. Renewal credit retention/drop applies to separately calculated credits.',
-            'ZIP-to-area lookup is limited and does not establish address eligibility.',
-            f'{len(excluded)} plan(s) excluded because rates or pricing rules cannot be calculated with monthly usage alone.'])
+    return ComparisonResult(id=str(uuid4()), created_at=datetime.now(timezone.utc).isoformat(), data_mode=request.data_source,
+        zip_code=request.zip_code, recommendations=results, excluded_plans=excluded, rough_estimates=rough,
+        utility=utility, offers_fetched_at=fetched_at,
+        recommendation_result=recommend(request, candidates, request.data_source),
+        assumptions=['Estimates use structured catalog API records ingested from PDFs or provider APIs. Review source terms before relying on a comparison.',
+            'Prices are USD; recorded energy and delivery rates are held constant for the first 12 months. Longer contract costs are not shown.',
+            'Taxes, enrollment, termination and other nonrecurring charges excluded. Conditional charges use each supplied month independently.',
+            (f'TXU offers fetched {fetched_at} for {utility["name"]}; cached ZIP availability does not verify address eligibility.' if utility and fetched_at else f"Delivery utility: {utility['name']}, resolved independently of plan offers. Address eligibility remains unverified." if utility else 'TXU availability is missing, stale or empty; only eligible PDF imports for the mapped area are compared. Address eligibility is not verified.' if request.data_source == 'catalog' else 'ZIP-to-area lookup is limited and does not establish address eligibility.'),
+            f'{len(excluded)} plan(s) excluded from calculated-cost ranking; {len(rough)} have separate assumption-based illustrations.'])

@@ -42,3 +42,26 @@ Headless Edge with the real FastAPI app and local PDF catalog exercised clarific
 Final targeted results: 15 scenario tests and 31 UI tests passed. Full-suite run: 95/96 Python tests passed, with the existing Windows symlink fixture failure; two further scenario tests were then added and passed in the targeted suite. Python compilation, JavaScript syntax and diff whitespace checks passed.
 
 UI redesign verification: all 33 frontend tests passed. Headless Edge verified inline message expansion, chat placement, year navigation, desktop table width, mobile cards, clarification/no-match/failure recovery, reload and undo. Desktop and 390px mobile screenshots were visually reviewed. No pricing or API changes.
+
+## Combined catalog and TXU comparisons
+
+Explore alternatives is available after successful catalog/TXU comparisons,
+including rough-only results. Chat starts with the saved ZIP, selected utility,
+usage, preferences and rough assumptions. Source revisions must still match when
+starting from a normal saved comparison; an existing conversation continues using
+its frozen records without provider calls or catalog changes.
+
+Usage, term/credit preferences, comparison period and renewal scenarios reuse the
+component-based calculator. Hypothetical existing energy, tier energy, delivery,
+base/usage and credit components can be edited for exact-calculation plans; specify
+a component index when ambiguous. A mapped EFL average cannot replace a catalog
+energy rate. Rough-only plans retain their reviewed assumptions and cannot be
+promoted into exact ranking through component overrides.
+
+Reviewed rough profiles are frozen with the session. Rough illustrations remain
+12-month estimates even if the calculated-plan period is 24/36 months, and are
+labeled separately. Their saved assumptions persist through usage scenarios,
+previous/reset and saved-scenario restoration. No rough-only winner is claimed.
+PDF/API provenance stays distinct and original source evidence is not rewritten
+by hypothetical overrides. The existing OpenAI interpreter configuration is reused;
+this integration was tested with mocked interpretation, not live model calls.

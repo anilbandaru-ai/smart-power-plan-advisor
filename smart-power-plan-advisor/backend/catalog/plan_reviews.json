@@ -1,0 +1,1971 @@
+{
+  "version": "review-2026-09-12",
+  "scope": "20 distinct ordinary PDF records and 43 TXU offers shared across cached ZIPs; not a live tariff refresh",
+  "plans": {
+    "pdf:0f4e54586d545e3f218800d6": {
+      "name": "4Change Energy Maxx Saver Value 12SM",
+      "provider": "Value Based Brands LLC d/b/a 4Change Energy",
+      "source_type": "pdf",
+      "fingerprint": "da1152ebfc84e19f970e6b195743597a0221343a53635a44189600c1058eff62",
+      "source_documents": [
+        {
+          "filename": "4change/4Change Energy max saver value 12.pdf",
+          "sha256": "3943573d5a2b08acf84498330b4f0855b69a52ac8f3e4baf17f7ac854d989d18"
+        },
+        {
+          "filename": "choosetexaspower/EFL-10.pdf",
+          "sha256": "42bbf9430d53d17a5751a14ed93c5640820beb673ebbb39d24d83a2be4c5dc4b"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage."
+        ],
+        "credits": [
+          {
+            "amount": "125.00",
+            "minimum_kwh": "999",
+            "maximum_kwh": null,
+            "minimum_inclusive": false,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": true,
+      "issues_at_review": []
+    },
+    "pdf:924b632b373ab3a4502b5475": {
+      "name": "Bill Credit Bundle 12",
+      "provider": "U.S. Retailers LLC dba Discount Power",
+      "source_type": "pdf",
+      "fingerprint": "c27711d5ee5eaedb0ae8a2186922c958a4c4a430d36f3cd19f4006d4ae507951",
+      "source_documents": [
+        {
+          "filename": "choosetexaspower/EFL-1.pdf",
+          "sha256": "72e30d19994c398f11538613c84572f31f3f119178312acaca168d92a8205baa"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage."
+        ],
+        "credits": [
+          {
+            "amount": "125.00",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Provider TDU link found; this page needs an approved rate-table parser.",
+        "Exactly one stated delivery_energy charge required",
+        "Exactly one stated delivery_fixed charge required"
+      ]
+    },
+    "pdf:54df84bec3f85170c60b2609": {
+      "name": "Bill Credit Bundle 24",
+      "provider": "U.S. Retailers LLC dba Discount Power",
+      "source_type": "pdf",
+      "fingerprint": "9314ee924bfa91188eb30764c31b4ecce66a6b088abe0ba730eee2f13c722bea",
+      "source_documents": [
+        {
+          "filename": "choosetexaspower/EFL-2.pdf",
+          "sha256": "f5e8942396a28cb011f618da005ea1f43de37467077755c956ba70f81f43ae28"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage."
+        ],
+        "credits": [
+          {
+            "amount": "125.00",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Provider TDU link found; this page needs an approved rate-table parser.",
+        "Exactly one stated delivery_energy charge required",
+        "Exactly one stated delivery_fixed charge required"
+      ]
+    },
+    "pdf:289b894119e2cd9e94ffcd40": {
+      "name": "Frontier Saver Plus 12",
+      "provider": "Frontier Utilities",
+      "source_type": "pdf",
+      "fingerprint": "cd3287edec84d588effd46b0122a562cda61705fea257d52f2d72c4dfc1d1671",
+      "source_documents": [
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "sha256": "76c024b69ce82b87805b939b1d7d3ca30e7a095c9790925ba94034eb3bf18b4a"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage."
+        ],
+        "credits": [
+          {
+            "amount": "125.00",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": true,
+      "issues_at_review": []
+    },
+    "pdf:ea91e4991cec08786b9c3380": {
+      "name": "Gexa Eco Saver Plus 12",
+      "provider": "Gexa Energy, LP • PUCT Cert. #10027",
+      "source_type": "pdf",
+      "fingerprint": "682b7dbe9061d2253a656485dbe53589194c8301fa2da560c4c8b8eea62801df",
+      "source_documents": [
+        {
+          "filename": "choosetexaspower/EFL-11.pdf",
+          "sha256": "55ec396ecf763afa799829a7bf140b17a216ad8c9e74505f936c77e180885fb1"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage."
+        ],
+        "credits": [
+          {
+            "amount": "125.00",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": true,
+      "issues_at_review": []
+    },
+    "pdf:09a9c3a4ccd160cc157f789e": {
+      "name": "Gexa Saver Plus 12",
+      "provider": "Gexa Energy, LP • PUCT Cert. #10027",
+      "source_type": "pdf",
+      "fingerprint": "fc86b533fa9aec08e252a14e71f512bbe1dd1dbdb5a42f4e766b564b5dffde7a",
+      "source_documents": [
+        {
+          "filename": "choosetexaspower/EFL-6.pdf",
+          "sha256": "01037234a7197ad85bcc9174b98065f8b5c44e471ef4a46413b88854ab526792"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage."
+        ],
+        "credits": [
+          {
+            "amount": "125.00",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": true,
+      "issues_at_review": []
+    },
+    "pdf:559b18505e0adc19f99241e3": {
+      "name": "Real 1000 Deal 12SM",
+      "provider": "TriEagle Energy, LP",
+      "source_type": "pdf",
+      "fingerprint": "d969ee7ad18a49b27420924efe7904ac28e16059c9eba902c1a6efe34734409a",
+      "source_documents": [
+        {
+          "filename": "choosetexaspower/EFL-5.pdf",
+          "sha256": "3e94a82112fd1db77e250e50cd692a69f5677a1d02defa622f8588eb0acb0ecd"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage."
+        ],
+        "credits": [
+          {
+            "amount": "125.00",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Delivery charges are missing and no supported provider TDU link was found.",
+        "Exactly one stated delivery_energy charge required",
+        "Exactly one stated delivery_fixed charge required"
+      ]
+    },
+    "pdf:2a5f18c937890071e4832ee3": {
+      "name": "Reliant Cowboys plan",
+      "provider": "Reliant Energy Retail Services, LLC",
+      "source_type": "pdf",
+      "fingerprint": "d58cd27dbf31a21dc69ba9eeccc261119102fa7c610cc5377d0e1742fc92f801",
+      "source_documents": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-7.pdf",
+          "sha256": "c2f77b727313b9c578884a518e1f4f99dea3e87d9cf42a051f571588549e33bb"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate."
+        ],
+        "credits": []
+      },
+      "calculation_eligible_at_review": true,
+      "issues_at_review": []
+    },
+    "pdf:ec9fce21233dcd9b94fb28c2": {
+      "name": "Reliant Get More, Save More 12 plan",
+      "provider": "Reliant Energy Retail Services, LLC",
+      "source_type": "pdf",
+      "fingerprint": "5bb139cabe060a67b7b8a87913a3ed4ca41387808131f1fa10a2dbf57191d7bd",
+      "source_documents": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-5.pdf",
+          "sha256": "926476cc69e31d540abba61d878323b377c69d12233ec56bfb196a994e84ad31"
+        }
+      ],
+      "profile": {
+        "kind": "tiered",
+        "rates": {
+          "energy": "9.3699",
+          "base": "6.95",
+          "delivery_energy": "6.0295",
+          "delivery_fixed": "4.06"
+        },
+        "tier_boundary": "1000",
+        "upper_energy": "7.3699",
+        "defaults": {},
+        "notes": [
+          "Marginal tiers: first 1000 kWh at the first energy rate, only excess at the second. This interpretation reproduces the source examples; profile remains rough pending formal parser integration."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Tiered energy rates require a tiered calculator",
+        "Unsupported pricing rule: energy charge: (>",
+        "Exactly one stated energy charge required"
+      ]
+    },
+    "pdf:9efff79c32c0d6f3f5cdeb9f": {
+      "name": "Reliant Get More, Save More 36 plan",
+      "provider": "Reliant Energy Retail Services, LLC",
+      "source_type": "pdf",
+      "fingerprint": "2c1b7097236d9303ee8ee5b284672379730d9dfb646cec6d08d1b3a67ed85744",
+      "source_documents": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-4.pdf",
+          "sha256": "6cfd17ce5e3245e14b351cb82a6405ee73cec8f206118b075a45e4926d22a7ef"
+        }
+      ],
+      "profile": {
+        "kind": "tiered",
+        "rates": {
+          "energy": "10.4699",
+          "base": "6.95",
+          "delivery_energy": "6.0295",
+          "delivery_fixed": "4.06"
+        },
+        "tier_boundary": "1000",
+        "upper_energy": "5.4699",
+        "defaults": {},
+        "notes": [
+          "Marginal tiers: first 1000 kWh at the first energy rate, only excess at the second. This interpretation reproduces the source examples; profile remains rough pending formal parser integration."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Tiered energy rates require a tiered calculator",
+        "Unsupported pricing rule: energy charge: (>",
+        "Exactly one stated energy charge required"
+      ]
+    },
+    "pdf:9a4258a66457d7ea93e52319": {
+      "name": "Reliant Power Savings 24 plan",
+      "provider": "Reliant Energy Retail Services, LLC",
+      "source_type": "pdf",
+      "fingerprint": "3871bee9fc13a520fe169cb46d3bdcc04c901ef87058b3a5d1ecbea50f07a678",
+      "source_documents": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-1.pdf",
+          "sha256": "4db265055ce490fe10e57a63e14da3d9c36e9bdf6dd6a015a6a7a51cf1895f69"
+        },
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-2.pdf",
+          "sha256": "d2eb1d840351d6ba6249c84ce65656872e0ce48cfe1426a739c3a45b99362cde"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage."
+        ],
+        "credits": [
+          {
+            "amount": "75.00",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": true,
+      "issues_at_review": []
+    },
+    "pdf:2277bcf556a5fdf5ad45f980": {
+      "name": "Reliant Secure Advantage® 12 plan",
+      "provider": "Reliant Energy Retail Services, LLC",
+      "source_type": "pdf",
+      "fingerprint": "fe2af4ffdd5079697bd03af38408838747e139d5b0fee1b5f18953ae8fe3140b",
+      "source_documents": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-6.pdf",
+          "sha256": "eb4d7faff4eed03ecc2a7366aef6394e2702418ad0162ef56c65a2fd64c8c51c"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate."
+        ],
+        "credits": []
+      },
+      "calculation_eligible_at_review": true,
+      "issues_at_review": []
+    },
+    "pdf:2a95dce4cc2235c73298c3e6": {
+      "name": "SimpleSaver 11",
+      "provider": "AP GAS & ELECTRIC (TX), LLC (APG&E)",
+      "source_type": "pdf",
+      "fingerprint": "529a9244f6e9562a325a769d93adc65cfe36e57a5b1c7bd14752a472903672f1",
+      "source_documents": [
+        {
+          "filename": "choosetexaspower/EFL-8.pdf",
+          "sha256": "fc784a6bf0e5300f87e47f9a7076d4283411c829c3547b30c6deb6bebddfa22d"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0",
+          "price_change_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage.",
+          "Price after the fixed term or first variable-rate cycle is unknown. Default assumes the same benchmark bill continues; edit the subsequent price-change percentage. This is not a guaranteed annual price."
+        ],
+        "credits": [
+          {
+            "amount": "125",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ],
+        "price_change_after_month": 11
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Contract does not cover the 12-month comparison horizon"
+      ]
+    },
+    "pdf:57aac9bd4f66be235cc10bbc": {
+      "name": "SimpleSaver 12",
+      "provider": "AP GAS & ELECTRIC (TX), LLC (APG&E)",
+      "source_type": "pdf",
+      "fingerprint": "0efae526b201971c44be23bce6cd739779a74be70ac801f2ea11bdf739b6c507",
+      "source_documents": [
+        {
+          "filename": "choosetexaspower/EFL-7.pdf",
+          "sha256": "34a8a558dda62aab7845f8acaee974a0aa933cdb5928b7f38e794bbae812eddc"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage."
+        ],
+        "credits": [
+          {
+            "amount": "125",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": true,
+      "issues_at_review": []
+    },
+    "pdf:12493f6e58ce82515d0de12a": {
+      "name": "SimpleSaver 24",
+      "provider": "AP GAS & ELECTRIC (TX), LLC (APG&E)",
+      "source_type": "pdf",
+      "fingerprint": "6892a1677b1c5f4e94e6c6b67621dfe0c9934dbc667234217232af169c3bd630",
+      "source_documents": [
+        {
+          "filename": "choosetexaspower/EFL-3.pdf",
+          "sha256": "647c1a8e5378ef69afc03adafd789764a34e6059219e8fcd455171ad1ad9215c"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage."
+        ],
+        "credits": [
+          {
+            "amount": "125",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": true,
+      "issues_at_review": []
+    },
+    "pdf:5f7705c38a38d8eaf284d1c3": {
+      "name": "TXU Energy Smart 1000 Saver 12SM",
+      "provider": "TXU Energy Retail Company LLC",
+      "source_type": "pdf",
+      "fingerprint": "147064571482b2bf6536bf21b99c54ac05d1be7bb2a3f3778197e570cf129ec6",
+      "source_documents": [
+        {
+          "filename": "choosetexaspower/EFL-9.pdf",
+          "sha256": "7aa3000ba4412cbb1a68e91d33c4d91c32421a90aa2e5b3dcbc4bf4c4c69170b"
+        }
+      ],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Known PDF credit thresholds are applied discretely: add credits back to benchmark bills before interpolation, then subtract only the credit applicable to your usage."
+        ],
+        "credits": [
+          {
+            "amount": "100.00",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Seasonal credit pricing is not supported",
+        "Provider TDU link found; this page needs an approved rate-table parser.",
+        "Unsupported pricing rule: summer bill credit",
+        "Exactly one stated delivery_energy charge required",
+        "Exactly one stated delivery_fixed charge required"
+      ]
+    },
+    "txu:705a83d2-9ab8-4ca1-bae9-f24aadbbf068": {
+      "name": "Clear Saver 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "634a0f579f3a99d47e3c7aee97f9d78f6313bdc479a5e056f4b4cdacca7bd0eb",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:0999e8d5-e7e1-4a8c-80f2-1a178f6ba19f": {
+      "name": "Flex Forward",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "fbbdf733122b738c011cc71fefa7e81a36dd592b729c5520db051c7900b96fd4",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0",
+          "price_change_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Assume unchanged published prices after the first month or short contract; adjust the price-change percentage to explore uncertainty. No twelve-month price guarantee."
+        ],
+        "price_change_after_month": 1
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff must be fixed and cover at least 12 months",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules"
+      ]
+    },
+    "txu:f4e42612-6bc5-4134-91b1-d667685eef3f": {
+      "name": "Flex Rewards",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "d48642f5d1fb0f20f79b013c744042244434e57c255614608f693d8fc8b9ada1",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0",
+          "price_change_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Assume unchanged published prices after the first month or short contract; adjust the price-change percentage to explore uncertainty. No twelve-month price guarantee."
+        ],
+        "price_change_after_month": 1
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff must be fixed and cover at least 12 months",
+        "API bill credit or cashback rules are not fully modeled",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules"
+      ]
+    },
+    "txu:7188289d-6a24-4d01-8370-7c1f00a4853f": {
+      "name": "Free Nights & Cool Summer 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "7f2701acfed689c28ad82ae25a9bc22d27c661881911e93b371f014376fa0e9a",
+      "source_documents": [],
+      "profile": {
+        "kind": "free_season",
+        "rates": {
+          "energy": "19.900",
+          "base": "9.95",
+          "delivery_energy": "6.0300",
+          "delivery_fixed": "4.06"
+        },
+        "defaults": {
+          "free_usage_percent": "32",
+          "delivery_waiver_percent": "0",
+          "season_start": "6",
+          "season_end": "9",
+          "season_discount_percent": "25"
+        },
+        "notes": [
+          "API states free nighttime energy and a 25% daytime summer bonus. Assume 32% night usage, June–September billing months and bonus applied as a same-bill daytime energy discount. Those mechanics and period definitions are unverified; delivery remains charged by default."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:bcb286ec-5366-47e4-9453-6617587c3098": {
+      "name": "Free Nights & Cool Summer 24",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "2124dc07a7fac4ea3fcdca0a486c62333512e0ceb064cab1cf71b0302e095b1c",
+      "source_documents": [],
+      "profile": {
+        "kind": "free_season",
+        "rates": {
+          "energy": "21.900",
+          "base": "9.95",
+          "delivery_energy": "6.0300",
+          "delivery_fixed": "4.06"
+        },
+        "defaults": {
+          "free_usage_percent": "32",
+          "delivery_waiver_percent": "0",
+          "season_start": "6",
+          "season_end": "9",
+          "season_discount_percent": "25"
+        },
+        "notes": [
+          "API states free nighttime energy and a 25% daytime summer bonus. Assume 32% night usage, June–September billing months and bonus applied as a same-bill daytime energy discount. Those mechanics and period definitions are unverified; delivery remains charged by default."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:53b416a4-c92f-48f7-9ce3-b9c0a8509eea": {
+      "name": "Free Nights & Solar Days 12 (8 pm)",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "d9a7be85c56595fadb350a6396069abb00fb18bccf2f2a2c85b067ec4c7b1ddf",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Solar-sourced electricity does not by itself imply rooftop panels or export compensation; no export credits are assumed."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:4d022314-19bf-4346-881d-60927648d6ca": {
+      "name": "Free Nights & Solar Days 12 (9 p.m.)",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "b224a6d9985278fc9addfc6f5ed774fb41e18b5dbdde9e1b77d99eaf9b3536bc",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Solar-sourced electricity does not by itself imply rooftop panels or export compensation; no export credits are assumed."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:a802fb85-13ac-43f1-93f5-e507b6c01e82": {
+      "name": "Free Nights & Solar Days 24 (8 pm)",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "3a241edb206274bc699100954ac4c175543a762109a2b7bf1ccfd98fbf4befd5",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Solar-sourced electricity does not by itself imply rooftop panels or export compensation; no export credits are assumed."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:937b9e49-3e7b-41da-bf10-887fc4d61d59": {
+      "name": "Free Nights & Solar Days 24 (9 p.m.)",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "72fc4bfa45a88cf0736f98b7840851c551de8718914c1725b5110de141085615",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Solar-sourced electricity does not by itself imply rooftop panels or export compensation; no export credits are assumed."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:c684b982-2681-42de-9e9a-5f8d2852700e": {
+      "name": "Free Pass 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "f0cc5dd3cc75813b3b4b957a5a8f46369caa6669458baccf7f6aa4862233ded4",
+      "source_documents": [],
+      "profile": {
+        "kind": "free_usage",
+        "rates": {
+          "base": "9.95",
+          "energy": "13.900",
+          "delivery_energy": "3.577800",
+          "delivery_fixed": "3.42"
+        },
+        "defaults": {
+          "free_usage_percent": "23.33333333333333333333333333",
+          "delivery_waiver_percent": "0"
+        },
+        "notes": [
+          "API illustration: uniform usage across a 30-day cycle gives seven free days = 23.3333% of consumption; waive energy only by default. Edit the share and delivery waiver to explore scenarios.",
+          "CONFLICT: linked EFL states 7 non-summer / 9 summer days and energy plus per-kWh delivery waiver, with 17.5¢ energy versus API 13.9¢. Its sample usage percentages are 0.000%. This scenario deliberately uses only API numerical rates and is not the EFL tariff."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:751adee4-f8b3-44e6-a027-dabb0883e6ce": {
+      "name": "Free Pass 24",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "d9132b2055a5d0fc6465246e8c3cd84cd0ce63e83957c537f0050d3b5528ba3c",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:f406f181-8363-416f-a296-888404a2a556": {
+      "name": "Freedom Rewards 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "e6dbec82528e0d7f9596ff1806ceb0ab64b623117eeb691547e2652aea8b8b83",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Redemption timing, limits and bill application are unspecified; benchmark illustration is not guaranteed reward value."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:f0c3dabc-b66a-4367-b78a-bd96027dd598": {
+      "name": "Freedom Rewards 24",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "e771b5c64d2e5e703758b37ec3c3998c1fca4ef8a9196ae772da683d5315b7d8",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Redemption timing, limits and bill application are unspecified; benchmark illustration is not guaranteed reward value."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:26c31dd2-f54c-4d4a-b0b0-15829fcbd7c3": {
+      "name": "Monthly Saver 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "027ab4a78bd2f7ea69e090a75bfcd2172aa43889b49fe2506548d865538416d4",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API describes credits at 500 and 1000 kWh but omits their split. Do not invent a credit schedule; benchmark interpolation can miss jumps."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:47c526aa-5bf6-488d-917f-1462672bd67b": {
+      "name": "On Your Terms",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "ec4ab0b6db3736f355c8ed7b55cbf4cb2b05b37602da62cdd7929f219809bc24",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0",
+          "price_change_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "Assume unchanged published prices after the first month or short contract; adjust the price-change percentage to explore uncertainty. No twelve-month price guarantee."
+        ],
+        "price_change_after_month": 1
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff must be fixed and cover at least 12 months",
+        "API bill credit or cashback rules are not fully modeled",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:6bfdc76e-5f4b-44c1-a6e8-ab2c51b4ae9e": {
+      "name": "Saver's Choice 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "7aed92c6258d1130eaf70e9de28d082e21f08ebf9114ffa2978669304fe91ae7",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has multiple energy charges without applicability labels. No component rate was selected.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Marketing describes a credit but recurring API inputs are inconsistent/incomplete. The published-example fallback does not verify eligibility or exact threshold billing."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled",
+        "API rates are invalid, duplicated, or contain unsupported fields/types",
+        "API is missing the 500 kWh price example",
+        "API is missing the 1000 kWh price example",
+        "API is missing the 2000 kWh price example"
+      ]
+    },
+    "txu:23291c6a-634c-42f6-abf4-d81c5932490c": {
+      "name": "Season Pass Plus A/C Care 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "e9b97dfccd9f7910658f499fa4a156ec744aa51a1f2c8cf2c4b0e41971d080df",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:a0ffe984-18a2-4f39-8820-539211b0062a": {
+      "name": "Simple Rate 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "f3df4f0a2e2d1fad5c3de48c577e8e240d9077461fe70cb6ecbd9a2905f40ae0",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate."
+        ]
+      },
+      "calculation_eligible_at_review": true,
+      "issues_at_review": []
+    },
+    "txu:c9167392-76fc-4189-8fb7-3d20a37e9be4": {
+      "name": "Simple Rate 24",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "e2a8c0b66dd073d04fbb2dc3c0dee17d44f09b89e39ce29413184a8bd59f25e9",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:a8db4a91-3b48-4f63-a373-a831fd0e25c6": {
+      "name": "Simple Value 24",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "ac867fd49265ccb8002ab7214349b9cda8982835920a5bc10df18a588df9044d",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate."
+        ]
+      },
+      "calculation_eligible_at_review": true,
+      "issues_at_review": []
+    },
+    "txu:aa7db7e7-4b4e-4b94-a3c4-49b8e01a7de9": {
+      "name": "Smart 1000 Select 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "01ddb6527d0f511b1cf2cc358b63063bdab91dbd95860adc9e85834bf279f72c",
+      "source_documents": [],
+      "profile": {
+        "kind": "seasonal_credit",
+        "rates": {
+          "base": "9.95",
+          "energy": "13.700",
+          "delivery_energy": "6.0300",
+          "delivery_fixed": "4.06"
+        },
+        "credits": [
+          {
+            "minimum_kwh": "1000",
+            "amount": "100"
+          }
+        ],
+        "defaults": {
+          "season_start": "7",
+          "season_end": "9",
+          "season_extra_credit": "25"
+        },
+        "notes": [
+          "Credit amount and threshold come from API description; billCredits is empty. Assume inclusive threshold, once per cycle, no other eligibility restrictions.",
+          "July–September is an editable assumption for summer billing cycles; API does not define the months. Extra summer credit requires the same usage threshold."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:58444b34-5cf6-4379-92cb-031370c8f65f": {
+      "name": "Smart 2000 Select 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "d40f9dcd35afe1c83e101514e03e53f057cf4863b784085273161c0a32c15f06",
+      "source_documents": [],
+      "profile": {
+        "kind": "seasonal_credit",
+        "rates": {
+          "energy": "9.400",
+          "base": "9.95",
+          "delivery_energy": "6.0300",
+          "delivery_fixed": "4.06"
+        },
+        "credits": [
+          {
+            "minimum_kwh": "2000",
+            "amount": "100"
+          }
+        ],
+        "defaults": {
+          "season_start": "7",
+          "season_end": "9",
+          "season_extra_credit": "50"
+        },
+        "notes": [
+          "Credit amount and threshold come from API description; billCredits is empty. Assume inclusive threshold, once per cycle, no other eligibility restrictions.",
+          "July–September is an editable assumption for summer billing cycles; API does not define the months. Extra summer credit requires the same usage threshold."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:2168e5ce-f604-434c-a00f-33a13070819b": {
+      "name": "Smart 500 Start 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "d275081179f6f3f2abd49dff098505dfa083b87cc075eb238ec58231e91d4c24",
+      "source_documents": [],
+      "profile": {
+        "kind": "flat",
+        "rates": {
+          "energy": "12.700",
+          "base": "4.95",
+          "delivery_energy": "6.0300",
+          "delivery_fixed": "4.06"
+        },
+        "credits": [
+          {
+            "minimum_kwh": "500",
+            "amount": "35"
+          }
+        ],
+        "defaults": {},
+        "notes": [
+          "Credit amount and threshold come from API description; billCredits is empty. Assume inclusive threshold, once per cycle, no other eligibility restrictions."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:38ba27a2-6e6e-405f-a8b2-3d2041d183da": {
+      "name": "Smart Break 18",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "00d626c067ad1aab1bedf6d89393dc018ee870c888cb9b3ed8025a4536f3467b",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Marketing describes a credit but recurring API inputs are inconsistent/incomplete. The published-example fallback does not verify eligibility or exact threshold billing."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:0ceeec71-1ba2-41ca-b1ef-a291e4b612d8": {
+      "name": "Smart Discount 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "93d0e7d861ebb1aa8b8158d5220e4ac353e8cbd2b23d5be14a7040aaf6eaf44d",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Marketing describes a credit but recurring API inputs are inconsistent/incomplete. The published-example fallback does not verify eligibility or exact threshold billing."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API bill credit or cashback rules are not fully modeled",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:bea8f879-c3b0-4346-986a-70bedd157c7a": {
+      "name": "Smart Value 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "660577fd0ccd495747fcaeb4e96c9738037d85cb1e7e6cd1ed36d52e73abec1f",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Marketing describes a credit but recurring API inputs are inconsistent/incomplete. The published-example fallback does not verify eligibility or exact threshold billing."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API bill credit or cashback rules are not fully modeled",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:8971d356-427b-4430-9120-5deb0b5c67a5": {
+      "name": "Smart Value 24",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "c97dc6687c70c8d75a18d2386338ccaa0dddd76402d4db677f759cbb7594342c",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Marketing describes a credit but recurring API inputs are inconsistent/incomplete. The published-example fallback does not verify eligibility or exact threshold billing."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:da6f0f7a-5f9c-487f-81c2-4a96bdf7e2f5": {
+      "name": "Solar Buyback Plus 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "2f7afa623f3b3913b9cf4a5e47867e9843a1f00838ad9157b60f746a0ff55bfa",
+      "source_documents": [],
+      "profile": {
+        "kind": "solar",
+        "rates": {
+          "base": "14.95",
+          "energy": "12.400",
+          "delivery_energy": "5.60300",
+          "delivery_fixed": "4.23"
+        },
+        "defaults": {
+          "export_kwh": "0",
+          "buyback_cents": "0"
+        },
+        "notes": [
+          "Requires rooftop panels. Entered monthly usage must mean grid imports, not net usage or total household consumption. Export volume and buyback compensation are unknown; zero exports/compensation is the default scenario.",
+          "Assume exports offset this month’s bill, capped at the bill amount. No payout or credit rollover is modeled. Edit both export kWh and cents/kWh for an explicit hypothetical scenario."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:acaacf6f-237a-492b-8a89-fbfb504f6c6c": {
+      "name": "Solar Buyback Saver 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "1de426d8754ebf029a5224a1fb2b9eabc25887d38fd5e87b41b9fce3268e8398",
+      "source_documents": [],
+      "profile": {
+        "kind": "solar",
+        "rates": {
+          "energy": "11.600",
+          "base": "14.95",
+          "delivery_energy": "5.60300",
+          "delivery_fixed": "4.23"
+        },
+        "defaults": {
+          "export_kwh": "0",
+          "buyback_cents": "0"
+        },
+        "notes": [
+          "Requires rooftop panels. Entered monthly usage must mean grid imports, not net usage or total household consumption. Export volume and buyback compensation are unknown; zero exports/compensation is the default scenario.",
+          "Assume exports offset this month’s bill, capped at the bill amount. No payout or credit rollover is modeled. Edit both export kWh and cents/kWh for an explicit hypothetical scenario."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:3792f4e3-bc59-4d23-a654-bef9255b526c": {
+      "name": "Solar Club 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "233f356d17c770f814d18e7af62a5b1a5a76a9ef421279784a83240828d236a8",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Solar-sourced electricity does not by itself imply rooftop panels or export compensation; no export credits are assumed."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:4aa43a6e-7734-4c3e-bdee-603a8cb23aad": {
+      "name": "Solar Saver 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "a357d069311a1a92cb071ddbfcf95dbe62b623c2164d358ebd0c868c7f83e734",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has multiple energy charges without applicability labels. No component rate was selected.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Solar-sourced electricity does not by itself imply rooftop panels or export compensation; no export credits are assumed.",
+          "Marketing describes a credit but recurring API inputs are inconsistent/incomplete. The published-example fallback does not verify eligibility or exact threshold billing."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API rates are invalid, duplicated, or contain unsupported fields/types",
+        "API is missing the 500 kWh price example",
+        "API is missing the 1000 kWh price example",
+        "API is missing the 2000 kWh price example"
+      ]
+    },
+    "txu:7f26f6a1-1e03-4116-8d59-fab3f74ffd69": {
+      "name": "Summer Pass 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "8970544f076e8d9d49e85ddf5c5959438bd8ab8cefeb0e8c5693938c210af394",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:38b2ff97-b302-46fa-ad79-58ee3e80bbaa": {
+      "name": "Summer Pass 24",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "a6a85e4aa8d781953d7eb133d1287dee084e5cecd96738a7f397b6fa8a48951c",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Offer is inactive or hidden by TXU",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:378e7503-233a-440a-aa81-4a1dbb4740f9": {
+      "name": "SuperSecure 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "81422634b295c6d282e85472997f6a4f80e3640aeca7f58213edad8a98256795",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API calls this an all-in bundled rate while listing delivery separately. Adding both may double-count delivery; use all-in benchmarks."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:e89c7854-a99a-4430-a96f-4e13a8b0ac00": {
+      "name": "Texas Choice 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "dddce44c8b002eb84a6efc605b0a0a6f92280e748b0b01cd24508e5fe15313cf",
+      "source_documents": [],
+      "profile": {
+        "kind": "reward",
+        "rates": {
+          "energy": "10.800",
+          "base": "9.95",
+          "delivery_energy": "6.0300",
+          "delivery_fixed": "4.06"
+        },
+        "reward_percent": "3",
+        "defaults": {
+          "reward_realization_percent": "0"
+        },
+        "notes": [
+          "API advertises 3% annual cashback on a prepaid card; eligibility/base and timing are incomplete. Default bills receive no discount. If changed, assume the redeemed fraction applies to energy charges only and spread it monthly; this is equivalent economic value, not an invoice reduction."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled"
+      ]
+    },
+    "txu:a2114bfa-c4ed-4832-bb2e-902d2127104b": {
+      "name": "Texas Choice 24",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "78daf68a22feec3c8956665d5152f22cea4383c81bb0c6bd2eb239e433324cac",
+      "source_documents": [],
+      "profile": {
+        "kind": "reward",
+        "rates": {
+          "energy": "11.800",
+          "base": "9.95",
+          "delivery_energy": "6.0300",
+          "delivery_fixed": "4.06"
+        },
+        "reward_percent": "3",
+        "defaults": {
+          "reward_realization_percent": "0"
+        },
+        "notes": [
+          "API advertises 3% annual cashback on a prepaid card; eligibility/base and timing are incomplete. Default bills receive no discount. If changed, assume the redeemed fraction applies to energy charges only and spread it monthly; this is equivalent economic value, not an invoice reduction."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled"
+      ]
+    },
+    "txu:b477282e-2e66-46b3-a8f2-4617c4ae5ce2": {
+      "name": "Ultimate Season Pass 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "0a197a147c526ffb07e5182bfae0c4a63b7ab0c3aa1a641be61f830dc3898026",
+      "source_documents": [],
+      "profile": {
+        "kind": "seasonal",
+        "rates": {
+          "energy": "15.300",
+          "base": "9.95",
+          "delivery_energy": "6.0300",
+          "delivery_fixed": "4.06"
+        },
+        "defaults": {
+          "season_start": "6",
+          "season_end": "9",
+          "season_discount_percent": "50"
+        },
+        "notes": [
+          "API advertises 50% off selected peak months, with additional incompletely specified benefits. Default assumes energy-only discount June–September. Additional hottest-day/shoulder-month discounts are omitted; change start/end and percentage for a hypothetical season. A season can wrap December–February.",
+          "This simplified single-season scenario does not represent the full advertised tariff."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:1c841ba7-ceb8-40dd-8965-1979f69b3bfa": {
+      "name": "Ultimate Season Pass 24",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "4989aacbd76443e21aaf606133d8b2fa7737b3c77884aed6ea42e79430cdc51e",
+      "source_documents": [],
+      "profile": {
+        "kind": "seasonal",
+        "rates": {
+          "base": "9.95",
+          "energy": "17.300",
+          "delivery_energy": "6.0300",
+          "delivery_fixed": "4.06"
+        },
+        "defaults": {
+          "season_start": "6",
+          "season_end": "9",
+          "season_discount_percent": "50"
+        },
+        "notes": [
+          "API advertises 50% off selected peak months, with additional incompletely specified benefits. Default assumes energy-only discount June–September. Additional hottest-day/shoulder-month discounts are omitted; change start/end and percentage for a hypothetical season. A season can wrap December–February.",
+          "This simplified single-season scenario does not represent the full advertised tariff."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:f1839aba-adcb-4e7a-b369-ca81d07a1d7a": {
+      "name": "Ultimate Summer Pass 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "7d6300888108408cb842541a327e92db60bf3cd0230c1ada69f92a349f7757c2",
+      "source_documents": [],
+      "profile": {
+        "kind": "seasonal",
+        "rates": {
+          "base": "9.95",
+          "energy": "14.900",
+          "delivery_energy": "6.0300",
+          "delivery_fixed": "4.06"
+        },
+        "defaults": {
+          "season_start": "6",
+          "season_end": "9",
+          "season_discount_percent": "50"
+        },
+        "notes": [
+          "API advertises 50% off selected peak months, with additional incompletely specified benefits. Default assumes energy-only discount June–September. Additional hottest-day/shoulder-month discounts are omitted; change start/end and percentage for a hypothetical season. A season can wrap December–February.",
+          "This simplified single-season scenario does not represent the full advertised tariff."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:283ae0c6-0ae1-407c-976e-f9c5c8100250": {
+      "name": "Ultimate Summer Pass 24",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "e13581dc0ca4a63015f704be8702639830381e388b0815318e8dfb6cedd4523b",
+      "source_documents": [],
+      "profile": {
+        "kind": "seasonal",
+        "rates": {
+          "energy": "16.700",
+          "base": "9.95",
+          "delivery_energy": "6.0300",
+          "delivery_fixed": "4.06"
+        },
+        "defaults": {
+          "season_start": "6",
+          "season_end": "9",
+          "season_discount_percent": "50"
+        },
+        "notes": [
+          "API advertises 50% off selected peak months, with additional incompletely specified benefits. Default assumes energy-only discount June–September. Additional hottest-day/shoulder-month discounts are omitted; change start/end and percentage for a hypothetical season. A season can wrap December–February.",
+          "This simplified single-season scenario does not represent the full advertised tariff."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API price example mismatch at 500 kWh",
+        "API price example mismatch at 1000 kWh",
+        "API price example mismatch at 2000 kWh"
+      ]
+    },
+    "txu:7fa95658-f859-4597-b3d6-5d0e5fc835c8": {
+      "name": "Value Edge 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "1a643907bfb10d0b62cd888b4f441545f66d0abdc8823f487bcb56850d1d6d08",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has multiple energy charges without applicability labels. No component rate was selected.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Marketing describes a credit but recurring API inputs are inconsistent/incomplete. The published-example fallback does not verify eligibility or exact threshold billing."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API bill credit or cashback rules are not fully modeled",
+        "API rates are invalid, duplicated, or contain unsupported fields/types",
+        "API is missing the 500 kWh price example",
+        "API is missing the 1000 kWh price example",
+        "API is missing the 2000 kWh price example"
+      ]
+    },
+    "txu:b107126f-8be0-422c-98cb-d8d6a53fc7d3": {
+      "name": "e-Saver 10",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "21f92ca98dba67943c1ea4452b4c96760ac000af6c8439683bbc4ac96b6d2435",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0",
+          "price_change_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has multiple energy charges without applicability labels. No component rate was selected.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable.",
+          "Assume unchanged published prices after the first month or short contract; adjust the price-change percentage to explore uncertainty. No twelve-month price guarantee."
+        ],
+        "price_change_after_month": 10
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff must be fixed and cover at least 12 months",
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API rates are invalid, duplicated, or contain unsupported fields/types",
+        "API is missing the 500 kWh price example",
+        "API is missing the 1000 kWh price example",
+        "API is missing the 2000 kWh price example"
+      ]
+    },
+    "txu:b91f5819-0484-4427-a896-6bebdf666837": {
+      "name": "e-Saver 12",
+      "provider": "TXU Energy",
+      "source_type": "txu",
+      "fingerprint": "6e995c239b8ee5b773afd77ba44cb45a1886cd73d99ab9a8d5967f4faac80b65",
+      "source_documents": [],
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "notes": [
+          "All-in published benchmark bills are interpolated, not billing rules. Unknown credit thresholds, interval profiles, fees and seasonal averages may make other usage levels inaccurate.",
+          "API has multiple energy charges without applicability labels. No component rate was selected.",
+          "API has missing, duplicate or zero placeholder recurring rates; component scenarios are unavailable."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "API tariff may require unsupported conditional, interval, seasonal or solar rules",
+        "API rates are invalid, duplicated, or contain unsupported fields/types",
+        "API is missing the 500 kWh price example",
+        "API is missing the 1000 kWh price example",
+        "API is missing the 2000 kWh price example"
+      ]
+    },
+    "pdf:67360e78bc71678736c39b8a": {
+      "name": "Reliant Flextra Credits 24 plan",
+      "provider": "Reliant Energy Retail Services, LLC",
+      "source_type": "pdf",
+      "fingerprint": "ef586f35012cacf729b3c8497773b887261ad0a545fc0985fc1d90426c3745e0",
+      "source_documents": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-10.pdf",
+          "sha256": "42e80ddd9b235e0be4dae9eadade7aed99975e7708842bc5602a470902341958"
+        }
+      ],
+      "profile": {
+        "kind": "free_usage",
+        "rates": {
+          "energy": "21.5394",
+          "base": "0",
+          "delivery_energy": "6.0295",
+          "delivery_fixed": "4.06"
+        },
+        "defaults": {
+          "free_usage_percent": "32",
+          "delivery_waiver_percent": "100"
+        },
+        "notes": [
+          "Rough estimate using an editable 32% share of usage on free days, as assumed by the EFL; actual usage can differ. Energy and per-kWh delivery are waived on free days; the $4.06 monthly delivery charge remains.",
+          "Two highest-use days per Sunday–Saturday week, midnight–11:59 p.m.; maximum eight free days for 28+ billing days. For 1–3/4–6/7–13/14–20/21–27 billing days, the caps are 0/1/2/4/6. Full weeks are allocated first, then partial weeks. Actual daily usage and billing-period allocation are not modeled.",
+          "The EFL describes estimation of missing interval data and a conditional 32% allocation fallback. This comparison uses 32% as a scenario, not as verified customer usage."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Interval usage is required for free-time pricing",
+        "Unsupported pricing rule: free days",
+        "Unsupported pricing rule: free flex",
+        "Price example mismatch at 500 kWh",
+        "Price example mismatch at 1000 kWh",
+        "Price example mismatch at 2000 kWh"
+      ],
+      "import_approval": {
+        "allowed_issues": [
+          "Interval usage is required for free-time pricing",
+          "Unsupported pricing rule: free days",
+          "Unsupported pricing rule: free flex",
+          "Price example mismatch at 500 kWh",
+          "Price example mismatch at 1000 kWh",
+          "Price example mismatch at 2000 kWh"
+        ]
+      }
+    },
+    "pdf:581a26dab43e1611b647500c": {
+      "name": "Reliant Power Savings 9 plan",
+      "provider": "Reliant Energy Retail Services, LLC",
+      "source_type": "pdf",
+      "fingerprint": "39047a6a5b79d3a270c81df300df4523f71af67ad9ce4b45a1924f3feaa2eeb4",
+      "source_documents": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-3.pdf",
+          "sha256": "f93d530c5419a29f69409d9d99690e744c69eedc3fcf56592110a7d55b73afd3"
+        }
+      ],
+      "profile": {
+        "kind": "flat",
+        "defaults": {
+          "price_change_percent": "0"
+        },
+        "notes": [
+          "Contract term is nine months. Costs during that term use the stated rates and a $75 credit for billing cycles with usage of at least 1,000 kWh.",
+          "Months 10–12 are a renewal scenario, not contracted pricing. Default assumes the same monthly charges and credit continue; edit the post-term percentage adjustment to the total monthly bill. No renewal rate is supplied by this EFL.",
+          "The $95 early termination fee is not applied because this scenario completes the nine-month term. Taxes and other nonrecurring or location-specific fees are excluded."
+        ],
+        "credits": [
+          {
+            "amount": "75.00",
+            "minimum_kwh": "1000",
+            "maximum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_inclusive": false
+          }
+        ],
+        "price_change_after_month": 9,
+        "rates": {
+          "energy": "12.9674",
+          "base": "0.00",
+          "delivery_fixed": "4.06",
+          "delivery_energy": "6.0295"
+        }
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Contract does not cover the 12-month comparison horizon"
+      ],
+      "import_approval": {
+        "allowed_issues": [
+          "Contract does not cover the 12-month comparison horizon"
+        ]
+      }
+    },
+    "pdf:9872d3ecfe52453c0b2c2737": {
+      "name": "Reliant Free Overnight 12 plan",
+      "provider": "Reliant Energy Retail Services, LLC",
+      "source_type": "pdf",
+      "fingerprint": "e514df785bf253b6f862400f3036d64a541f239299d359d467f123fbfeb6f23f",
+      "source_documents": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-9.pdf",
+          "sha256": "e8bd08c793a3aba32f1aa89d2da3fcc8c773593534c30344bc2bed7d074a688b"
+        }
+      ],
+      "profile": {
+        "kind": "free_usage",
+        "rates": {
+          "energy": "18.5982",
+          "base": "0",
+          "delivery_energy": "6.0295",
+          "delivery_fixed": "4.06"
+        },
+        "defaults": {
+          "free_usage_percent": "32",
+          "delivery_waiver_percent": "100"
+        },
+        "notes": [
+          "Free hours are 9 p.m.–6 a.m. every day. Both nighttime energy and nighttime variable delivery are zero; the $4.06 monthly delivery charge remains.",
+          "Default nighttime usage is 32%, taken from the EFL price examples, not measured customer usage. Edit the free-usage share for a different scenario; the delivery-waiver default is 100%. Exact billing requires interval usage.",
+          "The EFL describes missing-interval estimation and a conditional 32% allocation fallback. This estimate does not reproduce meter-data reconciliation or verify customer nighttime usage."
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Interval usage is required for free-time pricing",
+        "Unsupported pricing rule: free overnight",
+        "Price example mismatch at 500 kWh",
+        "Price example mismatch at 1000 kWh",
+        "Price example mismatch at 2000 kWh"
+      ],
+      "import_approval": {
+        "allowed_issues": [
+          "Interval usage is required for free-time pricing",
+          "Unsupported pricing rule: free overnight",
+          "Price example mismatch at 500 kWh",
+          "Price example mismatch at 1000 kWh",
+          "Price example mismatch at 2000 kWh"
+        ]
+      }
+    },
+    "pdf:76f3bd8bc150b72cd1cbbaa4": {
+      "name": "Reliant ClearSM Flex plan",
+      "provider": "Reliant Energy Retail Services, LLC",
+      "source_type": "pdf",
+      "fingerprint": "5f62f58cdbb2a08817a5bb483e761301295af3252f20d57329546d0a8137ce58",
+      "source_documents": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-8.pdf",
+          "sha256": "cd32877ea22ca8ca78ee82f3e5187c5b8f438675cb67cd1546f3ed970c6d5c49"
+        }
+      ],
+      "profile": {
+        "kind": "flat",
+        "defaults": {
+          "price_change_percent": "0"
+        },
+        "notes": [
+          "Month to Month variable-rate contract; no fixed multi-month price guarantee. The stated pricing applies to the first billing cycle, subject to the EFL exceptions. Subsequent rates may change at Reliant’s discretion.",
+          "Months 2–12 assume unchanged charges by default. Edit the subsequent bill-change percentage for a scenario; this is not a forecast or guaranteed annual price.",
+          "The stated $9.95 usage fee applies only below 800 kWh per cycle and is zero at or above 800 kWh. No additional base fee is included. The PDF states no termination fee. Taxes and nonrecurring/location-specific fees are excluded."
+        ],
+        "credits": [],
+        "price_change_after_month": 1,
+        "rates": {
+          "energy": "12.3174",
+          "delivery_energy": "6.0295",
+          "delivery_fixed": "4.06",
+          "base": "0"
+        },
+        "usage_charges": [
+          {
+            "amount": "9.95",
+            "minimum_kwh": null,
+            "minimum_inclusive": true,
+            "maximum_kwh": "800",
+            "maximum_inclusive": false
+          },
+          {
+            "amount": "0.00",
+            "minimum_kwh": "800",
+            "minimum_inclusive": true,
+            "maximum_kwh": null,
+            "maximum_inclusive": false
+          }
+        ]
+      },
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Variable-rate pricing is not supported",
+        "Only fixed-rate products supported",
+        "Contract does not cover the 12-month comparison horizon"
+      ],
+      "import_approval": {
+        "allowed_issues": [
+          "Variable-rate pricing is not supported",
+          "Only fixed-rate products supported",
+          "Contract does not cover the 12-month comparison horizon"
+        ]
+      }
+    },
+    "pdf:d2d8dccbc792d7cd9fe216ac": {
+      "name": "TXU Energy Free Pass 24SM",
+      "provider": "TXU Energy Retail Company LLC",
+      "source_type": "pdf",
+      "source_documents": [
+        {
+          "filename": "_txu/0160b2be9238adb9647f00d1028d84dc61a694b3c7a94328a5ca259b27e1ebb2.pdf",
+          "sha256": "0160b2be9238adb9647f00d1028d84dc61a694b3c7a94328a5ca259b27e1ebb2"
+        }
+      ],
+      "fingerprint": "4142bd8decd2d1cced23fcff8d81dadcc018999ac79d140f64f24bb77120acd9",
+      "calculation_eligible_at_review": false,
+      "issues_at_review": [
+        "Interval usage is required for free-time pricing",
+        "PDF states 0.000% free usage but advertised prices are below the energy charge; benchmark is not a reconciled tariff",
+        "Exactly one stated delivery_energy charge required",
+        "Exactly one stated delivery_fixed charge required"
+      ],
+      "import_approval": {
+        "allowed_issues": [
+          "Interval usage is required for free-time pricing",
+          "PDF states 0.000% free usage but advertised prices are below the energy charge; benchmark is not a reconciled tariff",
+          "Exactly one stated delivery_energy charge required",
+          "Exactly one stated delivery_fixed charge required"
+        ]
+      },
+      "profile": {
+        "kind": "benchmark",
+        "defaults": {
+          "benchmark_adjustment_percent": "0"
+        },
+        "credits": [],
+        "notes": [
+          "Document-only benchmark estimate using printed 500/1000/2000 kWh average prices. These reproduce the published examples, not a validated tariff or verified offer.",
+          "The PDF prints 0.000% free usage in both seasons although advertised prices are below the 19.1 cent energy charge. This inconsistency remains unresolved. No free-usage share is inferred.",
+          "TDU charges are not printed and remain unknown. The source directs readers to txu.com/tducharges; no API plan rates are substituted.",
+          "Free Pass rules: seven highest-use days in non-summer billing periods and nine in June–September, determined by current meter-read month; all days if the period is shorter. Energy and per-kWh delivery are waived on these days, fixed charges remain. Benchmark interpolation does not model these rules."
+        ]
+      }
+    }
+  }
+}

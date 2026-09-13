@@ -2,15 +2,31 @@
 
 import argparse
 import json
+import os
+from pathlib import Path
 
 from backend.knowledge.config import Settings
 from backend.knowledge.models import DocumentReviewRequired, KnowledgeUnavailable
+
+
+def source_files(settings, include_txu=False):
+    root = settings.data_dir.resolve()
+    files = []
+    def discovery_error(error):
+        raise error
+    for directory, directories, filenames in os.walk(root, followlinks=False, onerror=discovery_error):
+        if Path(directory) == root and not include_txu:
+            directories[:] = [name for name in directories if name != "_txu"]
+        files.extend(Path(directory) / name for name in filenames
+                     if Path(name).suffix.lower() == ".pdf")
+    return sorted(files)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Preview or index local plan PDFs for cited Q&A.")
     parser.add_argument("--env-file", help="Optional ignored local env file; existing environment takes precedence")
     parser.add_argument("command", choices=["preview", "create-index", "ingest"])
+    parser.add_argument("--include-txu-rag", action="store_true", help="Include downloaded _txu PDFs; strict page validation still applies")
     args = parser.parse_args()
     if args.env_file:
         from dotenv import load_dotenv
@@ -23,7 +39,7 @@ def main():
             print(create_index(settings))
             return
         from backend.knowledge.documents import build_corpus
-        manifest, records = build_corpus(settings)
+        manifest, records = build_corpus(settings, paths=source_files(settings, args.include_txu_rag))
         if args.command == "preview":
             print(json.dumps(manifest, indent=2))
             return
