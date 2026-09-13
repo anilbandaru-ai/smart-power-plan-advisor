@@ -1447,3 +1447,34 @@ documents and published the active manifest. An in-process HTTP check of
 dependencies_available=true and 22 documents. Remote search visibility may lag
 upserts; a live generated answer and native browser were not tested. README and
 RAG guide updated.
+
+
+## Document agent processing-limit recovery (AGENT-07 amendment)
+
+Status: implemented; offline regression verification complete.
+
+Avoid premature context limits by projecting completed-turn history without old
+retrieval, document-list or other non-clarification tool exchanges. Preserve user
+questions, assistant answers and paired clarification calls/replies so follow-up
+references remain resolvable. Keep the current logical turn, including interrupted
+clarifications, intact. Fresh evidence remains mandatory for each factual turn.
+The context guard counts serialized projected messages and the current evidence
+payload separately and uses the larger size rather than adding duplicate source
+text present in both. Retain the conservative 10,000-token stopping threshold.
+When reasoning/tool budgets are exhausted with current-turn evidence and context
+within the limit, use the existing citation-checked finalizer instead of terminating
+the conversation. Retain at most five reasoning calls plus one finalization (six
+model calls total); citation repair remains allowed only with remaining budget.
+No extra retrieval or unvalidated answers. True context overflow and loops without
+evidence still stop safely. API schemas and pricing remain unchanged.
+
+Acceptance: reproduce large follow-up history and duplicated current evidence;
+verify fresh scoped retrieval, preserved clarification pairs, successful finalization
+after five reasoning calls, no over-budget repair, and unchanged no-evidence loop
+limits. Run agent and knowledge regressions; record actual verification.
+
+Verification: 27 agent tests and 17 knowledge tests passed, including large-context
+follow-ups, clarification pairing, five-call evidence finalization, exhausted
+repair budget, no-evidence loops and true context overflow. Live reproduction of
+the reported request remains unverified because the triggering question and
+conversation context were not supplied. No pricing or index changes.

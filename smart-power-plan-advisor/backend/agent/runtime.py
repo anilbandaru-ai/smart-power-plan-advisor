@@ -108,7 +108,7 @@ class Runtime:
                 session.corpus = manifest["corpus_id"]
                 value = {"messages": [HumanMessage(content=payload.message)], "manifest": manifest,
                          "document_id": payload.document_id, "evidence": {}, "calls": 0, "tools": 0,
-                         "searches": 0, "activity": [], "result": None, "stopped": False}
+                         "searches": 0, "activity": [], "result": None, "stopped": False, "finish_with_evidence": False}
             if self.model_factory:
                 model = self.model_factory(self.settings)
             else:
