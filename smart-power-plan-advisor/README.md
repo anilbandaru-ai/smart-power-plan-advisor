@@ -1,5 +1,40 @@
 # Smart Power Plan Advisor
 
+## Problem Statement
+In deregulated areas of Texas, residential electricity customers can choose among multiple Retail Electric Providers (REPs) and a large number of electricity plans. While this competition provides consumers with choice, selecting the most cost-effective plan can be difficult and confusing.
+
+Electricity plans can differ significantly in energy rates, usage-based pricing tiers, base charges, bill credits, minimum-usage requirements, time-of-use pricing, contract duration, renewable-energy content, early termination fees, promotional conditions, and other terms. The advertised price per kWh therefore may not represent the actual amount a household will pay.
+
+The best plan also varies by customer. A plan that is inexpensive for a household using 2,000 kWh per month may be significantly more expensive for another household using 800 kWh. Seasonal changes in Texas electricity consumption can further affect the economics of a plan.
+
+Consumers currently have to compare complex plan documents and pricing structures, understand Electricity Facts Labels (EFLs), estimate how each plan would perform against their own electricity usage, and monitor the market for better options. 
+
+This creates a high cognitive burden and can lead customers to select plans based primarily on advertised rates rather than their expected total electricity cost.
+
+## Proposed Use Case
+Build an Agentic AI Electricity Advisor for Texas that acts on behalf of the consumer to discover, analyze, compare, explain, and continuously evaluate available electricity plans.
+
+Rather than functioning as a simple plan-search or comparison tool, the AI agent should reason about the customer's individual circumstances and independently perform the steps required to identify the most suitable plans.
+
+The agent should be capable of:
+
+Understand the customer — Collect ZIP code/service area, historical electricity consumption, seasonal usage patterns, current provider and plan, contract expiration date, and customer preferences.
+Discover available plans — Identify electricity providers and plans currently available for the customer's service address or service area.
+
+Understand complex pricing — Read plan information and Electricity Facts Labels and extract rates, base charges, TDU delivery charges, bill credits, usage thresholds, time-of-use rules, contract terms, renewable content, termination fees, and other material conditions.
+
+Model actual household cost — Apply each plan's pricing rules to the customer's historical consumption instead of relying solely on advertised average ¢/kWh figures.
+
+Simulate future bills — Estimate monthly and annual electricity costs under competing plans using historical and expected usage, including Texas seasonal consumption patterns.
+
+Compare and rank plans — Rank plans based on expected annual cost, potential savings, contract flexibility, price stability, renewable-energy preferences, and other customer-defined priorities.
+
+Explain recommendations — Clearly explain why a particular plan is recommended, expected savings compared with the customer's current plan, assumptions used, important restrictions, and circumstances under which another plan could become cheaper.
+
+Act proactively — Monitor relevant events such as contract expiration, plan availability, pricing changes, and potentially better offers, and alert the customer when action may save money.
+
+--------------------------------------------------------------------------------------------------------------------------
+
 Explicit legacy PDF mode uses the custom EFL formula described below. The default combined catalog uses structured component pricing.
 
 Current PDF pricing (`custom-efl-v4`): Energy = usage times the mapped EFL average / 100; add PDF base/usage fees and fixed/per-kWh delivery, then subtract eligible credits. This user-authorized custom formula repeats effects embedded in published EFL averages, so it is labeled Custom estimate, not an actual tariff bill. Each plan uses its own examples and charge conditions. Original ranges remain: first price through the second threshold, preceding price at exact thresholds, highest above its threshold. Rankings, savings and scenarios use these custom totals. Renewal escalates energy/base/delivery; retain/drop applies to separate credits. Saved older results retain their original calculation; Compare plans again to apply the new formula. Catalog validation and demo calculations remain component-based.
@@ -12,6 +47,49 @@ Optional **plan-document Q&A** uses Pinecone, OpenAI and LangGraph to answer que
 about EFL PDFs with page citations. It requires your OpenAI and Pinecone keys.
 See [RAG setup, models, chunking and architecture](docs/rag.md). Document answers do
 not change the calculator's pricing data.
+
+## Architecture and implemented features
+
+![Smart Power Plan Advisor architecture: browser, FastAPI, comparison and document services, external sources, storage and verification](docs/images/architecture.svg)
+
+[Open the full-size architecture image](docs/images/architecture.svg).
+The diagram separates frontend controls, FastAPI routes, the document agent, RAG,
+comparison chat, pricing and recommendations. Storage references [A-D] connect
+services to SQLite, Pinecone, local files and process memory; the bottom section
+shows the separate ingestion pipelines. Open the full-size image to inspect each component.
+
+The diagram describes the current implementation; the original React/Angular
+proposal is implemented with plain HTML, CSS and JavaScript instead.
+
+| Layer | Current implementation |
+| --- | --- |
+| Browser | Plan Assistant and Compare Plan Costs tabs; preferences, recommendations, monthly breakdowns, saved links and comparison chat. |
+| API | FastAPI serves the UI and validates requests for comparisons, catalog access, document Q&A and both chat interfaces. |
+| Comparison services | Python pricing, utility/contract/credit filtering, ranking, top three, category winners, savings, scenario regret, confidence reasons and sampled break-even conditions. |
+| Conversation services | Comparison chat interprets typed scenario changes and reruns Python calculations. The document agent uses LangGraph, retrieval tools and exact-excerpt citation checks. |
+| External sources | Local EFL PDFs, TXU utility/offer APIs and reviewed delivery-charge lookups; synthetic JSON only in demo mode. |
+| Storage | SQLite for catalog and comparison/scenario snapshots; local PDFs and active RAG manifest; Pinecone for versioned document vectors and page metadata. |
+| Verification | Pricing, extraction, recommendation, API, chat and frontend tests; evaluation fixtures, request timing logs and readiness endpoints. |
+
+Document retrieval does not supply runtime prices to the calculator. PDF catalog
+import and RAG ingestion are independent: a PDF can be searchable even when its
+billing rules fail comparison validation. PDF and provider-API records also remain
+independent; one never silently fills pricing gaps in the other.
+
+## Guide map
+
+| Topic | Details |
+| --- | --- |
+| Source records and request flow | [Data flow](docs/data-flow.md) |
+| PDF extraction and supported billing rules | [Plan catalog](docs/plan-catalog.md), [validated import](docs/validated-import.md) |
+| Provider offers and utility coverage | [TXU integration](docs/txu-integration.md) |
+| Recommendations and renewal scenarios | [Recommendation policy](docs/recommendations.md) |
+| Hypothetical changes and chat recovery | [Comparison chat](docs/comparison-chat.md) |
+| Rough estimates and reviewed assumptions | [Rough estimates](docs/rough-estimates.md), [plan review](docs/plan-rule-review.md) |
+| Document indexing and citations | [RAG](docs/rag.md), [document agent](docs/agent.md) |
+| Combined refresh and partial failures | [Update data](docs/update-data.md) |
+| Detailed architectural review | [Architecture review](docs/architecture-review.md) (includes historical findings) |
+| Requirements | [Authoritative specification](../spec.md) |
 
 ## Run the UI locally
 
@@ -158,9 +236,10 @@ configuration and partial-failure handling.
 ## Validate
 
 ```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt -r requirements-rag-dev.txt
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 node --check frontend/app.js
-node --test tests/zip-ui.test.cjs
+node --test tests/zip-ui.test.cjs tests/tabs-ui.test.cjs tests/agent-ui.test.cjs tests/comparison-chat-ui.test.cjs
 ```
 
 Node is only needed for JavaScript syntax checks and UI tests; there is no frontend
@@ -174,42 +253,55 @@ build or npm installation.
 | GET | `/api/plans` | List demo plans |
 | POST | `/api/comparisons` | Calculate, rank and save a comparison |
 | GET | `/api/comparisons/{id}` | Retrieve a saved comparison |
+| GET | `/api/catalog/utilities` | Resolve ZIP delivery utilities |
+| GET | `/api/catalog/records` | Inspect independent PDF and provider records |
+| GET | `/api/catalog/plans`, `/api/catalog/status` | Inspect PDF imports and extraction status |
+| GET | `/api/knowledge/status`, `/api/agent/status` | Check document feature prerequisites |
+| POST | `/api/knowledge/ask` | Single-turn document Q&A |
+| POST | `/api/agent/threads` | Start a document-agent conversation |
+| POST | `/api/agent/threads/{thread_id}/messages` | Ask a contextual document question |
+| POST | `/api/comparison-chat` | Start a scenario chat from a saved comparison |
+| POST | `/api/comparison-chat/{session_id}/messages` | Validate and apply a scenario change |
 
-Example comparison request:
+Example synthetic demo comparison request (the browser explicitly sends `data_source: "catalog"`):
 
 ```json
-{"zip_code":"75201","monthly_kwh":[800,750,700,850,1100,1400,1600,1500,1200,950,750,850]}
+{"data_source":"demo","zip_code":"75201","monthly_kwh":[800,750,700,850,1100,1400,1600,1500,1200,950,750,850]}
 ```
 
 Monetary values in comparison responses are decimal strings. The calculation
 rounds monthly line items to cents and then sums monthly totals. SQLite lives at
 `.data/advisor.sqlite3`; set `ADVISOR_DB_PATH` to choose another file.
 
-## In-memory ZIP plan coverage
+## Coverage, pricing and deployment scope
 
-Enter ZIP and monthly usage, then click **Compare plans**. Supported demo ZIPs
-are `75201`, `75001`, `77002` and `77007`. Coverage is an in-memory ZIP-to-plan-ID
-mapping in `backend/integrations.py`; no lookup request or external service is
-needed. Unsupported ZIPs return a coverage error on comparison.
+The browser uses the combined catalog (`data_source: "catalog"`), with ZIP-to-utility
+lookup and independent PDF and TXU source records. The four in-memory ZIPs
+(`75201`, `75001`, `77002`, `77007`) apply only to synthetic demo mode. Utility
+lookup does not verify eligibility at a specific address or enroll a customer.
 
-The API accepts only `zip_code` and `monthly_kwh`. Delivery-area controls, the
-service-area endpoint and TDU fields have been removed. Old snapshots remain
-readable; results without a ZIP need one before a new comparison. Snapshots still
-use SQLite. Sample coverage does not establish actual service eligibility.
+Default catalog comparisons use validated component pricing: energy plus applicable
+base/usage fees and fixed/per-kWh delivery charges, minus eligible bill credits.
+Supported reviewed layouts include flat, tiered and conditional charges. Unsupported
+or ambiguous rules are excluded from exact ranking. Reviewed rough estimates have
+separate assumptions and never become recommendation winners.
 
-## Scope and extension
+The explicit legacy `pdf` API mode uses the custom EFL estimate described at the
+start of this README. It must not be confused with default component pricing or
+an actual tariff bill. Synthetic `demo` mode uses the JSON fixture calculator.
 
-This version supports fixed energy and delivery charges, base fees, and a single
-inclusive monthly bill-credit threshold. It excludes taxes and switching fees.
-All plans have a 12-month term. Service eligibility is not verified against an
-address. This is a local, unauthenticated demo, not a live shopping service.
+Contract terms are preserved from each source. A maximum of 24 months excludes
+36-month plans and compares eligible shorter contracts across the selected horizon.
+Renewal escalation is an editable scenario assumption, not a forecast or guaranteed
+offer. Results identify original-term and modeled renewal costs. Savings can include
+an optional baseline and switching cost; taxes and unmodeled charges remain outside
+the estimate. See [recommendation policy](docs/recommendations.md) and
+[calculation audit](docs/calculation-audit.md).
 
-See the [architecture review and diagrams](docs/architecture-review.md) for a detailed
-code-based assessment, request/data flows, and verified findings.
-See [architecture and extension points](docs/architecture.md) for the mapping to
-all six diagram layers and the features deferred to later iterations. Replace
-`JsonPlanSource` through the `PlanSource` interface to add a plan feed; extend
-pricing rules and their expected-bill tests together.
+This is a local, single-user application without authentication or customer
+ownership checks. Run on loopback with one worker for in-memory document-agent
+threads. OCR, enrollment, Smart Meter Texas ingestion, weather forecasting,
+customer notifications and scheduled offer refresh are not implemented.
 
 ## Team
 
@@ -269,7 +361,7 @@ current plan** in the calculator to supply usage provenance, a contract ceiling,
 and optional baseline/switching cost. See [recommendation policy and API](docs/recommendations.md).
 
 
-The comparison workspace groups ZIP, plan source and monthly usage into a compact
+The comparison workspace groups ZIP, delivery utility and monthly usage into a compact
 form. Expand **Preferences & savings** for optional inputs. Results show annual
 cost and average monthly cost, a shortlist, and expandable plan rows. Confidence
 reasons, usage scenarios, bill credits, warnings and evidence remain available in
@@ -420,3 +512,69 @@ Preview the selected documents before ingestion:
 python -m backend.knowledge.cli --env-file .env preview
 python -m backend.knowledge.cli --env-file .env ingest
 ```
+
+## CenterPoint document ingestion
+
+Last verified ingestion: **September 12, 2026 (America/Chicago)**. All three PDFs
+under `data/centerpoint/` were indexed and retrieval was verified separately for
+each. The full active assistant corpus at that time contained 25 documents and
+66 chunks. These are ingestion-run counts, not fixed application limits.
+
+| Document | Plan comparison import | Plan Assistant |
+| --- | --- | --- |
+| `centerpoint/eflviewer1.pdf` | Rejected: unrecognized layout requires a reviewed parser. | Indexed; retrieval verified. |
+| `centerpoint/eflviewer2.pdf` | SimpleSaver 11 rejected: contract does not cover the current 12-month comparison horizon. | Indexed; retrieval verified. |
+| `centerpoint/eflviewer3.pdf` | SimpleSaver 12 imported; strict pricing and evidence validation passed. | Indexed; retrieval verified. |
+
+Repeat the targeted catalog import from the application folder:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.catalog.cli --env-file .env import-validated --file centerpoint/eflviewer1.pdf --file centerpoint/eflviewer2.pdf --file centerpoint/eflviewer3.pdf
+```
+
+The command can exit nonzero when some files are rejected while retaining successful
+imports. Inspect `.data/import-logs/<run-id>/report.md`; the verified run was
+`2026-09-13T034701.923549_0000-d22327b2` (UTC). Reindex the assistant separately:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.knowledge.cli --env-file .env preview
+.\.venv\Scripts\python.exe -m backend.knowledge.cli --env-file .env ingest
+```
+
+RAG ingestion republishes the selected corpus, including other normal PDFs under
+`data/`; it is not a CenterPoint-only incremental command. The `_txu` cache is
+excluded unless `--include-txu-rag` is supplied. Searchability does not imply that
+a plan is calculable, currently available or eligible for the selected utility.
+
+## Configuration and local storage
+
+Use `.env.example` as the configuration reference and keep real credentials in
+an untracked `.env`. Existing shell variables take precedence. Install
+`requirements-rag.txt` for PDF extraction and document features; calculator and
+TXU pricing do not need model keys. Free-form comparison chat needs OpenAI;
+document search and the assistant need both OpenAI and Pinecone.
+
+| Setting | Purpose / default |
+| --- | --- |
+| `OPENAI_API_KEY`, `PINECONE_API_KEY` | Optional provider credentials for their respective features. |
+| `PINECONE_INDEX` | `power-plan-documents`; compatible 3,072-dimensional cosine index. |
+| `PINECONE_NAMESPACE` | `power-plans`; ingestion appends a corpus version. |
+| `PINECONE_CLOUD`, `PINECONE_REGION` | New index placement, defaults `aws` / `us-east-1`. |
+| `OPENAI_RAG_MODEL` | Document Q&A model, defaults `gpt-4.1-mini`. |
+| `COMPARISON_CHAT_MODEL` | Scenario interpretation; falls back to `AGENT_MODEL`, then `gpt-4.1-mini`. |
+| `ADVISOR_DB_PATH` | Comparison/scenario SQLite, defaults `.data/advisor.sqlite3`. |
+| `PLAN_CATALOG_DB_PATH` | Plan catalog SQLite, defaults `.data/plans.sqlite3`. |
+| `PLAN_DATA_DIR` | PDF source root, defaults `data/`. |
+| `RAG_MANIFEST_PATH` | Active corpus manifest, defaults `.data/knowledge.json`. |
+
+For first-time document setup, create the compatible index explicitly before
+`ingest`: `python -m backend.knowledge.cli --env-file .env create-index`.
+Ingestion sends document content to the configured providers and may incur costs.
+Old corpus namespaces are retained for manual cleanup. Start the server with
+`--env-file .env`; after successful indexing select **Check again** in the assistant.
+
+Comparison chat keeps frozen records and scenarios in SQLite; invalid input,
+conflicting filters, no matches or provider failures preserve the last successful
+result. Filters are not relaxed automatically. Document-agent conversations are
+in-memory and expire after 30 idle minutes; comparison chat sessions expire after
+24 hours. See the chat guides for retries, version conflicts and source changes.

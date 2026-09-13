@@ -168,3 +168,25 @@ All returned citation document URLs in the fees/rates sequence served PDFs succe
 No index mutations were performed. Live results are samples, not universal accuracy
 claims. The app was started as a hidden background process on port 8000; its logs
 are in .data/agent-server.stdout.log and .data/agent-server.stderr.log.
+
+
+## Processing-limit recovery
+
+Model context omits completed retrieval/list-tool exchanges from earlier turns,
+while retaining user questions, assistant answers and clarification call/reply
+pairs. The current logical turn is kept intact, including clarification resumes.
+Every new factual turn still retrieves fresh evidence within its selected scope.
+The size guard checks history and evidence separately instead of counting the same
+retrieved pages twice. It retains the conservative 10,000-token threshold.
+
+If the reasoning/tool budget runs out after evidence has been retrieved, the
+agent uses its reserved finalization call to produce a citation-checked answer.
+There are still at most five reasoning calls and six model calls total; citation
+repair cannot exceed that budget. A successful answer leaves the conversation
+usable. True context overflow and loops without evidence still return
+`limit_reached` and require a new conversation.
+
+Offline regressions cover large retrieved context, follow-up history, clarification
+pairs, reserved finalization, invalid citations without repair budget, and actual
+context overflow. These checks do not establish the cause of any particular live
+request without its question and conversation context.

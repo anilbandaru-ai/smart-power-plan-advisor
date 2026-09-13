@@ -181,6 +181,80 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(data['status'], 'answered')
         self.assertEqual(retrieve.call_args.args[2], DOC_ID)
 
+    def test_reasoning_budget_finalizes_current_evidence_and_allows_followup(self):
+        steps = [call('list_indexed_documents', {}) for _ in range(4)] + [search()]
+        model = ScriptedModel(steps + [search('fees'), AIMessage(content='')])
+        client = self.client(model)
+        first = self.send(client).json()
+        self.assertEqual(first['status'], 'answered', first)
+        self.assertEqual(model.decisions, 5)
+        self.assertEqual(len(model.contexts), 1)
+        self.assertEqual(model.repairs, 0)
+        second = self.send(client, message='And fees?').json()
+        self.assertEqual(second['status'], 'answered', second)
+        self.assertEqual(model.decisions, 7)
+
+    def test_budget_finalization_does_not_repair_invalid_citations(self):
+        model = ScriptedModel([call('list_indexed_documents', {}) for _ in range(4)] + [search()])
+        model.bad_quote = True
+        model.repair_succeeds = True
+        data = self.send(self.client(model)).json()
+        self.assertEqual(data['status'], 'insufficient_evidence')
+        self.assertEqual(data['citations'], [])
+        self.assertEqual(model.repairs, 0)
+
+    def test_large_current_evidence_is_not_double_counted_or_replayed_on_followup(self):
+        corpus = manifest()
+        corpus['documents'][0]['pages'] = [1, 2, 3, 4]
+        self.path.write_text(json.dumps(corpus))
+        self.providers.matches = []
+        for page in range(1, 5):
+            source = match()
+            source['metadata'].update(page=page, parent_id=f'page-{page}',
+                                      parent_text=TEXT + ' rate' * 1400)
+            self.providers.matches.append(source)
+        model = ScriptedModel([search(), AIMessage(content=''), search('fees'), AIMessage(content='')])
+        client = self.client(model)
+        for question in ('What is the term?', 'And fees?'):
+            result = self.send(client, message=question).json()
+            self.assertEqual(result['status'], 'answered', result)
+        self.assertEqual(len(model.contexts), 2)
+        observations = [m for m in model.messages if isinstance(m, ToolMessage)]
+        self.assertEqual(len(observations), 1)
+        self.assertEqual(self.providers.retrieval[2], DOC_ID)
+
+    def test_true_context_overflow_still_stops_without_finalization(self):
+        corpus = manifest()
+        corpus['documents'][0]['pages'] = [1, 2, 3, 4]
+        self.path.write_text(json.dumps(corpus))
+        self.providers.matches = []
+        for page in range(1, 5):
+            source = match()
+            source['metadata'].update(page=page, parent_id=f'page-{page}',
+                                      parent_text=TEXT + ' rate' * 2800)
+            self.providers.matches.append(source)
+        model = ScriptedModel([search()])
+        data = self.send(self.client(model)).json()
+        self.assertEqual(data['status'], 'limit_reached', data)
+        self.assertEqual(model.contexts, [])
+
+    def test_context_projection_preserves_clarification_pairs_and_current_turn(self):
+        from langchain_core.messages import HumanMessage
+        from backend.agent.graph import context_messages
+        clarify = call('ask_user', {'question': 'Which plan?'})
+        reply = ToolMessage(content='Frontier', name='ask_user', tool_call_id=clarify.tool_calls[0]['id'])
+        lookup = search()
+        found = ToolMessage(content='old pages', name='search_document_evidence', tool_call_id=lookup.tool_calls[0]['id'])
+        current = [HumanMessage(content='And fees?'), search()]
+        history = [HumanMessage(content='What is the term?'), clarify, reply, lookup, found, AIMessage(content='12 months')]
+        projected = context_messages(history + current)
+        self.assertIn(clarify, projected)
+        self.assertIn(reply, projected)
+        self.assertNotIn(lookup, projected)
+        self.assertNotIn(found, projected)
+        self.assertEqual(projected[-2:], current)
+        self.assertEqual(len(history), 6)  # Checkpoint history is not mutated.
+
     def test_unknown_tools_and_loop_limit(self):
         model = ScriptedModel([call('execute_shell', {'cmd': 'anything'}) for _ in range(5)])
         client = self.client(model)

@@ -54,30 +54,58 @@ class State(TypedDict, total=False):
     activity: list[str]
     result: dict | None
     stopped: bool
+    finish_with_evidence: bool
+
+
+def context_messages(messages):
+    """Keep conversational references, but omit completed retrieval exchanges."""
+    boundary = max((i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=0)
+    history = []
+    clarification_ids = {call["id"] for m in messages[:boundary] if isinstance(m, AIMessage)
+                         for call in m.tool_calls if call["name"] == "ask_user"}
+    for message in messages[:boundary]:
+        if isinstance(message, ToolMessage):
+            if message.tool_call_id in clarification_ids:
+                history.append(message)
+        elif isinstance(message, AIMessage) and message.tool_calls:
+            calls = [call for call in message.tool_calls if call["id"] in clarification_ids]
+            if calls or message.content:
+                history.append(message.model_copy(update={"tool_calls": calls}))
+        else:
+            history.append(message)
+    return history + list(messages[boundary:])
 
 
 def build_graph(checkpointer):
     encoding = tiktoken.get_encoding("cl100k_base")
 
     def too_large(state):
-        content = json.dumps([m.model_dump() for m in state["messages"]], default=str)
-        content += json.dumps(state["evidence"])
-        # Reserve space for tool schemas and instructions under the 12k input ceiling.
-        return len(encoding.encode(content, disallowed_special=())) > 10000
+        messages = json.dumps([m.model_dump() for m in context_messages(state["messages"])], default=str)
+        evidence = json.dumps(state["evidence"])
+        # Separate model requests consume history or evidence, not their concatenation.
+        # Preserve headroom for instructions and the finalizer's excerpt overlap.
+        return max(len(encoding.encode(value, disallowed_special=()))
+                   for value in (messages, evidence)) > 10000
 
     def reason(state, config):
         if comparison_request(state["messages"]):
             return {"messages": [AIMessage(content="", tool_calls=[{
                 "id": str(uuid4()), "name": "redirect_to_comparison", "args": {}}])]}
-        if state["calls"] >= 5 or state["tools"] >= 8 or too_large(state):
+        if too_large(state):
+            return {"stopped": True}
+        if state["calls"] >= 5 or state["tools"] >= 8:
+            if state["evidence"]:
+                return {"finish_with_evidence": True}
             return {"stopped": True}
         model = config["configurable"]["model"]
-        message = model.decide(state["messages"], state.get("document_id"), require_search=state["searches"] == 0)
+        message = model.decide(context_messages(state["messages"]), state.get("document_id"), require_search=state["searches"] == 0)
         return {"messages": [message], "calls": state["calls"] + 1}
 
     def route(state):
         if state.get("stopped"):
             return "limit"
+        if state.get("finish_with_evidence"):
+            return "finalize"
         calls = state["messages"][-1].tool_calls
         if not calls:
             return "finalize"
@@ -152,12 +180,12 @@ def build_graph(checkpointer):
         if not state["evidence"]:
             answer = abstain("I can answer indexed document questions with supporting pages. Please specify the document and question; I cannot calculate bills or rank offers.")
         else:
-            generated = config["configurable"]["model"].finalize(state["messages"], list(state["evidence"].values()))
+            generated = config["configurable"]["model"].finalize(context_messages(state["messages"]), list(state["evidence"].values()))
             answer = validate_answer(generated, list(state["evidence"].values()))
             if generated is not None and not generated.abstained and answer.abstained and state["calls"] < 5:
                 activity.append("Retried answer with exact source excerpts")
                 generated = config["configurable"]["model"].finalize(
-                    state["messages"], list(state["evidence"].values()), repair=True)
+                    context_messages(state["messages"]), list(state["evidence"].values()), repair=True)
                 answer = validate_answer(generated, list(state["evidence"].values()))
         return {"activity": activity, "result": {"status": "insufficient_evidence" if answer.abstained else "answered",
                            **answer.model_dump()}, "messages": [AIMessage(content=answer.answer)]}
