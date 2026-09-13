@@ -284,7 +284,7 @@ modeled renewal costs and use the same period for savings and regret. See
 
 ## Comparison chat
 
-For explicit PDF custom or demo comparisons, select **Explore alternatives** to explore contracts, usage, renewal assumptions and hypothetical rates/credits. Successful scenarios update the same comparison results; invalid or failed requests retain the last result. See [comparison chat](docs/comparison-chat.md) for examples, supported actions, configuration and recovery behavior.
+After a successful comparison, select **Explore alternatives** to explore contracts, usage, renewal assumptions and hypothetical rates/credits. Successful scenarios update the same comparison results; invalid or failed requests retain the last result. See [comparison chat](docs/comparison-chat.md) for examples, supported actions, configuration and recovery behavior.
 
 ### TXU cached offers
 
@@ -370,4 +370,53 @@ Month-to-month variable plans can also be imported as explicitly reviewed
 estimates. Reliant Clear Flex preserves its stated term and usage-fee threshold;
 months 2–12 use an editable price-change scenario. See [variable import rules](docs/validated-import.md#reviewed-month-to-month-variable-plans).
 
-Comparison chat is not yet available for combined catalog or TXU comparisons; their existing comparison and rough-assumption controls remain available.
+Comparison chat supports combined catalog, TXU, PDF-custom and demo results. Catalog scenarios preserve independent frozen source records, component pricing and reviewed rough estimates; they do not switch to demo or PDF-custom prices.
+
+### ZIP to delivery utility
+
+Compare plans first calls `/api/catalog/utilities?zip_code=79756`. This resolves
+`data.utilities` from TXU's public utilities endpoint (79756 returns Oncor), caches
+utility identities for 24 hours, and displays the selection. Multiple utilities
+require selection; empty or failed lookups stop submission. The utility filters
+PDF plans from all providers by delivery area and independently stored API offers
+by utility ID. This lookup never imports offers or refreshes their availability.
+PDF and API pricing records remain separate. Existing direct comparison clients
+retain static-map compatibility only if no utility lookup was attempted for the ZIP.
+
+If the ZIP lookup returns incomplete utility data (for example, blank provider
+names for 78641), the comparison explains that it cannot verify the delivery
+utility and asks the user to check their electricity bill or confirm service for
+the exact address. It does not select a remaining named utility or guess a provider.
+Temporary network failures instead show retry guidance.
+
+## Plan Assistant: disabled Send button
+
+The assistant checks configuration, dependencies and its active document index.
+Its status message identifies missing prerequisites. Importing plans into SQLite
+alone does not populate the assistant index; a local data reset also removes its
+active manifest. With your existing OpenAI/Pinecone configuration and compatible
+index, run from the application directory in your activated virtual environment
+(on macOS or Windows):
+
+```sh
+python -m backend.knowledge.cli --env-file .env ingest
+```
+
+This sends extracted PDF content to the configured OpenAI/Pinecone services and
+publishes the local manifest after successful indexing. See [RAG setup](docs/rag.md)
+for dependencies and first-time index creation. Then select **Check again** below
+the composer; your draft is preserved. Configuration or dependency changes also
+require restarting the backend with `--env-file .env`. Readiness checks are local
+and do not verify live provider connectivity or credentials.
+
+Standalone assistant `preview` and `ingest` exclude the reserved `data/_txu/`
+download cache by default. To deliberately index those downloads as PDF evidence,
+add `--include-txu-rag`; their pages must still pass text validation. Other PDFs
+remain included. A rejected selected PDF stops preparation before uploads and
+leaves any existing active manifest unchanged. SQLite imports are unaffected.
+Preview the selected documents before ingestion:
+
+```sh
+python -m backend.knowledge.cli --env-file .env preview
+python -m backend.knowledge.cli --env-file .env ingest
+```

@@ -45,10 +45,11 @@
       <div class="composer-area">
         <form id="agent-form" class="chat-composer">
           <label id="agent-question-label" class="sr-only" for="agent-question">Your message</label>
-          <textarea id="agent-question" rows="2" maxlength="2000" required placeholder="Ask about your plan documents…" aria-describedby="agent-help"></textarea>
+          <textarea id="agent-question" rows="2" maxlength="2000" required placeholder="Ask about your plan documents…" aria-describedby="agent-help agent-status"></textarea>
           <button id="agent-submit" disabled>Send message ↑</button>
         </form>
         <p id="agent-status" role="status" aria-live="polite">Checking agent availability…</p>
+        <button id="agent-recheck" class="secondary-button" type="button" hidden>Check again</button>
         <p id="agent-help" class="composer-help">Enter to send · Shift + Enter for a new line. Document explanations only; no bill calculations or live offers.</p>
         <p class="composer-help">Memory lasts for this tab and running server, up to 30 idle minutes. Refresh starts a new chat.</p>
       </div>

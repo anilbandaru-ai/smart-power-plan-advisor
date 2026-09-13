@@ -134,8 +134,8 @@ def benchmark_bill(points, credits, usage):
     return max(Decimal(0), gross - credit_at(credits, usage))
 
 
-def estimate(record, usage_values, overrides=None):
-    cap = capability(record)
+def estimate(record, usage_values, overrides=None, *, reviewed_capability=None):
+    cap = reviewed_capability if reviewed_capability is not None else capability(record)
     if not cap['supported']:
         if overrides:
             raise ValueError(f"Rough assumptions are not supported for {record['name']}; refresh the comparison.")

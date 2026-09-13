@@ -9,7 +9,7 @@ from backend.catalog.compare import compare_catalog
 from backend.services import compare
 
 OPTIONS = set(RecommendationOptions.model_fields)
-OVERRIDES = {"average_price", "base", "usage_charge", "delivery_fixed", "delivery_energy", "credit",
+OVERRIDES = {"average_price", "energy", "energy_tier", "base", "usage_charge", "delivery_fixed", "delivery_energy", "credit",
     "credit_minimum", "credit_maximum", "credit_minimum_inclusive", "credit_maximum_inclusive"}
 
 
@@ -49,7 +49,7 @@ def apply(state, original, operations, plan_ids):
             state['overrides']=[o for o in state['overrides'] if op.plan_id!='all' and o['plan_id']!=op.plan_id]
         else:
             if op.plan_id not in plan_ids and op.plan_id!='all': raise ValueError('Choose a known plan for the hypothetical override')
-            expected='cents_per_kwh' if key in ('average_price','delivery_energy') else 'boolean' if key.endswith('inclusive') else 'kwh' if key.startswith('credit_') else 'usd'
+            expected='cents_per_kwh' if key in ('average_price','energy','energy_tier','delivery_energy') else 'boolean' if key.endswith('inclusive') else 'kwh' if key.startswith('credit_') else 'usd'
             if op.unit!=expected: raise ValueError(f'{key} requires {expected} units')
             if expected=='boolean':
                 if value not in ('true','false'): raise ValueError('Credit boundary inclusion must be true or false')
@@ -87,7 +87,10 @@ def override_pdf(plan, ops):
 
 def calculate(state, frozen):
     request=ComparisonRequest.model_validate(state['request'])
-    if request.data_source=='pdf':
+    if request.data_source in ('catalog','txu'):
+        from backend.scenario.catalog import calculate_catalog
+        result=calculate_catalog(state,frozen,request)
+    elif request.data_source=='pdf':
         records=copy.deepcopy(frozen)
         for row in records:
             ops=[o for o in state['overrides'] if o['plan_id']==row['id']]
@@ -114,7 +117,7 @@ def calculate(state, frozen):
             if any(o['plan_id']==plan.plan_id for o in state['overrides']):
                 plan.explanation+=' Hypothetical overrides apply to this scenario; published EFL examples below retain the original document values.'
     rec=result.recommendation_result
-    if rec.best_overall is None: return None
+    if rec.best_overall is None and not result.rough_estimates: return None
     ids={p.plan_id for p in rec.plan_analyses}
     for plan in result.recommendations:
         if plan.plan_id not in ids:
@@ -138,7 +141,11 @@ def no_match_message(state, frozen):
     exact,maximum=options.get('exact_contract_months'),options.get('max_contract_months')
     matches=[]
     for record in frozen:
-        if 'plan' in record:
+        if 'source_type' in record:
+            if not record['calculation_eligible']: continue
+            term=record['term_months']
+            credit=any(c['kind']=='credit' and number(c['amount'])>0 for c in record['components'])
+        elif 'plan' in record:
             if not record['calculation_eligible']: continue
             plan=record['plan']
             if (plan.get('service_area') or {}).get('value')!=ZIP_AREAS.get(state['request']['zip_code']): continue

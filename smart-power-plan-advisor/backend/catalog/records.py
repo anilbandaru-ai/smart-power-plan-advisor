@@ -174,8 +174,10 @@ def records(store, source_type=None, zip_value=None, *, txu_snapshot=None):
     if source_type in (None, 'pdf'):
         result.extend(pdf_record(p) for p in store.all_plans())
         if zip_value:
-            area = ZIP_AREAS.get(zip_value)
-            result = [p for p in result if area and p['service_area'] == area]
+            from backend.catalog.utilities import cached_utilities, area_name
+            discovery = cached_utilities(store, zip_value)
+            areas = {area_name(u['name']) for u in discovery['utilities']} if discovery and not discovery['stale'] else set() if discovery else {ZIP_AREAS.get(zip_value)}
+            result = [p for p in result if area_name(p['service_area'] or '') in areas]
     if source_type in (None, 'txu'):
         from backend.catalog.txu import cached
         if zip_value:
@@ -205,7 +207,11 @@ def comparison_records(request, store, *, include_records=False):
     if request.data_source == 'catalog':
         from backend.catalog.txu import cached
         data = cached(store, request.zip_code)
-        utilities = [] if data['stale'] else data['utilities']
+        from backend.catalog.utilities import cached_utilities, area_name
+        discovery = cached_utilities(store, request.zip_code)
+        if discovery is not None and (discovery['stale'] or not discovery['utilities']):
+            raise ValueError('Delivery utility lookup is unavailable or empty for this ZIP. Look up the ZIP again.')
+        utilities = discovery['utilities'] if discovery else [] if data['stale'] else data['utilities']
         selected = str(request.utility_id) if request.utility_id else None
         if utilities:
             if not selected and len(utilities) > 1:
@@ -217,10 +223,10 @@ def comparison_records(request, store, *, include_records=False):
             fetched_at = data['fetched_at']
         elif selected:
             raise ValueError('Selected utility cannot be verified. Clear the utility selection and try again.')
-        area = utility['name'] if utility else ZIP_AREAS.get(request.zip_code)
+        area = area_name(utility['name']) if utility else ZIP_AREAS.get(request.zip_code)
         if area is None:
             raise ValueError('No verified delivery-area mapping for this ZIP. Refresh the TXU cache for this ZIP and try again.')
-        relevant = [p for p in records(store, 'pdf') if (p['service_area'] or '').casefold() == area.casefold()]
+        relevant = [p for p in records(store, 'pdf') if area_name(p['service_area'] or '').casefold() == area.casefold()]
         txu = records(store, 'txu', request.zip_code, txu_snapshot=data)
         relevant.extend(p for p in txu if not utility or p['utility_id'] == utility['id'])
         eligible = [p for p in relevant if p['calculation_eligible']]

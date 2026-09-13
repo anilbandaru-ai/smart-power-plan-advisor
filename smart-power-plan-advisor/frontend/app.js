@@ -457,16 +457,20 @@ form.addEventListener('submit', async event => {
     const source = 'catalog';
     let utilityId;
     {
+      status.textContent = 'Finding your delivery utility…';
+      const discovery = await request(`/api/catalog/utilities?zip_code=${encodeURIComponent(zipInput.value)}`);
+      if (version !== revision) return;
+      if (discovery.stale || !discovery.utilities.length) throw new Error('No delivery utility could be verified for this ZIP. Check the ZIP and try again.');
       const cache = await request(`/api/catalog/txu?zip_code=${encodeURIComponent(zipInput.value)}`);
       if (version !== revision) return;
       const select = document.querySelector('#txu-utility');
       const previous = select.value;
       select.replaceChildren();
       element('option', 'Select your utility', select).value = '';
-      const utilities = cache.stale ? [] : cache.utilities;
+      const utilities = discovery.utilities;
       for (const utility of utilities) element('option', utility.name, select).value = utility.id;
       select.value = utilities.some(u => u.id === previous) ? previous : utilities.length === 1 ? utilities[0].id : '';
-      document.querySelector('#txu-utility-field').hidden = utilities.length < 2;
+      document.querySelector('#txu-utility-field').hidden = false;
       utilityId = select.value;
       showTxuOffers(cache, utilityId);
       if (utilities.length > 1 && !utilityId) throw new Error('Select your electric utility, then compare again.');

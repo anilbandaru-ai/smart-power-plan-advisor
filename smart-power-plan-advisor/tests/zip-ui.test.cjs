@@ -34,7 +34,7 @@ function setup(handler, search = '', comparisonChat = undefined, useCacheHandler
     location: { search, pathname: '/' }, history: { replaceState: (_, __, value) => { url = value; } },
     URLSearchParams, Intl, comparisonChat,
     fetch: async (path, options) => ({ ok: true, json: async () => path === '/api/knowledge/status'
-      ? { documents: [], configured: false, indexed: false } : path.startsWith('/api/catalog/txu') && !useCacheHandler ? {utilities: [], offers: [], stale: true} : await handler(path, options) }),
+      ? { documents: [], configured: false, indexed: false } : path.startsWith('/api/catalog/utilities') ? (useCacheHandler ? {...await handler(path.replace('/utilities','/txu'),options), stale:false} : {utilities:[{id:'ea0ad3a5-3fc6-4d9f-894a-e21a751c33fe',name:'Oncor'}],stale:false}) : path.startsWith('/api/catalog/txu') && !useCacheHandler ? {utilities: [], offers: [], stale: true} : await handler(path, options) }),
   });
   return { get, url: () => url };
 }
@@ -53,7 +53,7 @@ test('submission includes both sources and clears results on edits', async () =>
   enterZip(app, '75201');
   assert.equal(app.get('submit').disabled, false);
   await app.get('compare-form').fire('submit');
-  assert.deepEqual(Object.keys(payload).sort(), ['data_source', 'monthly_kwh', 'zip_code']);
+  assert.deepEqual(Object.keys(payload).sort(), ['data_source', 'monthly_kwh', 'utility_id', 'zip_code']);
   assert.equal(payload.zip_code, '75201');
   assert.ok(app.get('results').children.length);
   enterZip(app, '77002');
@@ -439,7 +439,7 @@ test('stale and blocked TXU offers still submit to compare eligible PDF imports'
     enterZip(app,'75201');
     await app.get('compare-form').fire('submit');
     assert.equal(body.data_source,'catalog');
-    assert.equal(body.utility_id,stale ? undefined : txuUtility.id);
+    assert.equal(body.utility_id,txuUtility.id);
     assert.equal(app.get('status').textContent,'Comparison saved locally.');
   }
 });
@@ -506,4 +506,27 @@ test('rough inputs resubmit editable assumptions and ZIP edits clear them', asyn
   assert.equal(body.rough_assumptions['rough-1'].free_usage_percent,'40');
   enterZip(app,'77002');await app.get('compare-form').fire('submit');
   assert.equal(body.rough_assumptions,undefined);
+});
+
+test('empty utility discovery stops comparison without falling back to a static ZIP',async()=>{
+ let comparisons=0;
+ const app=setupWithCache(async(url)=>{
+   if(url.startsWith('/api/catalog/txu'))return {utilities:[],offers:[],stale:false};
+   comparisons++;return saved('75201');
+ });
+ enterZip(app,'75201');await app.get('compare-form').fire('submit');
+ assert.equal(comparisons,0);assert.match(app.get('status').textContent,/No delivery utility/);
+});
+
+test('unverifiable ZIP utility guidance is shown and comparison is not submitted',async()=>{
+ let comparisons=0;
+ const guidance="We couldn't verify the delivery utility for ZIP 78641. The lookup returned incomplete or invalid utility information. Check the utility name on your electricity bill or confirm service for your exact address with your local utility. We haven't selected a provider or compared plans for this ZIP.";
+ const app=setupWithCache(async url=>{
+   if(url.startsWith('/api/catalog/txu'))throw new Error(guidance);
+   comparisons++;return saved('78641');
+ });
+ enterZip(app,'78641');await app.get('compare-form').fire('submit');
+ assert.equal(app.get('status').textContent,guidance);
+ assert.equal(comparisons,0);
+ assert.equal(app.get('txu-utility').value,'');
 });

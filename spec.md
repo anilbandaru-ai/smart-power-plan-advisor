@@ -1304,3 +1304,146 @@ PDF bytes/fingerprint and all test behavior; keep runtime caches/databases ignor
 Portability verification: all 11 validated-import tests passed with the committed
 fixture path. The preceding integrated suites passed 161 Python and 42 UI tests;
 only fixture location and ignore rules changed afterward.
+
+## 34. ZIP delivery-utility discovery — implemented
+
+- ZIP-01: On comparison submission, query a dedicated utilities endpoint that
+  resolves the ZIP through TXU get_utilities, caching only utility identity/name
+  for 24 hours independently of offer snapshots. Never fetch plans, import PDFs,
+  or refresh offer availability as a side effect. Empty/error responses must be
+  explicit; no stale success is presented as a live lookup.
+- ZIP-02: Use resolved utility to filter all providers' PDF catalog plans by
+  normalized delivery area and API offers by utility ID. Keep provenance/pricing
+  separate. Normalize known Oncor/Oncor Electric Delivery and CenterPoint aliases;
+  never guess unknown utilities. Multiple utilities require explicit selection.
+  UI resolution errors stop submission rather than silently using static ZIPs.
+  Existing direct comparison compatibility may use existing snapshot/static map
+  only when no dedicated utility lookup has been attempted for that ZIP.
+- ZIP-03: Add GET /api/catalog/utilities?zip_code=...; UI calls before comparing,
+  shows selected utility, retains ZIP-change/race protection. Existing /txu cache
+  stays read-only for offers. ZIP-filtered catalog records use utility resolution
+  too, including PDF records when utility_id is supplied.
+
+Acceptance: previously unmapped ZIP finds Oncor PDFs from all providers without
+API offers; aliases, multiple/invalid selection, empty/error/stale cache and ZIP
+race behavior tested; cached offers remain independent; no import side effects.
+
+Verification: ZIP-01–03 implemented. All 163 Python and 43 UI tests passed.
+Live TXU utilities request for 79756 returned Oncor with ID
+ea0ad3a5-3fc6-4d9f-894a-e21a751c33fe. End-to-end verification on a temporary
+catalog copy found 16 matching records, 11 calculated and 5 rough results; no
+plan-offer fetch/import occurred. Unit checks cover independent cache, aliases,
+multiple utilities, empty/error/stale lookup, no offer writes and UI ZIP races.
+README updated; source records remain independent. git diff --check passed.
+Native UI was not manually inspected. Changes are not committed or pushed.
+
+## 35. Catalog comparison chat — implemented
+
+- CHAT-CATALOG-01: Show Explore alternatives for catalog/TXU results, including
+  rough-only results. Start from the saved comparison's usage, utility, preferences
+  and rough assumptions. Freeze relevant shared catalog records and reviewed rough
+  profiles; verify result revision/fingerprint and eligibility against the source
+  before starting. Reject changed sources, never substitute demo or PDF-custom
+  pricing. Scenario turns use frozen data without network/import/catalog writes.
+- CHAT-CATALOG-02: Reuse component-based comparison and horizon projections for
+  exact catalog candidates. Preserve rough estimates separately (12-month labeled
+  illustrations, never promoted to winners). Support usage/preferences/renewal
+  changes and hypothetical existing component overrides on exact candidates,
+  including energy/tier rates; reject average-price overrides for component plans
+  and component overrides for rough-only plans. Preserve source evidence unchanged.
+  Preserve reviewed rough assumptions during usage changes and history/reset.
+- CHAT-CATALOG-03: Retain auth, optimistic concurrency, atomic failure, history,
+  restore and source isolation. Interpreter context exposes source/pricing mode
+  and editable component indices. Existing PDF-custom/demo behavior remains.
+  Explain rough-only results without claiming a recommendation. Current key reused;
+  automated integration uses mocked interpretation and no paid model calls.
+
+Acceptance: UI panel visible in catalog and TXU modes; mixed PDF/API session can
+change usage, term, credit filters, component and renewal assumptions using the
+same prices as normal comparison. API prices remain separate from PDF prices;
+unknown targets/rough overrides fail without changing results. Rough-only results,
+reset/previous, frozen-source drift and no provider access tested. No live bills,
+PDFs or production saved comparisons are modified by tests.
+
+Verification: CHAT-CATALOG-01–03 implemented. All 167 Python and 44 UI tests
+passed. Added mixed PDF/API, rough-only, API-only, frozen-source drift, energy and
+renewal overrides, invalid/atomic no-match and reset/previous coverage. The UI
+regression confirms the panel opens for catalog/TXU results. A temporary copy of
+the real catalog completed chat startup and a 36-month scenario with 11 calculated
+plans plus 5 separate 12-month rough estimates; source records remained unchanged.
+Tests used injected interpretation, no paid model/provider calls and no production
+saved-comparison writes. Existing configured key retained. README/chat guide
+updated; the earlier catalog-chat exclusion is superseded by this section.
+Native browser visual QA was not performed. Changes are uncommitted; git diff
+--check passed.
+
+## 36. Unverifiable ZIP utility message — implemented
+
+- ZIP-04: Distinguish malformed/incomplete TXU utility data (blank names, invalid
+  IDs, duplicate entries or malformed response) from transient connection errors.
+  Invalid data must reject the entire lookup, never select its remaining named
+  entry. Show: "We couldn't verify the delivery utility for ZIP {zip}. The lookup
+  returned incomplete or invalid utility information. Check the utility name on
+  your electricity bill or confirm service for your exact address with your local
+  utility. We haven't selected a provider or compared plans for this ZIP."
+- ZIP-05: Retain generic retry guidance for transport/provider outages, do not
+  expose raw responses, and cache failure as unusable so it cannot enable plan
+  selection. Do not hardcode PEC/AEP coverage from ZIP or claim the ZIP invalid.
+  Existing HTTP error propagation displays the guidance in comparison status.
+
+Acceptance: mocked 78641 response with unnamed entries and AEP North yields the
+specific guidance, no partial utility selection; malformed IDs/JSON also classify
+as data problems. Timeout retains retry guidance. Existing valid lookups work.
+
+Verification: ZIP-04–05 implemented with a typed invalid-utilities error and safe
+user guidance. Four utility tests and 14 TXU tests passed; all 45 UI tests passed.
+Tests include 78641-style unnamed/AEP response, invalid IDs, whitespace-only names,
+malformed JSON, timeout distinction, unusable failure cache and UI no-submission.
+No live provider requests or catalog-plan writes were needed. README updated;
+git diff --check passed. Changes are not yet committed or pushed.
+
+## 37. Plan Assistant readiness recovery — implemented
+
+AGENT-05: When Send is disabled by the local readiness check, identify each missing
+prerequisite separately: provider configuration, optional dependencies, or the
+active document index. Explain that SQLite catalog imports do not index assistant
+documents. Provide a Check again action that refreshes readiness without clearing
+the draft or conversation; hide it when ready. Do not bypass readiness guards or
+trigger remote ingestion from the browser. Link the composer to its status for
+accessibility. Document the existing ingestion command and its provider uploads.
+Acceptance: unavailable states give specific guidance, prevent submission, and
+recover after a successful status refresh while preserving the draft. Existing
+conversation, clarification, retry and reset tests must pass.
+
+Verification: all 47 UI tests passed, including missing-index submission guards,
+specific setup messages and readiness recovery preserving the draft. Local
+settings loaded from .env report configured=true, indexed=false; all four checked
+assistant dependencies are installed. No live backend was reachable on port 8000.
+No remote indexing/model calls or native browser verification were performed.
+The UI recovery is implemented; subsequent authorized ingestion restored the local
+corpus, as verified below in section 38.
+
+## 38. Standalone assistant ingestion source selection — implemented
+
+RAG-01 / UPDATE-04 revision: standalone knowledge CLI preview and ingest exclude
+reserved top-level `_txu/` downloads by default, matching the combined updater.
+Add `--include-txu-rag` to explicitly include these PDFs as document evidence.
+Ordinary provider PDFs (including user supplied TXU PDFs outside that cache) stay
+included. Preserve strict page validation and atomic publication: invalid selected
+PDFs still fail preparation, without remote upserts or replacing the manifest.
+Do not modify SQLite or delete PDFs. Acceptance: source-selection tests cover
+normal PDF, uppercase extension and explicit cache inclusion; offline preview of
+the local ordinary corpus succeeds. Supersedes the standalone discovery exception
+in UPDATE-04. Correct README and RAG guide recovery commands accordingly.
+
+Verification: 19 knowledge/CLI tests passed. Offline preview successfully prepared
+22 ordinary source PDFs into 59 chunks. No page validation was relaxed. Remote
+ingestion failed with ConnectError under sandbox restrictions; elevated retry was
+rejected by automatic approval review because explicit authorization to upload
+these 22 PDFs to OpenAI/Pinecone was required. The user subsequently explicitly
+approved this upload. Retried ingestion successfully upserted 59 chunks from 22
+documents and published the active manifest. An in-process HTTP check of
+/api/agent/status returned 200 with configured=true, indexed=true,
+dependencies_available=true and 22 documents. Remote search visibility may lag
+upserts; a live generated answer and native browser were not tested. README and
+RAG guide updated.

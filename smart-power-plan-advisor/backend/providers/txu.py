@@ -17,6 +17,10 @@ class TxuError(ValueError):
 
 
 
+class InvalidUtilities(TxuError):
+    """The response cannot establish a complete delivery-utility selection."""
+
+
 def zip_code(value):
     if not isinstance(value, str) or not re.fullmatch(r'[0-9]{5}', value):
         raise TxuError('Enter a five-digit ZIP code.')
@@ -107,18 +111,26 @@ class TxuClient:
         raise TxuError('Too many TXU redirects')
 
     def get_utilities(self, zip_value):
-        payload = json.loads(self._get(f'{BASE}/utilities/?zipCode={zip_code(zip_value)}'))
+        raw = self._get(f'{BASE}/utilities/?zipCode={zip_code(zip_value)}')
+        try:
+            payload = json.loads(raw)
+        except (ValueError, TypeError):
+            raise InvalidUtilities('Invalid TXU utilities response') from None
         data = payload.get('data') if isinstance(payload, dict) else None
         values = data.get('utilities') if isinstance(data, dict) else None
         if not isinstance(values, list) or len(values) > 10:
-            raise TxuError('Invalid TXU utilities response')
+            raise InvalidUtilities('Invalid TXU utilities response')
         utilities = []
         for item in values:
-            if not isinstance(item, dict) or not isinstance(item.get('name'), str) or not 1 <= len(item['name']) <= 100:
-                raise TxuError('Invalid TXU utility')
-            utilities.append({'id': identifier(item.get('id')), 'name': item['name']})
+            if not isinstance(item, dict) or not isinstance(item.get('name'), str) or not 1 <= len(item['name'].strip()) <= 100:
+                raise InvalidUtilities('Invalid TXU utility')
+            try:
+                utility_id = identifier(item.get('id'))
+            except (ValueError, TypeError, AttributeError):
+                raise InvalidUtilities('Invalid TXU utility identifier') from None
+            utilities.append({'id': utility_id, 'name': item['name'].strip()})
         if len({u['id'] for u in utilities}) != len(utilities):
-            raise TxuError('Duplicate TXU utilities')
+            raise InvalidUtilities('Duplicate TXU utilities')
         return utilities
 
     def get_plans(self, zip_value, utility_id):
