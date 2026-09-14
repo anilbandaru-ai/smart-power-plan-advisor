@@ -78,12 +78,19 @@ class CatalogTests(unittest.TestCase):
         sync(self.store,self.root,self.extractor,retry=True)
         self.assertEqual(len(self.store.all_plans()),1)
 
-    def test_missing_root_does_not_deactivate_and_path_escape_is_rejected(self):
+    def test_missing_root_does_not_deactivate(self):
         self.write();sync(self.store,self.root,self.extractor)
         with self.assertRaises(FileNotFoundError):sync(self.store,self.root/'missing',self.extractor)
         self.assertEqual(len(self.store.all_plans()),1)
+
+    def test_path_escape_is_rejected(self):
         outside=Path(self.tmp.name)/'outside.pdf';outside.write_bytes(b'secret')
-        (self.root/'escape.pdf').symlink_to(outside)
+        try:
+            (self.root/'escape.pdf').symlink_to(outside)
+        except OSError as error:
+            if getattr(error, 'winerror', None) == 1314:
+                self.skipTest('Windows does not grant symlink creation privilege')
+            raise
         result=sync(self.store,self.root,self.extractor)
         self.assertEqual(result['failed'],1)
 
@@ -160,12 +167,15 @@ class RealPdfParserTests(unittest.TestCase):
         for path in files:
             pages,warnings=read_pages(path.read_bytes())
             plan=parse_known(pages)
-            self.assertIsNotNone(plan,str(path))
+            if plan is None:
+                results[str(path)] = (None, ['Unrecognized layout'])
+                continue
             issues,checks=validate(plan,pages)
             results[plan.name.value]=(plan,issues)
             if not issues:self.assertTrue(all(c['passed'] for c in checks))
             if path.name in ('EFL-5.pdf','EFL-9.pdf') and path.parent.name=='choosetexaspower':
                 self.assertIn('Blank page 2 skipped',warnings)
+        self.assertEqual([name for name,(plan,_) in results.items() if plan is None], [])
         self.assertEqual(results['Gexa Saver Plus 12'][1],[])
         self.assertEqual(results['Reliant Secure Advantage® 12 plan'][1],[])
         self.assertTrue(results['4Change Energy Maxx Saver Value 12SM'][1])
@@ -177,6 +187,26 @@ class RealPdfParserTests(unittest.TestCase):
         secure=results['Reliant Secure Advantage® 12 plan'][0]
         self.assertEqual(calculate(secure,Decimal('799'),1).base_fee,Decimal('9.95'))
         self.assertEqual(calculate(secure,Decimal('800'),1).base_fee,Decimal('0'))
+
+    def test_centerpoint_gexa_terms_and_changed_language_guard(self):
+        from backend.catalog.extract import read_pages
+        from backend.catalog.parser import parse_known
+        pages,_=read_pages((Path(__file__).resolve().parents[1]/'data/centerpoint/eflviewer1.pdf').read_bytes())
+        plan=parse_known(pages)
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan.name.value,'Gexa Eco Saver Plus 12')
+        self.assertEqual(plan.service_area.value,'CenterPoint')
+        self.assertEqual(plan.contract_term.value,'12')
+        self.assertEqual(validate(plan,pages)[0],[])
+        charges={c.kind:c.amount for c in plan.components}
+        self.assertEqual(charges,{'energy':Decimal('12.7900'),'base':Decimal(0),
+            'delivery_fixed':Decimal('4.90'),'delivery_energy':Decimal('6.4130'),'credit':Decimal(125)})
+        self.assertEqual([e.cents_per_kwh for e in plan.examples],list(map(Decimal,['20.2','7.2','13.2'])))
+        self.assertEqual(calculate(plan,Decimal(999),1).credit,Decimal(0))
+        self.assertEqual(calculate(plan,Decimal(1000),1).credit,Decimal(125))
+        changed=copy.deepcopy(pages)
+        changed[0]['text']=changed[0]['text'].replace('above or equal to','strictly above')
+        self.assertIsNone(parse_known(changed))
 
     def test_blank_and_scanned_pages_are_distinguished(self):
         from types import SimpleNamespace

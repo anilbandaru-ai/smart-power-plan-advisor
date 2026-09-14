@@ -54,6 +54,12 @@ def local_question(text, records):
         requested = scope.group(1).strip(' ?.!').casefold()
         known = [plan_name(r).casefold() for r in records]
         if requested not in known and requested not in ('it','this plan','that plan','the recommended plan','the recommendation','my plan'):
+            # Preserve the entire explicit scope. A short known name inside an
+            # unknown variant must never silently select a different plan.
+            if topic in ('credits', 'delivery', 'fees', 'energy', 'contract'):
+                scoped = re.sub(r'\s+at\s+\d+(?:\.\d+)?\s*kwh$', '', requested)
+                matches = [r['id'] for r in records if plan_name(r).casefold() == scoped]
+                return (topic, matches if len(matches) == 1 else ['unresolved:' + requested])
             return None
     # Unknown named plans require interpretation/clarification, not a winner fallback.
     if not ids and re.search(r'\b(for|about)\s+(?!it\b|this\b|that\b|the\b|my\b)', text, re.I):

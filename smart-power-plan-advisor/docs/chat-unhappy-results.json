@@ -47,20 +47,7 @@
       "unchanged": true,
       "passed": true,
       "message": "Which plan do you mean? Available plans: Reliant Free Overnight 12 plan [9872d3ecfe52453c0b2c2737], Saver [a68b7f0a51236986aaff8cb8], Simple Value 24 [b3d6eaa7e7334b0879122452]",
-      "interpretations": [
-        {
-          "message": "Are there credits for Unknown Saver 99?",
-          "action": {
-            "kind": "explain",
-            "question": "Does the plan 'Unknown Saver 99' have credits?",
-            "operations": [],
-            "topic": "credits",
-            "target_plan_ids": [
-              "Unknown Saver 99"
-            ]
-          }
-        }
-      ]
+      "interpretations": []
     },
     {
       "id": "ambiguous_it",
@@ -81,45 +68,19 @@
         "invalid",
         "clarify"
       ],
-      "status": "invalid",
+      "status": "clarify",
       "unchanged": true,
       "passed": true,
-      "message": "Changes were not applied: Usage must be between 0 and 99999999.9999 kWh",
+      "message": "You requested setting monthly usage to -500 kWh. Usage must be a non-negative value in kWh. Could you please clarify or correct the intended usage value?",
       "interpretations": [
         {
           "message": "Set monthly usage to -500 kWh.",
           "action": {
-            "kind": "change",
-            "question": "Apply monthly usage of -500 kWh for all 12 months to the recommended plan.",
-            "operations": [
-              {
-                "field": "usage",
-                "value": "-500",
-                "plan_id": "b3d6eaa7e7334b0879122452",
-                "months": [
-                  1,
-                  2,
-                  3,
-                  4,
-                  5,
-                  6,
-                  7,
-                  8,
-                  9,
-                  10,
-                  11,
-                  12
-                ],
-                "basis": "current",
-                "period": "all",
-                "unit": "kwh",
-                "component_index": null
-              }
-            ],
+            "kind": "clarify",
+            "question": "You requested setting monthly usage to -500 kWh. Usage must be a non-negative value in kWh. Could you please clarify or correct the intended usage value?",
+            "operations": [],
             "topic": "unknown",
-            "target_plan_ids": [
-              "b3d6eaa7e7334b0879122452"
-            ]
+            "target_plan_ids": []
           }
         }
       ]
@@ -140,12 +101,12 @@
           "message": "Set the annual renewal increase to 50%.",
           "action": {
             "kind": "change",
-            "question": "Set the annual renewal increase to 50% for the recommended plan Simple Value 24.",
+            "question": "Set the annual renewal increase to 50%.",
             "operations": [
               {
                 "field": "renewal_escalation_pct",
                 "value": "50",
-                "plan_id": "b3d6eaa7e7334b0879122452",
+                "plan_id": null,
                 "months": [],
                 "basis": "current",
                 "period": "all",
@@ -154,9 +115,7 @@
               }
             ],
             "topic": "contract",
-            "target_plan_ids": [
-              "b3d6eaa7e7334b0879122452"
-            ]
+            "target_plan_ids": []
           }
         }
       ]
@@ -171,13 +130,13 @@
       "status": "clarify",
       "unchanged": true,
       "passed": true,
-      "message": "You request to set maximum contract length to 12 months and exact contract length to 36 months. This is conflicting because exact contract length 36 means only 36-month contracts. Please clarify: do you want to limit to maximum 12 months contract, or require exactly 36 months contract?",
+      "message": "Your request sets maximum contract length to 12 months and exact contract length to 36 months, which is a conflict. Please clarify if you mean to set maximum contract length or exact contract length, and specify the intended contract length in months.",
       "interpretations": [
         {
           "message": "Set maximum contract length to 12 months and exact contract length to 36 months.",
           "action": {
             "kind": "clarify",
-            "question": "You request to set maximum contract length to 12 months and exact contract length to 36 months. This is conflicting because exact contract length 36 means only 36-month contracts. Please clarify: do you want to limit to maximum 12 months contract, or require exactly 36 months contract?",
+            "question": "Your request sets maximum contract length to 12 months and exact contract length to 36 months, which is a conflict. Please clarify if you mean to set maximum contract length or exact contract length, and specify the intended contract length in months.",
             "operations": [],
             "topic": "contract",
             "target_plan_ids": []
@@ -200,7 +159,7 @@
           "message": "Only consider 120-month contracts.",
           "action": {
             "kind": "change",
-            "question": "Apply an exact_contract_months=120 restriction for the comparison.",
+            "question": "Set the comparison to consider only 120-month contracts, clarifying intent to exact contract term filter.",
             "operations": [
               {
                 "field": "exact_contract_months",
@@ -234,7 +193,7 @@
           "message": "Exclude plans with bill credits and only consider 24-month contracts.",
           "action": {
             "kind": "change",
-            "question": "Exclude plans with bill credits and restrict to exact 24-month contracts.",
+            "question": "Apply exclusion of bill credit plans and restrict to 24-month contracts.",
             "operations": [
               {
                 "field": "exclude_bill_credit_plans",
@@ -258,10 +217,7 @@
               }
             ],
             "topic": "contract",
-            "target_plan_ids": [
-              "b3d6eaa7e7334b0879122452",
-              "a68b7f0a51236986aaff8cb8"
-            ]
+            "target_plan_ids": []
           }
         }
       ]
@@ -276,13 +232,13 @@
       "status": "clarify",
       "unchanged": true,
       "passed": true,
-      "message": "The requested credit minimum of 2000 kWh is greater than the requested credit maximum of 1000 kWh for plan Saver. Please clarify the intended credit minimum and maximum values.",
+      "message": "The credit minimum cannot be higher than the credit maximum. Should I swap the values, set both to 1000 kWh, 2000 kWh, or something else?",
       "interpretations": [
         {
           "message": "Set the credit minimum to 2000 kWh and maximum to 1000 kWh for Saver.",
           "action": {
             "kind": "clarify",
-            "question": "The requested credit minimum of 2000 kWh is greater than the requested credit maximum of 1000 kWh for plan Saver. Please clarify the intended credit minimum and maximum values.",
+            "question": "The credit minimum cannot be higher than the credit maximum. Should I swap the values, set both to 1000 kWh, 2000 kWh, or something else?",
             "operations": [],
             "topic": "credits",
             "target_plan_ids": [
@@ -301,21 +257,8 @@
       "status": "clarify",
       "unchanged": true,
       "passed": true,
-      "message": "What specific credit value or credit setting do you want to change for the Saver plan? The current credit amount is 40 USD per month with a minimum usage of 1000 kWh. Please provide the new credit amount or other credit parameters you wish to set.",
-      "interpretations": [
-        {
-          "message": "Change the credit for Saver.",
-          "action": {
-            "kind": "clarify",
-            "question": "What specific credit value or credit setting do you want to change for the Saver plan? The current credit amount is 40 USD per month with a minimum usage of 1000 kWh. Please provide the new credit amount or other credit parameters you wish to set.",
-            "operations": [],
-            "topic": "credits",
-            "target_plan_ids": [
-              "a68b7f0a51236986aaff8cb8"
-            ]
-          }
-        }
-      ]
+      "message": "What bill credit amount in USD should be used, and for which plan? This would be a hypothetical change; existing credits and comparison inputs are unchanged.",
+      "interpretations": []
     },
     {
       "id": "energy_override",

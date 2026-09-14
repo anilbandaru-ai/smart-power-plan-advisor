@@ -49,7 +49,8 @@ class AnswerTests(unittest.TestCase):
         self.assertEqual(local_question('are there any bill credits for it',self.frozen),('credits',[]))
         self.assertIsNone(local_question('What if I remove bill credits?',self.frozen))
         self.assertEqual(local_question('Why not Alternative 24?',self.frozen)[0],'compare')
-        self.assertIsNone(local_question('Are there credits for Unknown Saver 99?',self.frozen))
+        self.assertEqual(local_question('Are there credits for Unknown Saver 99?',self.frozen),
+            ('credits',['unresolved:unknown saver 99']))
 
     def test_hypothetical_terms_are_labeled(self):
         self.state['overrides']=[dict(plan_id='a',field='credit',value='20',unit='usd',period='all',component_index=None)]

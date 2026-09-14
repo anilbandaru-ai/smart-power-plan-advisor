@@ -729,7 +729,10 @@ startup/restoration does not steal focus or scroll to old messages.
 
 The [unhappy-path verification guide](docs/chat-unhappy-paths.md) includes a
 repeatable provider-backed runner, [before-fix results](docs/chat-unhappy-before.json)
-and the [latest 23-case report](docs/chat-unhappy-results.json). Backend and frontend
+and the [latest 23-case report](docs/chat-unhappy-results.json). Unknown explicit
+plan variants request clarification instead of matching a shorter plan name. Credit
+changes without an amount also request clarification without applying source
+amounts as overrides. Backend and frontend
 regression tests cover validation, source preservation, retries, stale responses,
 expiry and restart. Later named-comparison and UI changes received targeted checks;
 these results are not a claim that the entire current working tree passed one
