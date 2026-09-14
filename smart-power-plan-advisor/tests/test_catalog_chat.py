@@ -200,3 +200,42 @@ class CatalogChatTests(unittest.TestCase):
         self.assertEqual(data['state'],self.session['state'])
         self.assertEqual(data['result']['id'],self.original['id'])
         self.assertFalse(hasattr(self,'context'))
+
+    def test_unknown_plan_and_missing_credit_amount_cannot_use_model_defaults(self):
+        self.action=change('credit','40','usd',self.pdf['id'])
+        for prompt in ('Are there credits for Unknown Saver 99?',
+                       'Change the credit for Saver.', 'Set the bill credit for Saver.'):
+            with self.subTest(prompt=prompt):
+                self.start()
+                response=self.client.post('/api/comparison-chat/'+self.session['session_id']+'/messages',
+                    headers={'X-Scenario-Token':self.session['token']},json={
+                    'request_id':str(uuid4()),'version':self.session['version'],'message':prompt})
+                self.assertEqual(response.status_code,200,response.text)
+                data=response.json()
+                self.assertEqual(data['status'],'clarify')
+                self.assertEqual(data['state'],self.session['state'])
+                self.assertEqual(data['result']['id'],self.original['id'])
+                self.assertFalse(hasattr(self,'context'))
+        # An explicit amount can answer the clarification and authorize a change.
+        self.session={**data,'token':self.session['token']}
+        self.action=change('credit','55','usd',self.pdf['id'])
+        response=self.client.post('/api/comparison-chat/'+self.session['session_id']+'/messages',
+            headers={'X-Scenario-Token':self.session['token']},json={
+            'request_id':str(uuid4()),'version':self.session['version'],'message':'Set it to $55 per month.'})
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertEqual(response.json()['status'],'updated')
+        self.assertTrue(self.context['pending'])
+        self.assertEqual(response.json()['state']['overrides'][0]['value'],'55')
+
+    def test_credit_question_at_usage_resolves_exact_plan(self):
+        self.start()
+        self.action=change('credit','999','usd',self.pdf['id'])
+        response=self.client.post('/api/comparison-chat/'+self.session['session_id']+'/messages',
+            headers={'X-Scenario-Token':self.session['token']},json={
+            'request_id':str(uuid4()),'version':self.session['version'],
+            'message':'Are there credits for Saver at 1000 kWh?'})
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertEqual(response.json()['status'],'explained')
+        self.assertIn('$40.00',response.json()['message'])
+        self.assertEqual(response.json()['state'],self.session['state'])
+        self.assertFalse(hasattr(self,'context'))

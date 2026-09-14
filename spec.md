@@ -1882,3 +1882,35 @@ their costs over 24 months using a synthetic 1,800-kWh monthly profile. This is
 not the user's saved cost profile. No production scenarios were rewritten.
 Diff checks passed. Pair replies omit unrelated category winners and include a
 cost-difference summary when periods/pricing methods match.
+
+
+### CHAT-33 - Deterministic clarification safeguards (implemented)
+Unknown explicit plan scopes must preserve the entire requested name and clarify,
+never match a shorter known plan or fall back to the recommendation. Credit-change
+requests without an amount must clarify without creating overrides, even when the
+interpreter proposes existing source amounts. Explicit amount follow-ups remain
+supported. Acceptance: API regressions with unsafe interpreter output and live
+23-case what-if matrix; comparison state remains unchanged on clarification.
+
+### CATALOG-34 - Reviewed local PDF layouts and portable checks (implemented)
+Review previously unrecognized checked-in PDF layouts before registering their
+fingerprints; retain exact evidence and price reconciliation gates. Unknown or
+changed layouts still require review. Verify all local PDFs without stopping at
+the first unsupported layout. Split missing-root preservation from symlink escape
+tests; skip only symlink creation when the OS explicitly disallows it. Run the
+full automated test suite and report failures and environment-dependent skips.
+
+Verification (2026-09-14): final full Python discovery ran 223 tests: 221 passed,
+zero failures/errors, two Windows symlink-permission skips. The missing-root
+preservation check runs independently and passed. All 57 frontend DOM tests
+passed, including the 49 comparison/tab/what-if tests. Live isolated synthetic
+catalog matrix passed all 23 cases; refreshed docs/chat-unhappy-results.json.
+All 25 local PDFs were checked. Registered the reviewed CenterPoint Gexa Eco Saver
+Plus 12 fingerprint; exact charges, credit boundary, advertised averages and
+changed-language rejection have regression coverage. Unknown-plan and missing
+credit-amount API tests bypass deliberately unsafe interpreter output; explicit
+amount follow-up and usage-specific credit answer tests passed. An older routing
+assertion was updated to expect local clarification; the final full run includes
+that update. Python details: .data/full-test-results.log in the app repository.
+Live evaluation used temporary data; no production comparison snapshots were
+rewritten. Browser appearance was not manually assessed in this verification.

@@ -80,6 +80,13 @@ def unsupported_action(message):
 def preflight_action(message, context=None):
     blocked=unsupported_action(message)
     if blocked: return blocked
+    # A plan's contract number or existing credit does not authorize an amount.
+    # Check even during pending clarification: repeating this request is still
+    # underspecified, whereas an explicit amount follow-up reaches interpretation.
+    if re.fullmatch(r'(?:please\s+)?(?:change|set|adjust|increase|decrease)\s+(?:the\s+)?(?:bill\s+)?credit(?:\s+amount)?(?:\s+for\s+[^.!?]+)?[.!?]?', message.strip(), re.I):
+        # An explicit "to/by <amount>" must continue to normal validation.
+        if not re.search(r'\b(?:to|by)\s+\$?\s*[+-]?\d', message, re.I):
+            return Action(kind='clarify', question='What bill credit amount in USD should be used, and for which plan? This would be a hypothetical change; existing credits and comparison inputs are unchanged.', operations=[])
     rate = re.fullmatch(r'set\s+(?:the\s+)?(mapped\s+efl\s+reference(?:\s+price)?|energy(?:\s+tier)?\s+rate)\s+for\s+(.+?)\s+to\s+[+-]?\d+(?:\.\d+)?\s+(?:cents?\s+per\s+kwh|cents?/kwh)[.!]?',message.strip(),re.I)
     if rate:
         matches=[p for p in (context or {}).get('plans',[]) if p['name'].casefold()==rate.group(2).casefold()]
