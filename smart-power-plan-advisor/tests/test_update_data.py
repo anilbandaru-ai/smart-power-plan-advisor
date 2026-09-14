@@ -36,6 +36,7 @@ class UpdateTests(unittest.TestCase):
         stack.enter_context(patch('backend.catalog.extract.Extractor', return_value=self.extractor))
         self.sync = stack.enter_context(patch('backend.catalog.sync.sync', side_effect=self.catalog_sync))
         self.txu = stack.enter_context(patch('backend.catalog.txu.sync_txu', side_effect=self.txu_sync))
+        self.audit = stack.enter_context(patch('backend.knowledge.audit.audit_corpus', return_value={'files': [], 'failed': 0}))
         self.build = stack.enter_context(patch('backend.knowledge.documents.build_corpus', side_effect=self.prepare))
         self.factory = stack.enter_context(patch('backend.knowledge.providers.Providers', return_value=self.providers))
         # Exercise the real atomic-manifest publisher, with only its upsert mocked.
@@ -67,6 +68,16 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(report['pdf_files'], 1)
         self.assertFalse((self.root / 'output').exists())
         self.build.assert_not_called(); self.sync.assert_not_called(); self.factory.assert_not_called()
+
+    def test_failed_audit_prevents_catalog_and_provider_work(self):
+        self.audit.return_value = {'files': [{'filename': 'plan.pdf', 'status': 'failed'}], 'failed': 1}
+        code, report = self.run_command()
+        self.assertEqual(code, 1)
+        self.assertIn('audit', report['error'])
+        self.build.assert_not_called()
+        self.sync.assert_not_called()
+        self.factory.assert_not_called()
+        self.assertTrue((self.settings.manifest_path.parent / 'rag-audit.json').exists())
 
     def test_updates_sqlite_then_rag_and_closes_resources(self):
         code, report = self.run_command()

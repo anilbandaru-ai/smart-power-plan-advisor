@@ -2,7 +2,7 @@
 (() => {
   const get = id => document.querySelector(`#agent-${id}`);
   const form = get('form'), submit = get('submit'), reset = get('reset');
-  const scope = get('document'), question = get('question'), status = get('status'), messages = get('messages');
+  const question = get('question'), status = get('status'), messages = get('messages');
   let thread = null, pending = null, busy = false, ready = false, retry = null;
   function add(tag, text, parent) {
     const node = document.createElement(tag);
@@ -27,7 +27,6 @@
     submit.disabled = busy || !ready;
     reset.disabled = busy;
     get('recheck').disabled = busy;
-    scope.disabled = busy || !ready || Boolean(pending);
     question.disabled = busy;
     get('thinking').hidden = !busy;
     if (busy) scrollToLatest();
@@ -81,14 +80,14 @@
     busy = true; controls();
     status.textContent = 'Searching and checking supporting pages…';
     try {
-      const signature = JSON.stringify([text, scope.value, pending]);
+      const signature = JSON.stringify([text, pending]);
       if (!retry || retry.signature !== signature) {
         retry = { signature, id: crypto.randomUUID() };
         bubble('user', text);
       }
       if (!thread) thread = await api('/threads', 'POST');
       const body = { request_id: retry.id, message: text,
-        ...(pending ? { interrupt_id: pending } : { document_id: scope.value || null }) };
+        ...(pending ? { interrupt_id: pending } : { document_id: null }) };
       const data = await api(`/threads/${thread.thread_id}/${pending ? 'resume' : 'messages'}`, 'POST', body);
       display(data);
       pending = data.status === 'needs_input' ? data.interrupt_id : null;
@@ -128,9 +127,6 @@
     try {
       const data = await api('/status');
       ready = data.configured && data.indexed && data.dependencies_available;
-      if (scope.children.length === 1) {
-        for (const doc of data.documents) add('option', doc.filename, scope).value = doc.id;
-      }
       const issues = [];
       if (!data.configured) issues.push('Provider configuration is missing. Configure OpenAI and Pinecone in .env and restart the backend with --env-file .env.');
       if (!data.dependencies_available) issues.push('Document assistant dependencies are missing. Install requirements-rag.txt with the backend Python environment, then restart the backend.');

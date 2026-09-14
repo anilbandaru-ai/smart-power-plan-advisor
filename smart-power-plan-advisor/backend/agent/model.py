@@ -5,6 +5,8 @@ from openai import OpenAI
 from pydantic import BaseModel, ConfigDict, Field
 from backend.knowledge.models import GeneratedAnswer
 from backend.knowledge.providers import INSTRUCTIONS
+from backend.knowledge.verification import verify
+from backend.knowledge.monitoring import usage
 
 TOOLS = [
     {"type": "function", "name": "redirect_to_comparison", "description": "Direct bill calculation, cost ranking or plan recommendation requests to Compare Plan Costs. Do not collect billing details.",
@@ -20,6 +22,10 @@ PROMPT = """You are a document-only electricity plan assistant. Use the availabl
 For bill calculations or plan recommendations, call redirect_to_comparison immediately,
 without asking for usage, location or fees. Documented rates and bill-credit conditions are valid questions.
 Never substitute a similar plan for an unknown requested plan.
+Use document identities to distinguish provider, contract length, utility and issue date.
+If versions or utilities are ambiguous, ask for clarification. Document dates are not live availability.
+Explicit plan changes override earlier plan context; never carry old plan facts into a new plan.
+For follow-up search queries include the resolved plan name, utility, term and date when known.
 Always search again for each new factual user question, including follow-ups; prior answers are not evidence.
 If a user supplies only a plan or document name without a question, call ask_user to ask
 what they want to know (for example contract term, bill credits, or termination fees).
@@ -96,6 +102,7 @@ class Model:
             instructions=PROMPT + f"\nSelected document ID: {scope or 'all indexed documents'}",
             input=inputs(messages), tools=TOOLS, tool_choice="required" if require_search else "auto",
             parallel_tool_calls=False, max_output_tokens=1000, store=False)
+        usage("agent_decision_tokens", response)
         calls = [{"id": item.call_id, "name": item.name, "args": json.loads(item.arguments)}
                  for item in response.output if item.type == "function_call"]
         return AIMessage(content=response.output_text or "", tool_calls=calls)
@@ -129,7 +136,11 @@ only the supplied excerpt IDs supporting its claims. Abstain if this is not poss
         result = self.client.responses.parse(model=self.settings.model, instructions=instructions,
             input=json.dumps({"latest_question": questions[-1], "earlier_user_turns": questions[:-1], "clarifications": clarifications, "earlier_clarifications": earlier_clarifications, "clarification_questions": clarification_questions, "sources": sources}, ensure_ascii=False),
             text_format=SelectedAnswer, max_output_tokens=1600, store=False)
-        return resolve_excerpts(result.output_parsed, excerpts)
+        usage("agent_answer_tokens", result)
+        candidate = resolve_excerpts(result.output_parsed, excerpts)
+        intent = {"latest_question": questions[-1], "earlier_user_turns": questions[:-1],
+                  "clarifications": clarifications, "earlier_clarifications": earlier_clarifications}
+        return verify(self.client, self.settings.model, intent, candidate, evidence)
 
     def close(self):
         self.client.close()

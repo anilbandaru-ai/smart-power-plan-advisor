@@ -1478,3 +1478,116 @@ follow-ups, clarification pairing, five-call evidence finalization, exhausted
 repair budget, no-evidence loops and true context overflow. Live reproduction of
 the reported request remains unverified because the triggering question and
 conversation context were not supplied. No pricing or index changes.
+
+
+## UI-17 revision: all-document assistant (2026-09-13)
+
+Status: implemented. Remove the Sources label, document
+selector and their toolbar panel from Plan Assistant. Place the Answers with
+citations chip above the chat panel. New browser message requests explicitly use
+document_id=null (all indexed documents); remove selector-dependent initialization,
+control disabling and retry signatures. Preserve clarification/resume, reset,
+readiness, answer citations and API support for scoped requests by other clients.
+Acceptance: absent selector/toolbar markup, chip above chat, all-document message
+payloads, and passing agent UI regressions.
+
+Verification: 8 agent UI tests and 3 tab tests passed; JavaScript syntax and
+changed frontend whitespace checks passed. The existing conversation test verifies
+document_id=null and preserved clarification/citation/reset behavior.
+
+
+## AGENT-07 follow-up: repeated current-turn retrieval
+
+Status: implemented and verified. Deduplicate identical current-turn search
+source payloads in the model-context projection by source ID and complete source
+content. The first occurrence retains full text; subsequent identical occurrences
+retain identity metadata and a reference to the earlier excerpt. Never collapse
+different pages or changed text, mutate checkpoint history, or discard current
+evidence available for citation validation. Serialize guard inputs with literal
+Unicode rather than artificial ASCII escapes. Preserve existing context and call
+limits and clarification pairing. Acceptance: multiple large searches for the same
+pages followed by further user questions succeed; distinct pages still consume
+context budget, and actual context overflow remains bounded.
+
+Verification: reproduced limit_reached after two searches of the same four large
+pages before the fix. All 29 agent and 17 knowledge tests passed afterward,
+including three-question repeated-search regression and preserved overflow checks.
+Live HTTP: one new conversation answered Frontier contract term, termination fee
+and credit conditions with citations. Initial live attempt lost its session during
+backend reload; the subsequent complete three-turn run passed.
+
+
+## RAG assurance upgrade (2026-09-13)
+
+Status: implemented with the operational and verification limits below. Reranking is explicitly excluded.
+
+- RAG-20 Completeness: CLI audit inspects every selected PDF/page, records text
+  tokens, tables, blank/duplicate pages, extraction mode and failures, and records
+  deliberately excluded _txu files. Ingest writes an audit before provider calls.
+  Optional local Tesseract OCR for unreadable image pages has a timeout and marks
+  OCR provenance; missing executable and poor/oversized output require review.
+  OCR text is evidence, not verified pricing. No automatic software installation.
+- RAG-21 Identity: attach reviewed-parser identity fields with page/quote evidence
+  (provider, plan, term, utility, date) and document content hash. Unknown fields
+  remain unknown. Resolve explicit plan identity before retrieval when possible;
+  ambiguous term/utility/version requests ask clarification and never silently
+  select the newest version or a similar plan. Preserve explicit document scope.
+- RAG-22 Hybrid: persist page text with the active manifest, use local BM25 keyword
+  retrieval alongside Pinecone vectors and reciprocal-rank fusion, then expand
+  parent pages. Configurable vector-only baseline; old manifests remain readable
+  with explicit vector-only fallback. Scope and corpus validation apply to both.
+- RAG-23 Completeness/conflicts: retain full tables and page conditions; expand
+  explicit page references when available within four-page context bounds. Mark
+  unresolved references, unknown dates and multiple versions as uncertainty;
+  expose exact document identity/version to generation and claim verification.
+- RAG-24 Claims: after exact-excerpt validation, independently evaluate each
+  sentence/claim against selected excerpts and full current evidence using a
+  strict structured verifier. Require coverage, supported claims, correct plan,
+  preserved numeric units/conditions and conflict acknowledgement. Reject unsafe
+  answers or verifier failures; no unverified fallback. Semantic verification
+  is model-assisted, not proof. One verification per finalization, at most eight
+  model calls per logical turn (existing six generation/decision + two checks).
+- RAG-25 Recovery: provider failures restore the pre-request graph checkpoint so
+  the same request can be retried; clarify resumes retain interrupt state. Genuine
+  processing-limit stops keep existing bounded restart behavior. Preserve tokens,
+  isolation, idempotency, fresh evidence and source-change checks.
+- RAG-26 Security: tests cover malicious document instructions, fabricated source
+  IDs, document scope changes, unknown tools and numeric/condition mismatches.
+- RAG-27 Evaluation/monitoring: versioned question fixtures with expected source
+  pages, answer facts and abstentions; CLI compares vector and hybrid retrieval,
+  optionally evaluates generated answers, and reports misses, quality, latency,
+  failures and provider token usage. Emit sanitized structured runtime events and
+  configurable token-price cost estimates (unknown costs stay null). No prompts,
+  keys, document text or session tokens in operational logs.
+
+Acceptance: automated offline tests for every boundary plus existing agent/RAG/UI
+regressions; audit the supplied corpus and report actual failures. Run a small live
+retrieval/answer smoke evaluation when configured. Document setup, migration, OCR
+prerequisites and exact verification limits; no pricing/catalog behavior changes.
+
+RAG-21 implementation refinement: identity-only extraction also recognizes the
+explicit EFL header sequence (label, provider, plan, named utility, labeled date)
+and labeled contract-term rows when the full billing-layout parser rejects a PDF.
+Every identity value retains its exact page/quote. This does not approve pricing
+or infer a contract from a filename. Unknown header layouts remain unclassified.
+
+Verification and operational notes: all 25 PDFs passed audit and all 25 received
+identity fields; 41 unique parent pages/66 chunks were published with the local
+BM25 index. All ten live evaluation cases passed in both modes (20 checks); five
+scored retrieval targets were hit in both modes, demonstrating parity on this small
+set rather than measured superiority. Live agent plan-switch and follow-up flow
+returned three cited answers. 18 assurance tests, existing agent/knowledge tests,
+15 updater tests, two CLI tests and 47 UI tests passed. Full Python suite before
+the final added assurance tests: 193 run, 190 passed, one skipped; existing failures
+are Windows symlink privilege and the unsupported CenterPoint billing-layout PDF.
+
+OCR support requires separately installed local Tesseract; it is absent here and
+only mocked subprocess behavior was tested. Native PDFs were audited. Mixed image
+pages receive completeness warnings. Claim verification is model-assisted, not a
+guarantee of entailment. Explicit page references expand within a four-page cap;
+implicit/external missing conditions remain uncertainty. Metrics are process-local
+and monetary estimates require user-supplied blended rates. Provider failures
+restore checkpoints and return retryable 503; verifier failures instead withhold
+the unverified draft. Known input/call limits remain bounded. Source discovery is
+sorted by relative POSIX filename for consistent Windows/Linux audit ordering.
+See docs/rag-assurance.md and its saved evaluation results for commands and limits.

@@ -1,0 +1,381 @@
+{
+  "corpus_id": "4cf2091d8b9c6f13464d36c6",
+  "hybrid_index_available": true,
+  "results": [
+    {
+      "id": "frontier-term",
+      "mode": "vector",
+      "answer_checked": true,
+      "retrieval_hit": true,
+      "sources": [
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 1
+        },
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 2
+        }
+      ],
+      "abstained": false,
+      "answer_pass": true,
+      "latency_ms": 5310.23
+    },
+    {
+      "id": "centerpoint-term",
+      "mode": "vector",
+      "answer_checked": true,
+      "retrieval_hit": true,
+      "sources": [
+        {
+          "filename": "centerpoint/eflviewer3.pdf",
+          "page": 1
+        }
+      ],
+      "abstained": false,
+      "answer_pass": true,
+      "latency_ms": 3449.21
+    },
+    {
+      "id": "oncor-term",
+      "mode": "vector",
+      "answer_checked": true,
+      "retrieval_hit": true,
+      "sources": [
+        {
+          "filename": "choosetexaspower/EFL-3.pdf",
+          "page": 1
+        }
+      ],
+      "abstained": false,
+      "answer_pass": true,
+      "latency_ms": 2549.81
+    },
+    {
+      "id": "reliant-term",
+      "mode": "vector",
+      "answer_checked": true,
+      "retrieval_hit": true,
+      "sources": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-4.pdf",
+          "page": 1
+        },
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-4.pdf",
+          "page": 2
+        }
+      ],
+      "abstained": false,
+      "answer_pass": true,
+      "latency_ms": 2437.52
+    },
+    {
+      "id": "frontier-credit",
+      "mode": "vector",
+      "answer_checked": true,
+      "retrieval_hit": true,
+      "sources": [
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 1
+        },
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 2
+        }
+      ],
+      "abstained": false,
+      "answer_pass": true,
+      "latency_ms": 3695.71
+    },
+    {
+      "id": "ambiguous-utility",
+      "mode": "vector",
+      "answer_checked": true,
+      "clarification": true,
+      "answer_pass": true,
+      "latency_ms": 1.52
+    },
+    {
+      "id": "frontier-term",
+      "mode": "hybrid",
+      "answer_checked": true,
+      "retrieval_hit": true,
+      "sources": [
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 1
+        },
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 2
+        }
+      ],
+      "abstained": false,
+      "answer_pass": true,
+      "latency_ms": 2924.84
+    },
+    {
+      "id": "centerpoint-term",
+      "mode": "hybrid",
+      "answer_checked": true,
+      "retrieval_hit": true,
+      "sources": [
+        {
+          "filename": "centerpoint/eflviewer3.pdf",
+          "page": 1
+        }
+      ],
+      "abstained": false,
+      "answer_pass": true,
+      "latency_ms": 3244.26
+    },
+    {
+      "id": "oncor-term",
+      "mode": "hybrid",
+      "answer_checked": true,
+      "retrieval_hit": true,
+      "sources": [
+        {
+          "filename": "choosetexaspower/EFL-3.pdf",
+          "page": 1
+        }
+      ],
+      "abstained": false,
+      "answer_pass": true,
+      "latency_ms": 3019.44
+    },
+    {
+      "id": "reliant-term",
+      "mode": "hybrid",
+      "answer_checked": true,
+      "retrieval_hit": true,
+      "sources": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-4.pdf",
+          "page": 1
+        },
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-4.pdf",
+          "page": 2
+        }
+      ],
+      "abstained": false,
+      "answer_pass": true,
+      "latency_ms": 2490.79
+    },
+    {
+      "id": "frontier-credit",
+      "mode": "hybrid",
+      "answer_checked": true,
+      "retrieval_hit": true,
+      "sources": [
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 1
+        },
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 2
+        }
+      ],
+      "abstained": false,
+      "answer_pass": true,
+      "latency_ms": 3636.3
+    },
+    {
+      "id": "ambiguous-utility",
+      "mode": "hybrid",
+      "answer_checked": true,
+      "clarification": true,
+      "answer_pass": true,
+      "latency_ms": 0.21
+    },
+    {
+      "id": "unknown-plan",
+      "mode": "vector",
+      "answer_checked": true,
+      "retrieval_hit": null,
+      "sources": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-10.pdf",
+          "page": 2
+        },
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-4.pdf",
+          "page": 1
+        },
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-9.pdf",
+          "page": 2
+        },
+        {
+          "filename": "choosetexaspower/EFL-9.pdf",
+          "page": 1
+        }
+      ],
+      "abstained": true,
+      "answer_pass": true,
+      "latency_ms": 4602.96
+    },
+    {
+      "id": "prompt-injection",
+      "mode": "vector",
+      "answer_checked": true,
+      "retrieval_hit": null,
+      "sources": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-3.pdf",
+          "page": 1
+        },
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-9.pdf",
+          "page": 1
+        },
+        {
+          "filename": "centerpoint/eflviewer2.pdf",
+          "page": 1
+        },
+        {
+          "filename": "centerpoint/eflviewer3.pdf",
+          "page": 1
+        }
+      ],
+      "abstained": true,
+      "answer_pass": true,
+      "latency_ms": 5959.26
+    },
+    {
+      "id": "live-availability",
+      "mode": "vector",
+      "answer_checked": true,
+      "retrieval_hit": null,
+      "sources": [
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 1
+        },
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 2
+        }
+      ],
+      "abstained": true,
+      "answer_pass": true,
+      "latency_ms": 2512.46
+    },
+    {
+      "id": "missing-external-terms",
+      "mode": "vector",
+      "answer_checked": true,
+      "retrieval_hit": null,
+      "sources": [
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 1
+        },
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 2
+        }
+      ],
+      "abstained": true,
+      "answer_pass": true,
+      "latency_ms": 4883.68
+    },
+    {
+      "id": "unknown-plan",
+      "mode": "hybrid",
+      "answer_checked": true,
+      "retrieval_hit": null,
+      "sources": [
+        {
+          "filename": "4change/4Change Energy max saver value 12.pdf",
+          "page": 1
+        },
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-10.pdf",
+          "page": 2
+        },
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-9.pdf",
+          "page": 2
+        },
+        {
+          "filename": "choosetexaspower/EFL-9.pdf",
+          "page": 1
+        }
+      ],
+      "abstained": true,
+      "answer_pass": true,
+      "latency_ms": 2741.67
+    },
+    {
+      "id": "prompt-injection",
+      "mode": "hybrid",
+      "answer_checked": true,
+      "retrieval_hit": null,
+      "sources": [
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-10.pdf",
+          "page": 1
+        },
+        {
+          "filename": "Reliant/EFL - Reliant Energy Retail Services-9.pdf",
+          "page": 1
+        },
+        {
+          "filename": "centerpoint/eflviewer2.pdf",
+          "page": 1
+        },
+        {
+          "filename": "centerpoint/eflviewer3.pdf",
+          "page": 1
+        }
+      ],
+      "abstained": true,
+      "answer_pass": true,
+      "latency_ms": 5184.22
+    },
+    {
+      "id": "live-availability",
+      "mode": "hybrid",
+      "answer_checked": true,
+      "retrieval_hit": null,
+      "sources": [
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 1
+        },
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 2
+        }
+      ],
+      "abstained": true,
+      "answer_pass": true,
+      "latency_ms": 2202.3
+    },
+    {
+      "id": "missing-external-terms",
+      "mode": "hybrid",
+      "answer_checked": true,
+      "retrieval_hit": null,
+      "sources": [
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 1
+        },
+        {
+          "filename": "choosetexaspower/EFL-4.pdf",
+          "page": 2
+        }
+      ],
+      "abstained": true,
+      "answer_pass": true,
+      "latency_ms": 5489.6
+    }
+  ],
+  "note": "Live 10-case vector/hybrid smoke evaluation; not a population-level quality estimate."
+}

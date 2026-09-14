@@ -83,9 +83,12 @@ def build_corpus(settings: Settings, paths=None):
         content_hash = digest(path.read_bytes())
         document_id = digest(relative.encode())[:24]
         seen, pages, skipped_blank_pages = set(), [], []
+        identity_pages = []
         with pdfplumber.open(path) as pdf:
             for number, page in enumerate(pdf.pages, 1):
-                text = "\n".join(line.rstrip() for line in extract_page(page).splitlines()).strip()
+                from backend.knowledge.audit import page_text
+                extracted, mode = page_text(page, settings)
+                text = "\n".join(line.rstrip() for line in extracted.splitlines()).strip()
                 if not text and getattr(page, "objects", None) == {}:
                     skipped_blank_pages.append(number)
                     continue
@@ -96,22 +99,26 @@ def build_corpus(settings: Settings, paths=None):
                 if page_hash in seen:
                     continue
                 seen.add(page_hash)
+                identity_pages.append({"page": number, "text": text})
                 pages.append(number)
                 parent_id = f"{document_id}-{content_hash[:16]}-p{number}"
                 for i, child in enumerate(child_texts(text)):
                     records.append({"id": f"{parent_id}-c{i}", "metadata": {
                         "document_id": document_id, "filename": relative,
                         "document_hash": content_hash, "page": number, "parent_id": parent_id,
-                        "parent_text": text, "text": child, "chunk_policy": CHUNK_POLICY,
+                        "parent_text": text, "text": child, "chunk_policy": CHUNK_POLICY, "extraction": mode,
                     }})
         if not pages:
             raise DocumentReviewRequired(f"{relative}: no usable pages; review required")
-        documents.append({"id": document_id, "filename": relative, "sha256": content_hash,
+        from backend.knowledge.identity import identify
+        identity = identify(identity_pages)
+        documents.append({"identity": identity, "id": document_id, "filename": relative, "sha256": content_hash,
                           "pages": pages, "skipped_blank_pages": skipped_blank_pages})
     if not records:
         raise ValueError("No text PDFs found under data/")
     version_input = {"documents": documents, "embedding": EMBEDDING_MODEL,
-                     "dimensions": DIMENSIONS, "chunk_policy": CHUNK_POLICY}
+                     "dimensions": DIMENSIONS, "chunk_policy": CHUNK_POLICY, "assurance_version": 1}
+    version_input["extracted_content_hash"] = digest(json.dumps(records, sort_keys=True).encode())
     corpus_id = digest(json.dumps(version_input, sort_keys=True).encode())[:24]
     for record in records:
         record["metadata"]["corpus_id"] = corpus_id
@@ -121,6 +128,12 @@ def build_corpus(settings: Settings, paths=None):
                 "namespace": f"{settings.namespace_prefix}-{corpus_id}", "corpus_id": corpus_id,
                 "embedding_model": EMBEDDING_MODEL, "dimensions": DIMENSIONS,
                 "chunk_policy": CHUNK_POLICY, "documents": documents, "chunks": len(records)}
+    # A versioned local page index is activated atomically with its remote namespace.
+    parents = {}
+    for record in records:
+        parents.setdefault(record["metadata"]["parent_id"], record)
+    manifest["search_pages"] = list(parents.values())
+    manifest["assurance_version"] = 1
     return manifest, records
 
 

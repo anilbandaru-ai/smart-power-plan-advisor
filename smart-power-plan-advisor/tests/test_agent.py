@@ -223,6 +223,43 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(len(observations), 1)
         self.assertEqual(self.providers.retrieval[2], DOC_ID)
 
+    def test_repeated_large_searches_and_third_question_remain_usable(self):
+        corpus = manifest()
+        corpus['documents'][0]['pages'] = [1, 2, 3, 4]
+        self.path.write_text(json.dumps(corpus))
+        self.providers.matches = []
+        for page in range(1, 5):
+            source = match()
+            source['metadata'].update(page=page, parent_id=f'page-{page}',
+                                      parent_text=TEXT + ' rate' * 1400)
+            self.providers.matches.append(source)
+        model = ScriptedModel([step for _ in range(3)
+                               for step in (search(), search('more detail'), AIMessage(content=''))])
+        client = self.client(model)
+        for question in ('What is the term?', 'And fees?', 'And credits?'):
+            result = self.send(client, message=question).json()
+            self.assertEqual(result['status'], 'answered', result)
+            self.assertTrue(result['citations'])
+        self.assertEqual(len(model.contexts), 3)
+        observations = [json.loads(m.content) for m in model.messages
+                        if isinstance(m, ToolMessage) and m.name == 'search_document_evidence']
+        self.assertEqual(len(observations), 2)
+        self.assertIn('text', observations[0]['sources'][0])
+        self.assertNotIn('text', observations[1]['sources'][0])
+        self.assertEqual(len(model.contexts[-1]), 4)
+
+    def test_context_deduplication_preserves_changed_text_and_checkpoint(self):
+        from backend.agent.graph import context_messages
+        from langchain_core.messages import HumanMessage
+        def observation(text):
+            return ToolMessage(content=json.dumps({'sources': [{'source_id': 'S1', 'text': text}]}),
+                               name='search_document_evidence', tool_call_id=str(uuid4()))
+        first, duplicate, changed = observation('original'), observation('original'), observation('changed')
+        projected = context_messages([HumanMessage(content='fees'), first, duplicate, changed])
+        self.assertNotIn('text', json.loads(projected[2].content)['sources'][0])
+        self.assertEqual(json.loads(projected[3].content)['sources'][0]['text'], 'changed')
+        self.assertEqual(json.loads(duplicate.content)['sources'][0]['text'], 'original')
+
     def test_true_context_overflow_still_stops_without_finalization(self):
         corpus = manifest()
         corpus['documents'][0]['pages'] = [1, 2, 3, 4]
@@ -303,7 +340,7 @@ class AgentTests(unittest.TestCase):
         client = self.client(ScriptedModel([search()]))
         with patch.object(self.providers, 'connect', side_effect=RuntimeError('SECRET must not escape')):
             response = self.send(client)
-        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.status_code, 503)
         self.assertNotIn('SECRET', response.text)
         self.assertTrue(self.providers.closed)
 
@@ -338,6 +375,12 @@ class AgentTests(unittest.TestCase):
 
 
 class ModelAdapterTests(unittest.TestCase):
+    def setUp(self):
+        # Adapter contract tests isolate the independently tested support verifier.
+        patcher = patch('backend.agent.model.verify', side_effect=lambda client, model, question, answer, context: answer)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_responses_tool_contract_and_latest_question(self):
         from types import SimpleNamespace
         from unittest.mock import MagicMock
@@ -439,6 +482,12 @@ class ExcerptTests(unittest.TestCase):
 
 
 class ExcerptSelectionTests(unittest.TestCase):
+    def setUp(self):
+        # Adapter contract tests isolate the independently tested support verifier.
+        patcher = patch('backend.agent.model.verify', side_effect=lambda client, model, question, answer, context: answer)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_symbols_tables_windows_and_unknown_references(self):
         from backend.agent.model import prepare_excerpts, resolve_excerpts, SelectedAnswer
         from backend.knowledge.evidence import validate_answer

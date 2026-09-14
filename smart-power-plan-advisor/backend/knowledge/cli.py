@@ -19,14 +19,15 @@ def source_files(settings, include_txu=False):
             directories[:] = [name for name in directories if name != "_txu"]
         files.extend(Path(directory) / name for name in filenames
                      if Path(name).suffix.lower() == ".pdf")
-    return sorted(files)
+    return sorted(files, key=lambda path: path.relative_to(root).as_posix())
 
 
 def main():
     parser = argparse.ArgumentParser(description="Preview or index local plan PDFs for cited Q&A.")
     parser.add_argument("--env-file", help="Optional ignored local env file; existing environment takes precedence")
-    parser.add_argument("command", choices=["preview", "create-index", "ingest"])
+    parser.add_argument("command", choices=["preview", "audit", "create-index", "ingest"])
     parser.add_argument("--include-txu-rag", action="store_true", help="Include downloaded _txu PDFs; strict page validation still applies")
+    parser.add_argument("--audit-output", default=".data/rag-audit.json")
     args = parser.parse_args()
     if args.env_file:
         from dotenv import load_dotenv
@@ -39,7 +40,17 @@ def main():
             print(create_index(settings))
             return
         from backend.knowledge.documents import build_corpus
-        manifest, records = build_corpus(settings, paths=source_files(settings, args.include_txu_rag))
+        paths = source_files(settings, args.include_txu_rag)
+        if args.command in ("audit", "ingest"):
+            from backend.knowledge.audit import audit_corpus, write_audit
+            audit = audit_corpus(settings, paths)
+            write_audit(audit, args.audit_output)
+            print(f"Audit: {len(audit['files'])} PDFs, {audit['failed']} failures; {args.audit_output}")
+            if audit["failed"]:
+                raise DocumentReviewRequired("Selected PDFs failed audit; review the report before indexing")
+            if args.command == "audit":
+                return
+        manifest, records = build_corpus(settings, paths=paths)
         if args.command == "preview":
             print(json.dumps(manifest, indent=2))
             return

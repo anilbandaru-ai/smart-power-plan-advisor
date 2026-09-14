@@ -147,7 +147,14 @@ def update(config, report):
         report['stage'] = 'prepare_rag'
         report['rag'] = {'status': 'preparing'}
         progress('Preparing PDF text and citations for RAG...')
-        prepared, records = build_corpus(settings, paths=source_files(config))
+        from backend.knowledge.audit import audit_corpus, write_audit
+        paths = source_files(config)
+        audit = audit_corpus(settings, paths)
+        audit_path = settings.manifest_path.parent / 'rag-audit.json'
+        write_audit(audit, audit_path)
+        if audit['failed']:
+            raise UpdateError('RAG audit found unreadable pages; review rag-audit.json before retrying.')
+        prepared, records = build_corpus(settings, paths=paths)
         report['rag'] = {'status': 'prepared', 'documents': len(prepared['documents']), 'chunks': len(records)}
 
         report['stage'] = 'sqlite'

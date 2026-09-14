@@ -11,6 +11,7 @@ from langgraph.graph import END, START, StateGraph, add_messages
 from langgraph.types import interrupt
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from backend.knowledge.models import DocumentIdentityError
 from backend.knowledge.evidence import abstain, select_context, validate_answer
 
 
@@ -54,6 +55,7 @@ class State(TypedDict, total=False):
     activity: list[str]
     result: dict | None
     stopped: bool
+    identity_question: str | None
     finish_with_evidence: bool
 
 
@@ -73,21 +75,47 @@ def context_messages(messages):
                 history.append(message.model_copy(update={"tool_calls": calls}))
         else:
             history.append(message)
-    return history + list(messages[boundary:])
+    seen_sources = set()
+    for message in messages[boundary:]:
+        if isinstance(message, ToolMessage) and message.name == "search_document_evidence":
+            try:
+                payload = json.loads(message.content)
+            except (TypeError, ValueError):
+                payload = None
+            if isinstance(payload, dict) and isinstance(payload.get("sources"), list):
+                sources = []
+                for source in payload["sources"]:
+                    if not isinstance(source, dict) or not source.get("source_id"):
+                        sources.append(source)
+                        continue
+                    identity = json.dumps(source, sort_keys=True, ensure_ascii=False)
+                    if identity in seen_sources:
+                        sources.append({**{k: v for k, v in source.items() if k != "text"},
+                                        "note": "Identical source text is included in an earlier search result this turn."})
+                    else:
+                        sources.append(source)
+                        seen_sources.add(identity)
+                message = message.model_copy(update={"content": json.dumps(
+                    {**payload, "sources": sources}, ensure_ascii=False)})
+        history.append(message)
+    return history
 
 
 def build_graph(checkpointer):
     encoding = tiktoken.get_encoding("cl100k_base")
 
     def too_large(state):
-        messages = json.dumps([m.model_dump() for m in context_messages(state["messages"])], default=str)
-        evidence = json.dumps(state["evidence"])
+        messages = json.dumps([m.model_dump() for m in context_messages(state["messages"])], default=str, ensure_ascii=False)
+        evidence = json.dumps(state["evidence"], ensure_ascii=False)
         # Separate model requests consume history or evidence, not their concatenation.
         # Preserve headroom for instructions and the finalizer's excerpt overlap.
         return max(len(encoding.encode(value, disallowed_special=()))
                    for value in (messages, evidence)) > 10000
 
     def reason(state, config):
+        if state.get("identity_question"):
+            return {"identity_question": None, "messages": [AIMessage(content="", tool_calls=[{
+                "id": str(uuid4()), "name": "ask_user", "args": {"question": state["identity_question"][:500]}}])]}
         if comparison_request(state["messages"]):
             return {"messages": [AIMessage(content="", tool_calls=[{
                 "id": str(uuid4()), "name": "redirect_to_comparison", "args": {}}])]}
@@ -129,7 +157,8 @@ def build_graph(checkpointer):
             if len(calls) == 1:
                 try:
                     if call["name"] == "list_indexed_documents" and call["args"] == {}:
-                        output = {"documents": [{k: d[k] for k in ("id", "filename", "pages")} for d in state["manifest"]["documents"]]}
+                        output = {"documents": [{**{k: d[k] for k in ("id", "filename", "pages")},
+                            "identity": d.get("identity", {})} for d in state["manifest"]["documents"]]}
                         activity.append("Listed indexed documents")
                     elif call["name"] == "search_document_evidence":
                         args = Search.model_validate(call["args"])
@@ -152,6 +181,10 @@ def build_graph(checkpointer):
                                 evidence[source["source_id"]] = source
                             output = {"sources": selected}
                             activity.append(f"Searched documents: {len(selected)} supporting page(s)")
+                except DocumentIdentityError as error:
+                    return {"messages": [ToolMessage(content="Document identity requires clarification.",
+                            tool_call_id=call["id"], name=call["name"])], "identity_question": str(error),
+                            "evidence": {}, "tools": state["tools"] + 1, "activity": activity + ["Clarifying document version or identity"]}
                 except (ValidationError, ValueError):
                     output = {"error": "Invalid tool arguments or document scope. Use an indexed document ID and a nonempty query."}
             observations.append(ToolMessage(content=json.dumps(output), tool_call_id=call["id"], name=call["name"]))
