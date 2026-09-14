@@ -1,189 +1,220 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="2070" viewBox="0 0 1800 2070" role="img" aria-labelledby="title desc">
-<title id="title">Smart Power Plan Advisor - component architecture</title>
-<desc id="desc">Detailed component map of the plain JavaScript frontend and FastAPI backend, with separate comparison, scenario-chat and document-agent paths. Shows deterministic pricing and recommendation services, LangGraph tools, the RAG retrieval and citation pipeline, OpenAI adapters, SQLite databases, Pinecone vector storage, local document files and offline ingestion pipelines. Numbered storage connections link runtime services to their actual stores.</desc>
-<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#63738b"/></marker></defs>
-<style>text{font-family:Segoe UI,Arial,sans-serif;fill:#20324a}.title{font-size:36px;font-weight:750}.section{font-size:20px;font-weight:750;letter-spacing:1px}.head{font-size:21px;font-weight:700}.body{font-size:18px}.meta{font-size:16px;fill:#53647a}.edge{fill:none;stroke:#63738b;stroke-width:2;marker-end:url(#arrow)}.tag{font-size:15px;font-weight:700}</style>
-<rect width="1800" height="2070" fill="#f6f8fc"/>
-<text x="50" y="58" class="title">Smart Power Plan Advisor</text>
-<text x="50" y="90" class="body">Component architecture / current implementation</text>
-<rect x="1390" y="32" width="360" height="48" rx="24" fill="#dcece7"/>
-<text x="1570" y="63" text-anchor="middle" class="tag">PYTHON CALCULATES / AI INTERPRETS</text>
-<rect x="30" y="115" width="1740" height="190" rx="14" fill="#eaf1ff" stroke="#d5dfe9"/>
-<text x="50" y="146" class="section">01 / FRONTEND</text>
-<text x="310" y="146" class="meta">Plain HTML, CSS and JavaScript / served by FastAPI / no build step</text>
-<rect x="50" y="164" width="535" height="118" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="70" y="196" class="head">Compare Plan Costs</text>
-<text x="70" y="225" class="body">ZIP + utility + 12 monthly usage values</text>
-<text x="70" y="250" class="body">Preferences, ranked plans and monthly breakdowns</text>
-<rect x="630" y="164" width="535" height="118" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="650" y="196" class="head">Explore alternatives</text>
-<text x="650" y="225" class="body">Scenario chat, suggested actions and retry</text>
-<text x="650" y="250" class="body">Updated comparisons; Show more / Show less</text>
-<rect x="1210" y="164" width="535" height="118" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="1230" y="196" class="head">Plan Assistant</text>
-<text x="1230" y="225" class="body">Document source dropdown + conversation</text>
-<text x="1230" y="250" class="body">Answers, exact excerpts and PDF page links</text>
-<path class="edge" d="M900 305 L900 344"/>
-<text x="920" y="332" class="meta">HTTP / JSON requests and responses</text>
-<rect x="30" y="348" width="1740" height="117" rx="14" fill="#eaf1ff" stroke="#d5dfe9"/>
-<text x="50" y="380" class="section">02 / BACKEND - FASTAPI</text>
-<text x="50" y="410" class="body">Request validation / REST routing / error handling / static UI hosting / request timing logs</text>
-<text x="50" y="439" class="meta">/api/comparisons  +  /api/catalog/*</text>
-<text x="640" y="439" class="meta">/api/comparison-chat/*</text>
-<text x="1210" y="439" class="meta">/api/agent/*  +  /api/knowledge/*</text>
-<path class="edge" d="M320 465 L320 512"/>
-<path class="edge" d="M900 465 L900 512"/>
-<path class="edge" d="M1480 465 L1480 512"/>
-<rect x="30" y="516" width="560" height="790" rx="14" fill="#e9f5ef" stroke="#d5dfe9"/>
-<text x="50" y="550" class="section">03A / DETERMINISTIC COMPARISON</text>
-<rect x="610" y="516" width="560" height="790" rx="14" fill="#fff4e8" stroke="#d5dfe9"/>
-<text x="630" y="550" class="section">03B / COMPARISON CHAT</text>
-<rect x="1190" y="516" width="560" height="790" rx="14" fill="#f0ecfc" stroke="#d5dfe9"/>
-<text x="1210" y="550" class="section">03C / DOCUMENT AGENT + RAG</text>
-<rect x="50" y="570" width="520" height="124" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="70" y="602" class="head">Catalog and eligibility</text>
-<text x="70" y="631" class="body">Read independent PDF / API source records</text>
-<text x="70" y="656" class="body">Filter utility, contract term and credit preferences</text>
-<text x="70" y="679" class="meta">backend/catalog/compare.py | source store [A]</text>
-<path class="edge" d="M310 694 L310 725"/>
-<rect x="50" y="729" width="520" height="147" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="70" y="761" class="head">Pricing engine</text>
-<text x="70" y="790" class="body">Energy + base / usage + delivery - credits</text>
-<text x="70" y="815" class="body">Monthly rounding; tier and threshold rules</text>
-<text x="70" y="840" class="body">Renewal scenarios over the comparison horizon</text>
-<text x="70" y="861" class="meta">Python calculators | explicit legacy PDF mode separate</text>
-<path class="edge" d="M310 876 L310 907"/>
-<rect x="50" y="911" width="520" height="149" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="70" y="943" class="head">Recommendation engine</text>
-<text x="70" y="972" class="body">Best overall, top three and category winners</text>
-<text x="70" y="997" class="body">Savings, confidence, scenarios and regret</text>
-<text x="70" y="1022" class="body">Tradeoffs, warnings, break-even and evidence</text>
-<text x="70" y="1045" class="meta">backend/recommendations.py</text>
-<path class="edge" d="M310 1060 L310 1091"/>
-<rect x="50" y="1095" width="520" height="119" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="70" y="1127" class="head">Comparison result</text>
-<text x="70" y="1156" class="body">Save immutable inputs, totals and provenance</text>
-<text x="70" y="1181" class="body">Return ranked plans and monthly cost details</text>
-<text x="70" y="1199" class="meta">backend/storage.py | comparison snapshots [B]</text>
-<text x="50" y="1247" class="meta">Rough estimates stay separate from winner selection.</text>
-<text x="50" y="1273" class="meta">Synthetic JSON plans are explicit demo mode only.</text>
-<rect x="630" y="570" width="520" height="124" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="650" y="602" class="head">Scenario session manager</text>
-<text x="650" y="631" class="body">Load saved comparison + freeze source records</text>
-<text x="650" y="656" class="body">Version checks, request deduplication and history</text>
-<text x="650" y="679" class="meta">backend/scenario/api.py | persistent sessions [B]</text>
-<path class="edge" d="M890 694 L890 725"/>
-<rect x="630" y="729" width="520" height="147" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="650" y="761" class="head">Intent interpreter</text>
-<text x="650" y="790" class="body">Explicit command rules + OpenAI adapter</text>
-<text x="650" y="815" class="body">Convert natural language into typed actions</text>
-<text x="650" y="840" class="body">Clarify missing scope, values or conflicting intent</text>
-<text x="650" y="861" class="meta">OpenAI Responses | interpretation only</text>
-<path class="edge" d="M890 876 L890 907"/>
-<rect x="630" y="911" width="520" height="149" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="650" y="943" class="head">Scenario engine</text>
-<text x="650" y="972" class="body">Validate filters, usage and hypothetical overrides</text>
-<text x="650" y="997" class="body">Apply changes to copies; rerun comparison</text>
-<text x="650" y="1022" class="body">Undo, reset, branching and saved scenarios</text>
-<text x="650" y="1045" class="meta">backend/scenario/engine.py + actions.py</text>
-<path class="edge" d="M630 981 L599 981 L599 791 L570 791"/>
-<text x="638" y="1081" class="meta">Reuses the Python comparison engine at left.</text>
-<rect x="630" y="1095" width="520" height="119" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="650" y="1127" class="head">Response and recovery</text>
-<text x="650" y="1156" class="body">Commit successful scenario + return comparison</text>
-<text x="650" y="1181" class="body">Failures preserve the last successful result</text>
-<text x="650" y="1199" class="meta">SQLite transaction / frozen records / scenario history [B]</text>
-<path class="edge" d="M890 1060 L890 1091"/>
-<text x="630" y="1247" class="meta">No automatic filter relaxation or invented prices.</text>
-<text x="630" y="1273" class="meta">Model output cannot write data or calculate bills.</text>
-<rect x="1210" y="570" width="520" height="124" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="1230" y="602" class="head">Document agent - LangGraph</text>
-<text x="1230" y="631" class="body">Reason / tool call / observe / repeat</text>
-<text x="1230" y="656" class="body">Tools: list documents, search, ask user, redirect</text>
-<text x="1230" y="679" class="meta">backend/agent/graph.py | in-memory threads [D]</text>
-<path class="edge" d="M1470 694 L1470 725"/>
-<rect x="1210" y="729" width="520" height="147" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="1230" y="761" class="head">RAG retriever</text>
-<text x="1230" y="790" class="body">Embed query; filter active corpus / document</text>
-<text x="1230" y="815" class="body">Search child vectors in Pinecone [C]</text>
-<text x="1230" y="840" class="body">Select deduplicated full parent-page context</text>
-<text x="1230" y="861" class="meta">backend/knowledge/providers.py + evidence.py</text>
-<path class="edge" d="M1470 876 L1470 907"/>
-<rect x="1210" y="911" width="520" height="149" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="1230" y="943" class="head">Answer and citation validation</text>
-<text x="1230" y="972" class="body">OpenAI Responses generates grounded answers</text>
-<text x="1230" y="997" class="body">Check source IDs and exact supporting excerpts</text>
-<text x="1230" y="1022" class="body">Bounded repair, clarification or abstention</text>
-<text x="1230" y="1045" class="meta">backend/agent/model.py | shared evidence validation</text>
-<text x="1210" y="1090" class="meta">Agent model adapter also drives the reasoning loop.</text>
-<rect x="1210" y="1110" width="520" height="104" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="1230" y="1142" class="head">Single-turn RAG endpoint</text>
-<text x="1230" y="1171" class="body">/api/knowledge/ask uses a bounded RAG graph</text>
-<text x="1230" y="1199" class="meta">Shares retrieval and citation checks; no chat loop</text>
-<text x="1210" y="1247" class="meta">Document evidence explains terms; it is not pricing input.</text>
-<text x="1210" y="1273" class="meta">OpenAI supplies text generation and embeddings.</text>
-<text x="50" y="1348" class="section">04 / DATA STORES</text>
-<text x="340" y="1348" class="meta">[A-D] references above identify each service&#x27;s storage dependencies</text>
-<rect x="50" y="1370" width="410" height="170" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="70" y="1402" class="head">[A] Catalog DB</text>
-<text x="70" y="1431" class="body">SQLite: plans.sqlite3</text>
-<text x="70" y="1456" class="body">Rules + source revisions</text>
-<text x="70" y="1481" class="body">PDF / TXU records + cache</text>
-<text x="70" y="1525" class="meta">backend/catalog/store.py</text>
-<rect x="480" y="1370" width="410" height="170" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="500" y="1402" class="head">[B] Comparison DB</text>
-<text x="500" y="1431" class="body">SQLite: advisor.sqlite3</text>
-<text x="500" y="1456" class="body">Saved comparison snapshots</text>
-<text x="500" y="1481" class="body">Scenario sessions + history</text>
-<text x="500" y="1525" class="meta">backend/storage.py</text>
-<rect x="910" y="1370" width="410" height="170" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="930" y="1402" class="head">[C] Vector DB</text>
-<text x="930" y="1431" class="body">Pinecone</text>
-<text x="930" y="1456" class="body">Child vectors + parent text</text>
-<text x="930" y="1481" class="body">Versioned corpus namespace</text>
-<text x="930" y="1525" class="meta">Document retrieval store</text>
-<rect x="1340" y="1370" width="410" height="170" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="1360" y="1402" class="head">[D] Local + memory</text>
-<text x="1360" y="1431" class="body">data/: source PDFs</text>
-<text x="1360" y="1456" class="body">knowledge.json: manifest</text>
-<text x="1360" y="1481" class="body">Agent threads: process memory</text>
-<text x="1360" y="1525" class="meta">Files + LangGraph checkpointer</text>
-<text x="50" y="1585" class="section">05 / INGESTION AND EXTERNAL INTEGRATIONS</text>
-<text x="50" y="1615" class="meta">Explicit CLI operations populate stores; ingestion is separate from answering questions or calculating bills.</text>
-<rect x="50" y="1640" width="410" height="130" rx="14" fill="#fff8e8" stroke="#d5dfe9"/>
-<text x="70" y="1672" class="head">Local EFL PDFs</text>
-<text x="70" y="1701" class="body">data/**/*.pdf</text>
-<text x="70" y="1726" class="body">Reviewed layouts and source evidence</text>
-<rect x="525" y="1640" width="665" height="130" rx="14" fill="#e9f5ef" stroke="#d5dfe9"/>
-<text x="545" y="1672" class="head">Catalog import / validation</text>
-<text x="545" y="1701" class="body">Extract billing components; validate against evidence</text>
-<text x="545" y="1726" class="body">Persist passing plans in [A]; retain exclusion reasons</text>
-<text x="545" y="1755" class="meta">backend.catalog.cli | sync / import-validated</text>
-<path class="edge" d="M460 1705 L521 1705"/>
-<rect x="1260" y="1640" width="490" height="130" rx="14" fill="#fff8e8" stroke="#d5dfe9"/>
-<text x="1280" y="1672" class="head">TXU APIs + reviewed TDU lookup</text>
-<text x="1280" y="1701" class="body">Utility resolution + offer snapshots</text>
-<text x="1280" y="1726" class="body">Independent validated source records in [A]</text>
-<text x="1280" y="1755" class="meta">backend.catalog.cli sync-txu</text>
-<path class="edge" d="M1260 1705 L1194 1705"/>
-<rect x="50" y="1800" width="410" height="130" rx="14" fill="#f0ecfc" stroke="#d5dfe9"/>
-<text x="70" y="1832" class="head">Document preparation</text>
-<text x="70" y="1861" class="body">PDF page text + table extraction</text>
-<text x="70" y="1886" class="body">Parent pages / child chunks</text>
-<text x="70" y="1915" class="meta">backend.knowledge.cli preview / ingest</text>
-<path class="edge" d="M255 1770 L255 1796"/>
-<rect x="525" y="1800" width="665" height="130" rx="14" fill="#f0ecfc" stroke="#d5dfe9"/>
-<text x="545" y="1832" class="head">Embedding and index publication</text>
-<text x="545" y="1861" class="body">OpenAI embeddings -&gt; Pinecone [C]</text>
-<text x="545" y="1886" class="body">Publish active manifest [D] after successful upserts</text>
-<text x="545" y="1915" class="meta">Versioned corpus | _txu cache excluded by default</text>
-<path class="edge" d="M460 1865 L521 1865"/>
-<rect x="1260" y="1800" width="490" height="130" rx="14" fill="#ffffff" stroke="#d5dfe9"/>
-<text x="1280" y="1832" class="head">Refresh orchestration</text>
-<text x="1280" y="1861" class="body">update_data.py</text>
-<text x="1280" y="1886" class="body">Catalog + optional TXU + RAG refresh</text>
-<text x="1280" y="1915" class="meta">Manual CLI; no background scheduler</text>
-<rect x="30" y="1960" width="1740" height="82" rx="14" fill="#eaf1ff" stroke="#d5dfe9"/>
-<text x="50" y="1991" class="section">06 / VERIFICATION + OPERATIONS</text>
-<text x="50" y="2020" class="body">Pricing / API / extraction / chat / UI tests | evaluation fixtures | readiness checks | logs | local single-user deployment</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="2260" viewBox="0 0 1800 2260" role="img" aria-labelledby="title desc">
+  <title id="title">Smart Power Plan Advisor - component architecture</title>
+  <desc id="desc">Current architecture: JavaScript frontend and FastAPI backend; deterministic comparison and scenario chat; LangGraph document agent with identity resolution, BM25 and Pinecone hybrid retrieval, complete-page evidence, exact excerpts and independent claim verification. SQLite, local manifest and Pinecone stores; separate catalog and RAG ingestion; native extraction, optional Tesseract OCR, audits, evaluations and sanitized metrics. No reranker.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0L8 4L0 8Z" fill="#63738b" />
+    </marker>
+  </defs>
+  <style>text{font-family:Segoe UI,Arial,sans-serif;fill:#20324a}.title{font-size:36px;font-weight:750}.section{font-size:20px;font-weight:750;letter-spacing:1px}.head{font-size:21px;font-weight:700}.body{font-size:18px}.meta{font-size:16px;fill:#53647a}.edge{fill:none;stroke:#63738b;stroke-width:2;marker-end:url(#arrow)}.tag{font-size:15px;font-weight:700}</style>
+  <rect width="1800" height="2260" fill="#f6f8fc" />
+  <text x="50" y="58" class="title">Smart Power Plan Advisor</text>
+  <text x="50" y="90" class="body">Component architecture / current implementation</text>
+  <rect x="1390" y="32" width="360" height="48" rx="24" fill="#dcece7" />
+  <text x="1570" y="63" text-anchor="middle" class="tag">PYTHON CALCULATES / AI INTERPRETS</text>
+  <rect x="30" y="115" width="1740" height="190" rx="14" fill="#eaf1ff" stroke="#d5dfe9" />
+  <text x="50" y="146" class="section">01 / FRONTEND</text>
+  <text x="310" y="146" class="meta">Plain HTML, CSS and JavaScript / served by FastAPI / no build step</text>
+  <rect x="50" y="164" width="535" height="118" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="70" y="196" class="head">Compare Plan Costs</text>
+  <text x="70" y="225" class="body">ZIP + utility + 12 monthly usage values</text>
+  <text x="70" y="250" class="body">Preferences, ranked plans and monthly breakdowns</text>
+  <rect x="630" y="164" width="535" height="118" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="650" y="196" class="head">Explore alternatives</text>
+  <text x="650" y="225" class="body">Scenario chat, suggested actions and retry</text>
+  <text x="650" y="250" class="body">Updated comparisons; Show more / Show less</text>
+  <rect x="1210" y="164" width="535" height="118" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="1230" y="196" class="head">Plan Assistant</text>
+  <text x="1230" y="225" class="body">All indexed documents + conversation</text>
+  <text x="1230" y="250" class="body">Answers, exact excerpts and PDF page links</text>
+  <path class="edge" d="M900 305 L900 344" />
+  <text x="920" y="332" class="meta">HTTP / JSON requests and responses</text>
+  <rect x="30" y="348" width="1740" height="117" rx="14" fill="#eaf1ff" stroke="#d5dfe9" />
+  <text x="50" y="380" class="section">02 / BACKEND - FASTAPI</text>
+  <text x="50" y="410" class="body">Request validation / REST routing / error handling / static UI hosting / request timing logs</text>
+  <text x="50" y="439" class="meta">/api/comparisons  +  /api/catalog/*</text>
+  <text x="640" y="439" class="meta">/api/comparison-chat/*</text>
+  <text x="1210" y="439" class="meta">/api/agent/*  +  /api/knowledge/*</text>
+  <path class="edge" d="M320 465 L320 512" />
+  <path class="edge" d="M900 465 L900 512" />
+  <path class="edge" d="M1480 465 L1480 512" />
+  <rect x="30" y="516" width="560" height="790" rx="14" fill="#e9f5ef" stroke="#d5dfe9" />
+  <text x="50" y="550" class="section">03A / DETERMINISTIC COMPARISON</text>
+  <rect x="610" y="516" width="560" height="790" rx="14" fill="#fff4e8" stroke="#d5dfe9" />
+  <text x="630" y="550" class="section">03B / COMPARISON CHAT</text>
+  <rect x="1190" y="516" width="560" height="790" rx="14" fill="#f0ecfc" stroke="#d5dfe9" />
+  <text x="1210" y="550" class="section">03C / DOCUMENT AGENT + RAG</text>
+  <rect x="50" y="570" width="520" height="124" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="70" y="602" class="head">Catalog and eligibility</text>
+  <text x="70" y="631" class="body">Read independent PDF / API source records</text>
+  <text x="70" y="656" class="body">Filter utility, contract term and credit preferences</text>
+  <text x="70" y="679" class="meta">backend/catalog/compare.py | source store [A]</text>
+  <path class="edge" d="M310 694 L310 725" />
+  <rect x="50" y="729" width="520" height="147" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="70" y="761" class="head">Pricing engine</text>
+  <text x="70" y="790" class="body">Energy + base / usage + delivery - credits</text>
+  <text x="70" y="815" class="body">Monthly rounding; tier and threshold rules</text>
+  <text x="70" y="840" class="body">Renewal scenarios over the comparison horizon</text>
+  <text x="70" y="861" class="meta">Python calculators | explicit legacy PDF mode separate</text>
+  <path class="edge" d="M310 876 L310 907" />
+  <rect x="50" y="911" width="520" height="149" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="70" y="943" class="head">Recommendation engine</text>
+  <text x="70" y="972" class="body">Best overall, top three and category winners</text>
+  <text x="70" y="997" class="body">Savings, confidence, scenarios and regret</text>
+  <text x="70" y="1022" class="body">Tradeoffs, warnings, break-even and evidence</text>
+  <text x="70" y="1045" class="meta">backend/recommendations.py</text>
+  <path class="edge" d="M310 1060 L310 1091" />
+  <rect x="50" y="1095" width="520" height="119" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="70" y="1127" class="head">Comparison result</text>
+  <text x="70" y="1156" class="body">Save immutable inputs, totals and provenance</text>
+  <text x="70" y="1181" class="body">Return ranked plans and monthly cost details</text>
+  <text x="70" y="1199" class="meta">backend/storage.py | comparison snapshots [B]</text>
+  <text x="50" y="1247" class="meta">Rough estimates stay separate from winner selection.</text>
+  <text x="50" y="1273" class="meta">Synthetic JSON plans are explicit demo mode only.</text>
+  <rect x="630" y="570" width="520" height="124" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="650" y="602" class="head">Scenario session manager</text>
+  <text x="650" y="631" class="body">Load saved comparison + freeze source records</text>
+  <text x="650" y="656" class="body">Version checks, request deduplication and history</text>
+  <text x="650" y="679" class="meta">backend/scenario/api.py | persistent sessions [B]</text>
+  <path class="edge" d="M890 694 L890 725" />
+  <rect x="630" y="729" width="520" height="147" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="650" y="761" class="head">Intent interpreter</text>
+  <text x="650" y="790" class="body">Explicit command rules + OpenAI adapter</text>
+  <text x="650" y="815" class="body">Convert natural language into typed actions</text>
+  <text x="650" y="840" class="body">Clarify missing scope, values or conflicting intent</text>
+  <text x="650" y="861" class="meta">OpenAI Responses | interpretation only</text>
+  <path class="edge" d="M890 876 L890 907" />
+  <rect x="630" y="911" width="520" height="149" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="650" y="943" class="head">Scenario engine</text>
+  <text x="650" y="972" class="body">Validate filters, usage and hypothetical overrides</text>
+  <text x="650" y="997" class="body">Apply changes to copies; rerun comparison</text>
+  <text x="650" y="1022" class="body">Undo, reset, branching and saved scenarios</text>
+  <text x="650" y="1045" class="meta">backend/scenario/engine.py + actions.py</text>
+  <path class="edge" d="M630 981 L599 981 L599 791 L570 791" />
+  <text x="638" y="1081" class="meta">Reuses the Python comparison engine at left.</text>
+  <rect x="630" y="1095" width="520" height="119" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="650" y="1127" class="head">Response and recovery</text>
+  <text x="650" y="1156" class="body">Commit successful scenario + return comparison</text>
+  <text x="650" y="1181" class="body">Failures preserve the last successful result</text>
+  <text x="650" y="1199" class="meta">SQLite transaction / frozen records / scenario history [B]</text>
+  <path class="edge" d="M890 1060 L890 1091" />
+  <text x="630" y="1247" class="meta">No automatic filter relaxation or invented prices.</text>
+  <text x="630" y="1273" class="meta">Model output cannot write data or calculate bills.</text>
+  <text x="50" y="1348" class="section">04 / DATA STORES</text>
+  <text x="340" y="1348" class="meta">[A-D] references above identify each service's storage dependencies</text>
+  <rect x="50" y="1370" width="410" height="170" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="70" y="1402" class="head">[A] Catalog DB</text>
+  <text x="70" y="1431" class="body">SQLite: plans.sqlite3</text>
+  <text x="70" y="1456" class="body">Rules + source revisions</text>
+  <text x="70" y="1481" class="body">PDF / TXU records + cache</text>
+  <text x="70" y="1525" class="meta">backend/catalog/store.py</text>
+  <rect x="480" y="1370" width="410" height="170" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="500" y="1402" class="head">[B] Comparison DB</text>
+  <text x="500" y="1431" class="body">SQLite: advisor.sqlite3</text>
+  <text x="500" y="1456" class="body">Saved comparison snapshots</text>
+  <text x="500" y="1481" class="body">Scenario sessions + history</text>
+  <text x="500" y="1525" class="meta">backend/storage.py</text>
+  <rect x="910" y="1370" width="410" height="170" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="930" y="1402" class="head">[C] Vector DB</text>
+  <text x="930" y="1431" class="body">Pinecone</text>
+  <text x="930" y="1456" class="body">Child vectors + parent text</text>
+  <text x="930" y="1481" class="body">Versioned corpus namespace</text>
+  <text x="930" y="1525" class="meta">Document retrieval store</text>
+  <rect x="1340" y="1370" width="410" height="170" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="1360" y="1402" class="head">[D] Local + memory</text>
+  <text x="1360" y="1431" class="body">data/: source PDFs</text>
+  <text x="1360" y="1456" class="body">Manifest + BM25 pages + identity</text>
+  <text x="1360" y="1481" class="body">Agent threads: process memory</text>
+  <text x="1360" y="1525" class="meta">Files + LangGraph checkpointer</text>
+  <text x="50" y="1585" class="section">05 / INGESTION AND EXTERNAL INTEGRATIONS</text>
+  <text x="50" y="1615" class="meta">Explicit CLI operations populate stores; ingestion is separate from answering questions or calculating bills.</text>
+  <rect x="50" y="1640" width="410" height="130" rx="14" fill="#fff8e8" stroke="#d5dfe9" />
+  <text x="70" y="1672" class="head">Local EFL PDFs</text>
+  <text x="70" y="1701" class="body">data/**/*.pdf</text>
+  <text x="70" y="1726" class="body">Native PDF source documents</text>
+  <rect x="525" y="1640" width="665" height="130" rx="14" fill="#e9f5ef" stroke="#d5dfe9" />
+  <text x="545" y="1672" class="head">Catalog import / validation</text>
+  <text x="545" y="1701" class="body">Extract billing components; validate against evidence</text>
+  <text x="545" y="1726" class="body">Persist passing plans in [A]; retain exclusion reasons</text>
+  <text x="545" y="1755" class="meta">backend.catalog.cli | sync / import-validated</text>
+  <path class="edge" d="M460 1705 L521 1705" />
+  <rect x="1260" y="1640" width="490" height="130" rx="14" fill="#fff8e8" stroke="#d5dfe9" />
+  <text x="1280" y="1672" class="head">TXU APIs + reviewed TDU lookup</text>
+  <text x="1280" y="1701" class="body">Utility resolution + offer snapshots</text>
+  <text x="1280" y="1726" class="body">Independent validated source records in [A]</text>
+  <text x="1280" y="1755" class="meta">backend.catalog.cli sync-txu</text>
+  <path class="edge" d="M1260 1705 L1194 1705" />
+  <rect x="50" y="1800" width="410" height="130" rx="14" fill="#f0ecfc" stroke="#d5dfe9" />
+  <text x="70" y="1832" class="head">RAG audit + extraction</text>
+  <text x="70" y="1861" class="body">Native text / tables; optional Tesseract</text>
+  <text x="70" y="1886" class="body">Page audit, identity and chunking</text>
+  <text x="70" y="1915" class="meta">OCR is RAG-only; install locally</text>
+  <path class="edge" d="M255 1770 L255 1796" />
+  <rect x="525" y="1800" width="665" height="130" rx="14" fill="#f0ecfc" stroke="#d5dfe9" />
+  <text x="545" y="1832" class="head">Embedding and index publication</text>
+  <text x="545" y="1861" class="body">OpenAI embeddings -&gt; Pinecone [C]</text>
+  <text x="545" y="1886" class="body">Publish page index + identity manifest [D] after upserts</text>
+  <text x="545" y="1915" class="meta">Versioned corpus | atomic activation | no reranker</text>
+  <path class="edge" d="M460 1865 L521 1865" />
+  <rect x="1260" y="1800" width="490" height="130" rx="14" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="1280" y="1832" class="head">Refresh orchestration</text>
+  <text x="1280" y="1861" class="body">update_data.py</text>
+  <text x="1280" y="1886" class="body">Audit + catalog + optional TXU + RAG</text>
+  <text x="1280" y="1915" class="meta">Manual CLI; no background scheduler</text>
+  <rect x="1210" y="570" width="520" height="110" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="1228" y="598" font-size="20" font-weight="700">Document agent / LangGraph</text>
+  <text x="1228" y="623" font-size="17">Reason, search, list, clarify or redirect</text>
+  <text x="1228" y="646" font-size="17">Checkpoint rollback preserves retryable conversations</text>
+  <text x="1228" y="668" font-size="14">backend/agent/graph.py + runtime.py | memory [D]</text>
+  <path class="edge" d="M1470 680 L1470 689" />
+  <rect x="1210" y="692" width="520" height="110" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="1228" y="720" font-size="20" font-weight="700">Plan identity + version resolution</text>
+  <text x="1228" y="745" font-size="17">Provider, name, term, utility, date and PDF hash</text>
+  <text x="1228" y="768" font-size="17">Ask when identity/version is ambiguous; honor scope</text>
+  <text x="1228" y="790" font-size="14">identity.py | evidence-backed metadata [D]</text>
+  <path class="edge" d="M1470 802 L1470 811" />
+  <rect x="1210" y="814" width="520" height="110" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="1228" y="842" font-size="20" font-weight="700">Hybrid retrieval / no reranker</text>
+  <text x="1228" y="867" font-size="17">OpenAI embeddings -&gt; Pinecone vectors [C]</text>
+  <text x="1228" y="890" font-size="17">Local BM25 [D] + reciprocal-rank fusion</text>
+  <text x="1228" y="912" font-size="14">retrieval.py + providers.py | vector-only mode available</text>
+  <path class="edge" d="M1470 924 L1470 933" />
+  <rect x="1210" y="936" width="520" height="110" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="1228" y="964" font-size="20" font-weight="700">Evidence completeness</text>
+  <text x="1228" y="989" font-size="17">Deduplicate parents; expand explicit page references</text>
+  <text x="1228" y="1012" font-size="17">Up to four pages; flag missing terms, OCR and dates</text>
+  <text x="1228" y="1034" font-size="14">evidence.py | preserve table headings and conditions</text>
+  <path class="edge" d="M1470 1046 L1470 1055" />
+  <rect x="1210" y="1058" width="520" height="110" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="1228" y="1086" font-size="20" font-weight="700">Grounded answer + exact citations</text>
+  <text x="1228" y="1111" font-size="17">OpenAI generates an answer from current evidence</text>
+  <text x="1228" y="1134" font-size="17">Validate selected source IDs and exact excerpts</text>
+  <text x="1228" y="1156" font-size="14">agent/model.py | bounded citation repair</text>
+  <path class="edge" d="M1470 1168 L1470 1177" />
+  <rect x="1210" y="1180" width="520" height="110" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="1228" y="1208" font-size="20" font-weight="700">Independent claim support check</text>
+  <text x="1228" y="1233" font-size="17">Check every answer unit, identity, units and conflicts</text>
+  <text x="1228" y="1256" font-size="17">Unsupported claims or failed verification -&gt; abstain</text>
+  <text x="1228" y="1278" font-size="14">verification.py | shared with /api/knowledge/ask</text>
+  <rect x="30" y="1960" width="1740" height="270" rx="14" fill="#eaf1ff" stroke="#d5dfe9" />
+  <text x="50" y="1995" font-size="20" font-weight="700">06 / AUDIT, EVALUATION AND MONITORING</text>
+  <rect x="50" y="2015" width="520" height="145" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="68" y="2043" font-size="20" font-weight="700">Document audit</text>
+  <text x="68" y="2068" font-size="17">Every PDF/page: selected, excluded, failed or skipped</text>
+  <text x="68" y="2091" font-size="17">Tables, text counts, duplicate pages and OCR mode</text>
+  <text x="68" y="2114" font-size="17">Unreadable selected pages stop publication</text>
+  <text x="68" y="2148" font-size="14">audit.py | .data/rag-audit.json</text>
+  <rect x="630" y="2015" width="520" height="145" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="648" y="2043" font-size="20" font-weight="700">Evaluation + regression tests</text>
+  <text x="648" y="2068" font-size="17">Expected documents, pages, facts and abstentions</text>
+  <text x="648" y="2091" font-size="17">Compare vector / hybrid; test recovery and security</text>
+  <text x="648" y="2114" font-size="17">Live fixtures supplement offline API and UI tests</text>
+  <text x="648" y="2148" font-size="14">evaluate.py | docs/rag-assurance-evaluation.json</text>
+  <rect x="1210" y="2015" width="520" height="145" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="1228" y="2043" font-size="20" font-weight="700">Operational metrics</text>
+  <text x="1228" y="2068" font-size="17">Retrieval misses, unsupported answers and failures</text>
+  <text x="1228" y="2091" font-size="17">Latency + token usage; optional blended cost estimate</text>
+  <text x="1228" y="2114" font-size="17">Sanitized counters/logs; reset on server restart</text>
+  <text x="1228" y="2148" font-size="14">monitoring.py | GET /api/knowledge/metrics</text>
+  <text x="50" y="2197" font-size="17">Boundaries: Python calculates bills; RAG explains documents. Claim checks are model-assisted; OCR needs local Tesseract.</text>
 </svg>

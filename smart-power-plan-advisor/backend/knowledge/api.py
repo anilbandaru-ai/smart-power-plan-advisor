@@ -4,12 +4,17 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from backend.knowledge.config import Settings
-from backend.knowledge.models import Answer, KnowledgeUnavailable, Question
+from backend.knowledge.models import Answer, KnowledgeUnavailable, Question, DocumentIdentityError
 
 
 def create_router(settings=None, provider_factory=None):
     settings = settings or Settings.from_env()
     router = APIRouter(prefix="/api/knowledge", tags=["Plan documents"])
+
+    @router.get("/metrics")
+    def metrics():
+        from backend.knowledge.monitoring import snapshot
+        return snapshot()
 
     @router.get("/status")
     def status():
@@ -32,6 +37,9 @@ def create_router(settings=None, provider_factory=None):
                 providers = Providers(settings)
             providers.connect()
             return build_graph(providers, manifest).invoke(payload.model_dump(), {"recursion_limit": 8})["result"]
+        except DocumentIdentityError as error:
+            from backend.knowledge.evidence import abstain
+            return abstain(str(error))
         except KnowledgeUnavailable as error:
             raise HTTPException(503, str(error)) from None
         except ImportError:

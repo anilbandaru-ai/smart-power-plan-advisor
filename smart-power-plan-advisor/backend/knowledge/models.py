@@ -40,3 +40,7 @@ class KnowledgeUnavailable(Exception):
 
 class DocumentReviewRequired(ValueError):
     pass
+
+
+class DocumentIdentityError(ValueError):
+    pass

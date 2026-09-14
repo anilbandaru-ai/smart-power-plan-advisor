@@ -27,6 +27,9 @@ Preserve units, dates, inequalities and conditions exactly. Greater than 999 kWh
 as at least 1000 kWh for fractional usage. Do not infer missing TDU rates from average-price examples.
 Do not calculate bills or recommend/rank offers. Direct cost-comparison questions to the separate
 calculator, whose plans are synthetic. Documents do not establish present offer availability.
+Respect supplied identity, document version, OCR and missing-page warnings. Do not mix similar
+plan names or omit conditions, exceptions or linked terms necessary to support a complete answer.
+If sources conflict, disclose the conflict and request the relevant utility/date; do not choose silently.
 Keep answers concise. Never claim that the source was independently verified or is a live offer.
 """
 
@@ -66,20 +69,42 @@ class Providers:
 
     def embed(self, texts):
         result = self.openai.embeddings.create(model=EMBEDDING_MODEL, dimensions=DIMENSIONS, input=texts)
+        from backend.knowledge.monitoring import usage
+        usage("embedding", result)
         vectors = [item.embedding for item in sorted(result.data, key=lambda item: item.index)]
         if len(vectors) != len(texts) or any(len(vector) != DIMENSIONS for vector in vectors):
             raise ValueError("Unexpected embedding dimensions or count")
         return vectors
 
     def retrieve(self, question, manifest, document_id):
+        from backend.knowledge.identity import resolve
+        from backend.knowledge.retrieval import keyword_search, fuse, enrich
+        from backend.knowledge.evidence import select_context
+        from backend.knowledge.monitoring import record, timed
+        from backend.knowledge.models import DocumentIdentityError
+        allowed, ambiguity = resolve(question, manifest, document_id)
+        if ambiguity:
+            raise DocumentIdentityError(ambiguity)
         filters = {"corpus_id": {"$eq": manifest["corpus_id"]}}
         if document_id:
             filters["document_id"] = {"$eq": document_id}
-        result = self.index.query(
-            namespace=manifest["namespace"], vector=self.embed([question])[0], top_k=8,
-            include_metadata=True, include_values=False, filter=filters, _request_timeout=30,
-        )
-        return [{"id": item.id, "score": item.score, "metadata": item.metadata} for item in result.matches]
+        elif allowed:
+            filters["document_id"] = {"$in": sorted(allowed)}
+        with timed("retrieval"):
+            result = self.index.query(
+                namespace=manifest["namespace"], vector=self.embed([question])[0], top_k=16 if self.settings.hybrid_search else 8,
+                include_metadata=True, include_values=False, filter=filters, _request_timeout=30)
+            vector = [{"id": item.id, "score": item.score, "metadata": item.metadata} for item in result.matches]
+            vector = [m for m in vector if select_context([m], manifest, document_id)
+                      and (allowed is None or m["metadata"]["document_id"] in allowed)]
+            lexical = keyword_search(question, manifest, allowed) if self.settings.hybrid_search else []
+            lexical = [m for m in lexical if select_context([m], manifest, document_id)]
+            matches = fuse(vector, lexical) if self.settings.hybrid_search else vector
+            matches = enrich(matches, manifest, allowed)
+            record("retrieval_results", candidates=len(matches), miss=not matches)
+            if self.settings.hybrid_search and "search_pages" not in manifest:
+                record("legacy_vector_fallback")
+            return matches
 
     def generate(self, question, context):
         response = self.openai.responses.parse(
@@ -87,7 +112,10 @@ class Providers:
             input=json.dumps({"question": question, "sources": context}, ensure_ascii=False),
             text_format=GeneratedAnswer, max_output_tokens=1600, store=False,
         )
-        return response.output_parsed
+        from backend.knowledge.verification import verify
+        from backend.knowledge.monitoring import usage
+        usage("knowledge_answer_tokens", response)
+        return verify(self.openai, self.settings.model, question, response.output_parsed, context)
 
     def upsert(self, records, namespace):
         for start in range(0, len(records), 16):

@@ -1,4 +1,5 @@
 """Single-process conversation lifecycle; external dependencies never enter graph state."""
+import copy
 import secrets
 import threading
 import time
@@ -89,6 +90,10 @@ class Runtime:
             if session.failed:
                 raise HTTPException(409, "This conversation stopped. Start a new conversation.")
             manifest = self.settings.manifest()
+            previous_session = (session.turns, session.pending, session.corpus, session.turn_id)
+            previous_checkpoint = {"storage": copy.deepcopy(self.saver.storage.get(key)),
+                "writes": {k: copy.deepcopy(v) for k, v in list(self.saver.writes.items()) if k[0] == key},
+                "blobs": {k: copy.deepcopy(v) for k, v in list(self.saver.blobs.items()) if k[0] == key}}
             if resume:
                 if session.pending != payload.interrupt_id or not session.pending:
                     raise HTTPException(409, "Clarification is no longer pending.")
@@ -108,7 +113,7 @@ class Runtime:
                 session.corpus = manifest["corpus_id"]
                 value = {"messages": [HumanMessage(content=payload.message)], "manifest": manifest,
                          "document_id": payload.document_id, "evidence": {}, "calls": 0, "tools": 0,
-                         "searches": 0, "activity": [], "result": None, "stopped": False, "finish_with_evidence": False}
+                         "searches": 0, "activity": [], "result": None, "stopped": False, "finish_with_evidence": False, "identity_question": None}
             if self.model_factory:
                 model = self.model_factory(self.settings)
             else:
@@ -128,10 +133,17 @@ class Runtime:
 
             config = {"configurable": {"thread_id": key, "model": model, "retrieve": retrieve}, "recursion_limit": 30}
             try:
-                output = self.graph.invoke(value, config)
+                from backend.knowledge.monitoring import timed, record
+                with timed("agent_turn"):
+                    output = self.graph.invoke(value, config)
             except Exception:
-                session.failed = True
-                raise HTTPException(502, "Document agent is temporarily unavailable. Start a new conversation and try again.") from None
+                self.saver.delete_thread(key)
+                if previous_checkpoint["storage"] is not None:
+                    self.saver.storage[key] = previous_checkpoint["storage"]
+                self.saver.writes.update(previous_checkpoint["writes"])
+                self.saver.blobs.update(previous_checkpoint["blobs"])
+                session.turns, session.pending, session.corpus, session.turn_id = previous_session
+                raise HTTPException(503, "Document agent is temporarily unavailable. Your conversation is preserved; retry your message.") from None
             interruptions = output.get("__interrupt__", ())
             if interruptions:
                 pause = interruptions[0]
@@ -143,6 +155,7 @@ class Runtime:
                 if result["status"] == "limit_reached":
                     session.failed = True
             result = {**result, "thread_id": key, "turn_id": session.turn_id, "activity": output.get("activity", [])}
+            record("agent_result_" + result["status"])
             session.cache[request_id] = (fingerprint, result)
             return result
         finally:

@@ -23,9 +23,16 @@ class Settings:
     manifest_path: Path = ROOT / ".data" / "knowledge.json"
     data_dir: Path = ROOT / "data"
 
+    hybrid_search: bool = True
+    ocr_enabled: bool = False
+    ocr_command: str = "tesseract"
+
     @classmethod
     def from_env(cls):
         return cls(
+            hybrid_search=os.getenv("RAG_HYBRID_SEARCH", "true").lower() == "true",
+            ocr_enabled=os.getenv("RAG_OCR_ENABLED", "false").lower() == "true",
+            ocr_command=os.getenv("RAG_OCR_COMMAND", "tesseract"),
             openai_key=os.getenv("OPENAI_API_KEY", "").strip(),
             pinecone_key=os.getenv("PINECONE_API_KEY", "").strip(),
             index_name=os.getenv("PINECONE_INDEX", "power-plan-documents").strip(),
@@ -43,7 +50,7 @@ class Settings:
 
     def manifest(self):
         try:
-            data = json.loads(self.manifest_path.read_text())
+            data = json.loads(self.manifest_path.read_text(encoding="utf-8"))
             if (data["schema_version"] != 1 or data["embedding_model"] != EMBEDDING_MODEL
                     or data["dimensions"] != DIMENSIONS or data["chunk_policy"] != CHUNK_POLICY
                     or data["index_name"] != self.index_name
@@ -65,4 +72,5 @@ class Settings:
         return {"configured": self.configured, "indexed": indexed,
                 "documents": documents, "embedding_model": EMBEDDING_MODEL,
                 "dimensions": DIMENSIONS, "model": self.model,
-                "live_readiness_checked": False}
+                "live_readiness_checked": False, "hybrid_search": self.hybrid_search,
+                "ocr_enabled": self.ocr_enabled, "assurance_version": 1}

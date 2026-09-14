@@ -8,10 +8,10 @@ def abstain(message="I could not find sufficient supporting evidence in the inde
 def select_context(matches, manifest, document_id=None):
     documents = {doc["id"]: doc for doc in manifest["documents"]}
     selected, seen = [], set()
-    for match in sorted(matches, key=lambda item: item.get("score", 0), reverse=True):
+    for match in sorted(matches, key=lambda item: item.get("rank_score", item.get("score", 0)), reverse=True):
         metadata = match.get("metadata") or {}
         doc = documents.get(metadata.get("document_id"))
-        if (not doc or match.get("score", 0) < 0.25
+        if (not doc or (match.get("score", 0) < 0.25 and match.get("keyword_score", 0) <= 0)
                 or metadata.get("corpus_id") != manifest["corpus_id"]
                 or metadata.get("document_hash") != doc["sha256"]
                 or metadata.get("page") not in doc["pages"]
@@ -24,7 +24,9 @@ def select_context(matches, manifest, document_id=None):
             continue
         seen.add(parent_id)
         selected.append({"source_id": f"S{len(selected) + 1}", "document_id": doc["id"],
-                         "filename": doc["filename"], "page": int(metadata["page"]), "text": text})
+                         "filename": doc["filename"], "page": int(metadata["page"]), "text": text,
+                         "identity": metadata.get("identity", doc.get("identity", {})),
+                         "document_version": doc["sha256"], "warnings": metadata.get("warnings", [])})
         if len(selected) == 4:
             break
     return selected

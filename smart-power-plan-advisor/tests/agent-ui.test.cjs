@@ -14,7 +14,6 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
 function setup(handler, readiness = () => ({ configured: true, indexed: true, dependencies_available: true, documents: [{id:'doc', filename:'Plan.pdf'}] })) {
   const nodes = new Map();
   const get = id => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id); };
-  get('document').append(new Element());
   let id = 0;
   vm.runInNewContext(readFileSync('frontend/agent.js', 'utf8'), {
     document: { querySelector: selector => get(selector.replace('#agent-', '')), createElement: () => new Element(), querySelectorAll: () => [] },
@@ -45,7 +44,7 @@ test('chat creates thread, resumes clarification, renders safe citations and cle
   assert.equal(get('messages').children.length, 2);
   assert.equal(get('messages').children[0].className, 'chat-message user');
   assert.equal(get('empty').hidden, true);
-  assert.equal(get('document').disabled, true);
+  assert.equal(JSON.parse(calls[1].body).document_id, null);
   get('question').value = 'Termination';
   await get('form').fire('submit');
   assert.equal(JSON.parse(calls[2].body).interrupt_id, 'pause');

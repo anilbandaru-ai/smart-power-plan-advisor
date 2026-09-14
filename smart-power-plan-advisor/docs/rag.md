@@ -1,6 +1,11 @@
 # Plan-document RAG
 
-This optional feature answers questions about locally supplied electricity facts labels (EFLs), with PDF page citations. It uses OpenAI embeddings, a dedicated Pinecone dense-vector index, and LangGraph orchestration. It does not extract approved billing rules into the calculator. The calculator continues using its synthetic JSON plans.
+Current behavior is extended by [RAG assurance](rag-assurance.md): hybrid retrieval,
+identity, optional OCR, audits, claim verification and metrics. The single-turn
+graph below remains distinct from the conversational document agent.
+
+
+This optional feature answers questions about locally supplied electricity facts labels (EFLs), with PDF page citations. It uses OpenAI embeddings, a dedicated Pinecone dense-vector index, and LangGraph orchestration. It does not extract approved billing rules into the calculator. The calculator uses separately validated catalog records or explicit demo fixtures.
 
 ## Models and chunking
 
@@ -12,9 +17,9 @@ This optional feature answers questions about locally supplied electricity facts
 | Parent chunks | Complete PDF pages, capped at 1,800 tokens. Ruled tables are serialized by row and cell before chunking; pricing tables, footnotes, and adjacent conditions remain together in the LLM context. Oversized pages require review rather than silent splitting. |
 | Child chunks | Up to approximately 450 tokens, with 60-token overlap and a preference for line boundaries. Children never cross pages or documents. They locate relevant parent pages; they are not the only text sent to the LLM. |
 | Duplicate handling | Exact extracted-text duplicate pages within a PDF are indexed once, with the first original page number retained. Completely blank pages (no text or PDF objects) are skipped and recorded in the manifest; original page numbers remain unchanged. All-blank documents and scanned/nonblank unreadable pages still require review. |
-| Retrieval | Query at most eight child vectors in the active versioned namespace, optionally filtered by document ID. Discard scores below 0.25 and mismatched metadata; deduplicate to at most four full parent pages. This score is a heuristic, not a calibrated confidence probability. |
+| Retrieval | Query up to 16 child vectors in hybrid mode (eight in vector-only mode), validate scope and metadata, and fuse with local BM25 page matches. Vector candidates require cosine >= 0.25; keyword matches use a separate score. Select at most four full pages, including available explicit page references. This score is a heuristic, not a calibrated confidence probability. |
 
-This is **table-aware page-parent/child retrieval**, using pdfplumber's ruled-table detection rather than LLM semantic segmentation. Outer tables are serialized once, retaining cell boundaries and text outside tables; unruled pages fall back to ordinary text extraction. Complex layouts still require review. The EFL is a small, table-heavy document; preserving a full page is more useful here than sending arbitrary isolated fragments of a price row. The initial PDF has two identical extracted pages; preview yields one unique parent and two children. For longer or scanned documents, review extraction and adjust the versioned policy before expanding support. OCR is not included.
+This is **table-aware page-parent/child retrieval**, using pdfplumber's ruled-table detection rather than LLM semantic segmentation. Outer tables are serialized once, retaining cell boundaries and text outside tables; unruled pages fall back to ordinary text extraction. Complex layouts still require review. The EFL is a small, table-heavy document; preserving a full page is more useful here than sending arbitrary isolated fragments of a price row. The initial PDF has two identical extracted pages; preview yields one unique parent and two children. For longer or scanned documents, review extraction and adjust the versioned policy before expanding support. Optional local OCR and its limitations are described in the assurance guide.
 
 There is no universally best chunk size. Tune these defaults using the [evaluation questions](rag-evaluation.json), retrieval coverage, citation correctness, answer faithfulness, latency and cost. Changing the embedding model, dimensions or chunking policy requires reingestion into a compatible index/namespace.
 

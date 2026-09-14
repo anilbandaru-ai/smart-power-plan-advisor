@@ -23,6 +23,8 @@ class KnowledgeCliTests(unittest.TestCase):
     def test_invalid_selected_document_never_connects_or_publishes(self):
         with patch('sys.argv', ['cli', 'ingest']), \
              patch('backend.knowledge.cli.source_files', return_value=[]), \
+             patch('backend.knowledge.audit.audit_corpus', return_value={'files': [], 'failed': 0}), \
+             patch('backend.knowledge.audit.write_audit'), \
              patch('backend.knowledge.documents.build_corpus', side_effect=DocumentReviewRequired('review required')), \
              patch('backend.knowledge.providers.Providers') as provider, \
              patch('backend.knowledge.ingest.publish') as publish:

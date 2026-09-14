@@ -190,3 +190,21 @@ Offline regressions cover large retrieved context, follow-up history, clarificat
 pairs, reserved finalization, invalid citations without repair budget, and actual
 context overflow. These checks do not establish the cause of any particular live
 request without its question and conversation context.
+
+Repeated current-turn searches also deduplicate identical page payloads in the
+model context: the first result contains full text, later copies reference it.
+Different pages and changed text remain distinct. Checkpoints and finalizer
+evidence retain their original content. Token guards use literal Unicode.
+
+Verification (2026-09-13): 29 agent and 17 knowledge tests passed. A repeated
+four-page search reproduced limit_reached before the fix. The regression now
+passes through three questions. Live HTTP verification in one new conversation
+answered Frontier Saver Plus 12 contract term, termination fee and credit
+conditions with citations on every turn. An initial smoke attempt lost its
+in-memory session during backend reload; a fresh conversation passed all three.
+
+
+The [RAG assurance upgrade](rag-assurance.md) adds hybrid retrieval, document
+identity clarification, independent claim checks (up to two additional model calls),
+and checkpoint rollback for retryable provider failures. These supersede the
+earlier six-total-call and terminal-provider-failure descriptions above.
