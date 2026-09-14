@@ -59,7 +59,7 @@ class ScenarioChatTests(unittest.TestCase):
         self.assertEqual(result['recommendation_result']['comparison_horizon'],36)
         self.assertEqual(result['recommendation_result']['baseline']['plan_id'],'c')
         saved=self.client.get('/api/comparisons/'+result['id']).json();self.assertEqual(saved,result)
-        self.turn(Action(kind='compare_original',question='',operations=[]))
+        self.turn(Action(kind='compare_original',question='',operations=[]),message='Compare with original.')
         self.assertIn('not like-for-like',self.session['message'])
         self.turn(Action(kind='previous',question='',operations=[]));self.assertEqual(self.session['result']['id'],self.original['id'])
     def test_invalid_atomic_and_no_matches(self):
@@ -178,7 +178,7 @@ class ScenarioChatTests(unittest.TestCase):
                 if sql.startswith('INSERT INTO comparisons'):
                     raise sqlite3.OperationalError('simulated save failure')
                 return super().execute(sql,*args,**kwargs)
-        body={'request_id':str(uuid4()),'version':0,'message':'36 months'}
+        body={'request_id':str(uuid4()),'version':0,'message':'Compare over 36 months'}
         with patch('backend.scenario.api.sqlite3.connect',side_effect=lambda *a,**kw:original_connect(*a,**kw,factory=BrokenSave)):
             self.assertEqual(self.turn(action(op('comparison_horizon','36')),body=body).status_code,503)
         response=self.client.get('/api/comparison-chat/'+self.session['session_id'],headers=self.headers).json()

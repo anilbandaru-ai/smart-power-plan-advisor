@@ -2,6 +2,7 @@
 import copy
 import json
 import secrets
+import re
 import sqlite3
 import time
 from contextlib import closing
@@ -9,7 +10,8 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from backend.models import ComparisonResult, ComparisonRequest
-from backend.scenario.actions import interpret, Action
+from backend.scenario.actions import interpret, Action, preflight_action
+from backend.scenario.answers import answer, delta, local_question, explicit_ids, topic_for
 from backend.scenario.engine import apply, calculate, no_match_message
 
 
@@ -135,19 +137,50 @@ def router(store,catalog,source,interpreter=None):
             previous=cached(c)
             if previous:return previous
         if row['version']!=payload.version: raise HTTPException(409,'Conversation changed in another request. Reload chat before continuing.')
-        if row['version']>=100: raise HTTPException(429,'Conversation limit reached. Start a new chat from the current comparison.')
+        if row['version']>=100: raise HTTPException(429,{'code':'conversation_limit','message':'Conversation limit reached. Restart chat from the current comparison.'})
         current=state['history'][state['active']]
         before=store.get(current['result_id'])
         if before is None: raise HTTPException(404,'Current comparison is missing. Start a new chat.')
         context={'state':current['state'],'pending':state['pending'],
             'recent_attempts':state['attempts'][-6:],
             'plans':[{'id':r['id'],'name':r['plan']['name']['value'],'calculation_eligible':r['calculation_eligible'],'calculation_issues':r['calculation_issues'],'components':[{k:v for k,v in c.items() if k!='evidence'} for c in r['plan']['components']]} if 'plan' in r else {'id':r['id'],'name':r['name'],'source_type':r.get('source_type','demo'),'calculation_eligible':r.get('calculation_eligible',True),'components':r.get('components',[])} for r in state['frozen']]}
+        context['focused_plan_ids'] = state.get('focus', [])
+        context['recommended_plan_id'] = before.recommendation_result.best_overall.plan_id if before.recommendation_result and before.recommendation_result.best_overall else None
+        for info in context['plans']:
+            saved = next((p for p in before.recommendations if p.plan_id == info['id']), None)
+            info['pricing_basis'] = saved.pricing_basis if saved else 'unavailable'
+            fields = sorted({c['kind'] for c in info['components']})
+            if 'credit' in fields: fields += ['credit_minimum','credit_maximum','credit_minimum_inclusive','credit_maximum_inclusive']
+            record = next(r for r in state['frozen'] if r['id']==info['id'])
+            raw = record.get('plan', {})
+            info.update(term_months=saved.term_months if saved else record.get('term_months'),
+                        provider=record.get('provider') or (raw.get('provider') or {}).get('value'),
+                        service_area=record.get('service_area') or (raw.get('service_area') or {}).get('value'),
+                        issue_date=record.get('issue_date') or (raw.get('issue_date') or {}).get('value'))
+            if info['pricing_basis'] == 'custom_efl':
+                fields = [f for f in fields if f not in ('energy', 'energy_tier')]
+                if before.data_mode == 'pdf': fields.append('average_price')
+            info['supported_overrides'] = fields if info['calculation_eligible'] else []
         try:
-            action=Action.model_validate(interpreter(payload.message,context))
+            local = local_question(payload.message, state['frozen'])
+            clarification = state.get('answer_pending')
+            named = explicit_ids(payload.message, state['frozen'])
+            blocked = preflight_action(payload.message,context)
+            bare_plan = payload.message.strip().casefold() in [value.casefold() for p in context['plans'] for value in (p['name'],p['id'])]
+            if blocked:
+                action = blocked
+            elif clarification and named and bare_plan:
+                action = Action(kind='explain', topic=clarification, target_plan_ids=named, question='', operations=[])
+            elif named and bare_plan:
+                action = Action(kind='explain', topic='unknown', target_plan_ids=named, question='', operations=[])
+            elif local:
+                action = Action(kind='explain', topic=local[0], target_plan_ids=local[1], question='', operations=[])
+            else:
+                action=Action.model_validate(interpreter(payload.message,context))
         except Exception:
             failure(id,payload,'Interpretation failed; retry is available.')
             raise HTTPException(503,'Chat could not interpret this request. Your results are unchanged. Retry or rephrase the message.') from None
-        status='explained';message='';result=None;changes=[]
+        status='explained';message='';result=None;changes=[];evidence=[]
         try:
             if action.kind in ('clarify','unsupported'):
                 status=action.kind
@@ -159,10 +192,12 @@ def router(store,catalog,source,interpreter=None):
                     state['pending']['previous']=None
             elif action.kind in ('reset','previous'):
                 state['active']=0 if action.kind=='reset' else current['parent'] if current['parent'] is not None else 0
-                state['pending']=None
+                state['pending']=None;state['focus']=[];state['answer_pending']=None
                 message='Restored the original comparison.' if action.kind=='reset' else 'Restored the previous successful scenario.'
                 status='restored'
             elif action.kind=='compare_original':
+                if not re.search(r'\b(original|initial)\b',payload.message,re.I):
+                    raise ValueError('Specify two plan names to compare, or explicitly ask to compare with the original scenario.')
                 original=store.get(state['original_id'])
                 if original is None: raise ValueError('Original comparison is missing')
                 a,b=original.recommendation_result,before.recommendation_result
@@ -171,7 +206,12 @@ def router(store,catalog,source,interpreter=None):
                 bc=b.best_overall.horizon_cost if b.best_overall.horizon_cost is not None else b.best_overall.estimated_annual_cost
                 message=f'Original: {a.best_overall.name}, ${ac:,.2f} / {a.comparison_horizon} months. Current: {b.best_overall.name}, ${bc:,.2f} / {b.comparison_horizon} months. '
                 message+=(f'Cost difference: ${bc-ac:,.2f}; this is a scenario difference, not guaranteed savings.' if a.comparison_horizon==b.comparison_horizon and a.policy_version==b.policy_version else 'Periods or pricing methods differ; raw totals are not like-for-like savings.')
-            elif action.kind=='explain': message=explanation(before)
+            elif action.kind=='explain':
+                topic = action.topic if action.topic != 'unknown' else topic_for(payload.message)
+                targets = action.target_plan_ids or explicit_ids(payload.message, state['frozen'])
+                status,message,evidence,focus = answer(before,state['frozen'],current['state'],topic,targets,state.get('focus',[]),payload.message)
+                state['answer_pending'] = topic if status == 'clarify' else None
+                if status == 'explained': state['focus'] = focus
             else:
                 if state['needs_migration'] and action.kind!='migrate':
                     status='clarify';message='This saved result uses an older formula. Reply "use current custom formula" to explicitly migrate, or start a fresh comparison.'
@@ -190,7 +230,8 @@ def router(store,catalog,source,interpreter=None):
                         if action.kind=='migrate': changes.append('Migrated to the current custom formula; other pending changes were not applied.')
                         state['history'].append({'parent':state['active'],'result_id':result.id,'state':proposed})
                         state['active']=len(state['history'])-1;state['pending']=None;state['needs_migration']=False
-                        message='Changed: '+'; '.join(changes)+'. All other inputs and overrides were retained. '+explanation(result)
+                        message=delta(before,result)+' Changed: '+'; '.join(changes)+'. All other inputs and overrides were retained. '+explanation(result)
+                        state['focus']=[];state['answer_pending']=None
                         status='updated'
         except (ValueError,ValidationError) as error:
             result=None;status='invalid'
@@ -199,7 +240,7 @@ def router(store,catalog,source,interpreter=None):
         except Exception:
             failure(id,payload,'Calculation failed; retry is available.')
             raise HTTPException(503,'Scenario calculation failed. Previous results are unchanged. Retry this request.') from None
-        state['attempts']=(state['attempts']+[{'user':payload.message,'status':status,'message':message,'changes':changes}])[-40:]
+        state['attempts']=(state['attempts']+[{'user':payload.message,'status':status,'message':message,'changes':changes,'evidence_refs':evidence}])[-40:]
         response=view(id,row['version']+1,state,message,status,result)
         # One transaction commits the scenario, active pointer and idempotency record.
         try:

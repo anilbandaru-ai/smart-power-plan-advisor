@@ -55,6 +55,8 @@ def create_app(db_path: Path | None = None, plan_source: PlanSource | None = Non
     async def log_requests(request: Request, call_next):
         started = perf_counter()
         response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
         logger.info("method=%s path=%s status=%s duration_ms=%.1f", request.method,
                     request.url.path, response.status_code, (perf_counter() - started) * 1000)
         return response

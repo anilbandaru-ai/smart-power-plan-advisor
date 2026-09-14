@@ -268,22 +268,29 @@ function renderRecommendation(data) {
 function renderRoughEstimates(data) {
   if (!data.rough_estimates?.length) return;
   const section = element('section', '', results);
+  section.className = 'rough-estimates';
   element('h2', 'Rough cost estimates — assumptions required', section);
   element('p', 'These illustrations are separate from the calculated-cost ranking and are not used to select a winner. Edit assumptions, then click Compare plans to recalculate.', section);
   const reset = element('button', 'Reset rough assumptions', section);
   reset.type = 'button';
+  reset.className = 'secondary-button';
   reset.addEventListener('click', () => { roughOverrides = {}; invalidate(); status.textContent = 'Assumptions reset. Click Compare plans to recalculate.'; });
   for (const plan of data.rough_estimates) {
     const card = element('details', '', section);
     card.className = 'plan-row';
     element('summary', `${plan.name} — approximately ${dollars(plan.annual_cost)} / year — ${plan.availability}`, card);
-    element('p', plan.availability, card);
-    element('p', `Calculation method: ${plan.method.replace('rough-v1:', '').replaceAll('_', ' ')}`, card);
-    if (plan.formula) element('p', `Formula: ${plan.formula}`, card);
-    for (const note of plan.notes) element('p', note, card).className = 'note';
-    const changed = element('p', '', card);
+    const content = element('div', '', card);
+    content.className = 'plan-content rough-plan-content';
+    element('p', plan.availability, content);
+    element('p', `Calculation method: ${plan.method.replace('rough-v1:', '').replaceAll('_', ' ')}`, content);
+    if (plan.formula) element('p', `Formula: ${plan.formula}`, content);
+    for (const note of plan.notes) element('p', note, content).className = 'note';
+    const changed = element('p', '', content);
+    changed.className = 'note';
+    const fields = element('div', '', content);
+    fields.className = 'rough-assumptions';
     for (const [name, definition] of Object.entries(plan.parameters)) {
-      const label = element('label', definition.label, card);
+      const label = element('label', definition.label, fields);
       const input = element('input', '', label);
       input.type = 'number'; input.min = definition.minimum; input.max = definition.maximum;
       input.step = definition.integer ? '1' : 'any';
@@ -296,9 +303,9 @@ function renderRoughEstimates(data) {
         status.textContent = 'Rough assumptions changed; comparison needs recalculation.';
       });
     }
-    const link = element('a', 'Review source catalog data', card);
+    const link = element('a', 'Review source catalog data', content);
     link.href = plan.source_url; link.target = '_blank'; link.rel = 'noopener noreferrer';
-    const breakdown = element('details', '', card);
+    const breakdown = element('details', '', content);
     element('summary', 'Monthly rough estimates and original exclusions', breakdown);
     for (const month of plan.monthly_costs) element('p', `Month ${month.month}: ${month.kwh} kWh — approximately ${dollars(month.total)}`, breakdown);
     for (const issue of plan.pricing_issues) element('p', issue, breakdown);

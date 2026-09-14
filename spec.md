@@ -1591,3 +1591,294 @@ restore checkpoints and return retryable 503; verifier failures instead withhold
 the unverified draft. Known input/call limits remain bounded. Source discovery is
 sorted by relative POSIX filename for consistent Windows/Linux audit ordering.
 See docs/rag-assurance.md and its saved evaluation results for commands and limits.
+
+
+## UI-20: rough-estimate detail consistency (2026-09-14)
+
+Status: implemented. Match expanded rough-estimate plans to
+standard plan details: shared content padding, body typography, paragraph spacing
+and responsive assumption controls. Keep rough-estimate warnings, exclusions,
+editable assumptions, numeric values and calculation behavior unchanged. Verify
+existing comparison UI regressions and JavaScript syntax.
+
+Verification: 36 comparison and scenario-chat UI tests passed, including rough
+assumption editing and resubmission; app.js syntax and changed-file whitespace
+checks passed. No browser visual verification was performed.
+
+
+## UI-21: preserve PDF EFL references in catalog comparisons (2026-09-14)
+
+Status: implemented. The combined catalog comparison adapter
+must copy each PDF source's published examples into PlanComparison.efl_price_examples
+with kWh, cents/kWh, page and exact quote. Apply this to fresh and frozen-record
+scenario comparisons. Provider API examples must not be represented as PDF EFL
+evidence. Preserve existing display-band rules, renewal unavailability, component
+pricing and saved snapshots. Old snapshots require a fresh comparison to acquire
+missing metadata. Acceptance: PDF references survive POST/save/GET and frozen
+comparison; costs unchanged; API-only examples remain absent from the EFL field.
+
+Verification: 11 catalog-record tests and 30 comparison UI tests passed. Tests
+cover POST/save/GET and frozen-record references, unchanged totals and API-only
+exclusion. Read-only calculation against the local catalog returned SimpleSaver 24
+references 19.7/6.8/12.8 with page-1 quotes; 800 kWh energy 102.92 and total 155.22
+match the reported screenshot. No existing saved comparisons were rewritten.
+
+
+## PRICE-22: range-mapped EFL Energy in combined catalog (2026-09-14)
+
+Status: implemented. New PDF catalog comparisons use each
+plan's own published EFL examples to calculate Energy = kWh * mapped cents / 100.
+Reuse custom-efl-v4 bands: first value through the second threshold; preceding
+value at exact thresholds; last value strictly above its threshold. Keep original
+base/usage fees, delivery and qualifying credits separate. Label as Custom estimate
+and disclose that this repeats effects embedded in EFL averages. Do not apply PDF
+references to independent provider-API offers or alter rough-estimate formulas.
+Missing/duplicate EFL examples exclude a PDF from this calculation.
+
+Use the same calculator for monthly totals, full horizons, renewal escalation,
+rankings, savings, confidence and regret. Existing stored comparisons stay immutable.
+Freeze the saved plan's pricing basis for new scenario sessions; old frozen catalog
+sessions without a marker keep component pricing. Reject ineffective energy/tier
+overrides for custom-EFL scenarios with a clear explanation; other component
+overrides retain their behavior. Acceptance: SimpleSaver 24 at 800 uses 19.7 and
+Energy 157.60; boundary/fraction/zero tests, independent per-plan values, unchanged
+API pricing, consistent projections/recommendations and saved-session compatibility.
+
+Verification: 12 catalog-record, 4 catalog-chat, 5 average-pricing, 11
+recommendation, 16 scenario-chat and 30 comparison UI tests passed (78 total).
+Catalog integration covers exact/fractional/zero boundaries, independent plan
+references, missing/duplicate exclusion, renewal rounding, recommendation totals,
+saved/frozen references and legacy component snapshots. API totals remain unchanged.
+Read-only local SimpleSaver 24 calculation at 800 kWh: mapped reference 19.7,
+Energy 157.60, base 0, delivery 52.30, credit 0, total 209.90. README updated.
+Existing saved comparisons were not rewritten; compare again to use this behavior.
+
+
+## UI-23: automatically available comparison alternatives (2026-09-14)
+
+Status: implemented. Remove the Explore alternatives start
+button. After a fresh or loaded comparison, display the chat, suggested questions,
+reset/previous controls and expanded scenario settings by default; automatically
+restore the remembered session or create one. Disable actions during initialization.
+Do not change comparison costs merely by initializing chat. Preserve stale-response
+guards and keep results usable if initialization fails. Provide an explicit retry
+chat action on initialization failure or expired sessions, with no automatic retry
+loop. Subsequent scenario renders must not create additional sessions. Before a
+comparison the panel remains hidden. Acceptance: automatic create/restore, visible
+settings and controls, no start button, initialization failure/retry, expiration
+recovery, stale responses ignored, existing scenario interactions preserved.
+
+Verification: 9 comparison-chat UI and 30 comparison UI tests passed. Covered
+automatic creation/restoration, no duplicate initialization on scenario render,
+initialization retry, expired/conflicting sessions, stale response suppression and
+visible controls/expanded settings. JavaScript syntax and diff checks passed.
+
+
+## UI-24: avoid stale frontend scripts after control removal (2026-09-14)
+
+Status: implemented. Version frontend asset URLs for the current
+UI release so cached scripts referencing the removed scenario-start button are not
+reused. Serve the HTML entrypoint and static assets with Cache-Control: no-cache
+so subsequent requests revalidate. Preserve API caching behavior and comparison
+logic. Verify chat DOM lookups against actual HTML IDs (missing IDs return null),
+automatic initialization, entrypoint/asset headers and conditional requests.
+
+Verification: 42 UI tests passed with chat lookups restricted to actual HTML IDs.
+TestClient smoke verified HTML and all five versioned assets return no-cache,
+conditional ETag requests return 304 with no-cache, and API cache headers remain
+unchanged. Diff whitespace checks passed. Cached old JavaScript is the likely
+reported cause; the user browser stack/cache was not directly inspected.
+
+
+## CHAT-25: grounded, question-specific scenario answers (2026-09-14)
+
+Status: implemented. Extend the reviewed what-if chat gaps:
+read-only answers for credits, fees/delivery, energy/reference pricing, contract,
+monthly cost extremes, savings, regret, break-even, and selected-plan comparisons.
+Resolve explicit plans and remembered discussion focus; use the recommendation
+only when no focus exists, naming that assumption. Ambiguous/unknown targets ask
+clarification. Questions never mutate pricing inputs. Answer from frozen source
+terms and saved calculations, attach source references and distinguish source
+terms from hypothetical overrides. Missing information must be explicit, not
+invented. Unknown explanation topics return supported-question guidance.
+Persist answer topic/plan clarification and focus separately from scenario edits.
+Interpretation context must include per-plan pricing basis and supported override
+fields; prevent suggesting ineffective custom-EFL component rate changes. Preserve
+current prohibition on catalog EFL-reference overrides and source immutability.
+Successful changes summarize before/after winners, comparable-period differences,
+changed assumptions and warning limitations. No-match answers list available terms
+without relaxing constraints. Read-only answers include relevant risks/tradeoffs
+from stored recommendation data. UI previews start with the actual answer; source
+links are safely rendered. Explicit restart handles the 100-turn limit without
+repeating the failed request. Existing retry/version/source-scope protection stays.
+Acceptance: credits follow-up and plan switching; exact credit boundaries and
+monthly eligibility; multiple plans/ambiguous targets; different topics produce
+relevant answers; no mutation; overridden terms labeled; missing evidence/rough
+plans abstain appropriately; unsupported requests; preserved pricing/recovery;
+no misleading savings across different horizons; safe citation links and limits.
+
+Verification: 76 targeted tests passed (10 answers, 6 catalog chat, 16 scenario
+chat, 44 frontend). Final targeted context check passed after adding provider,
+utility/term/date metadata and supported credit-boundary overrides. Python compile,
+JavaScript syntax and whitespace checks passed. Five live AI interpretation checks
+covered credit follow-ups, 999-kWh eligibility, usage edits, custom energy override
+limitations and unknown plans. Read-only local SimpleSaver 24 returned $125 at
+>=1,000 kWh, saved monthly credits and page-1 evidence. Earlier test-only failures
+in name matching and Windows temporary DB cleanup were corrected and rerun.
+Limits: no new RAG retrieval; source links are recorded provenance, not independent
+claim-entailment proofs. Monthly summaries explicitly cover the first year; renewal
+overrides are disclosed. Unsupported topics return guidance. Model interpretation
+remains probabilistic; smoke checks do not establish universal natural-language
+correctness. Catalog EFL-reference price overrides remain intentionally unsupported.
+
+
+## CHAT-26: deterministic enrollment boundary (2026-09-14)
+
+Status: implemented. Enrollment/sign-up/purchase requests for
+electricity service must return unsupported before AI interpretation, local answer
+routing or pending plan clarification. Never reinterpret enrollment as a baseline,
+contract filter or hypothetical scenario change. Preserve active comparison,
+inputs, overrides, focus and source records; record only the unsupported attempt.
+Explain that users must enroll with the provider and verify current terms there.
+Reject mixed enrollment/scenario-change messages as a whole without partial edits.
+Plan-only clarification shortcuts must accept only a bare known plan name or ID,
+not arbitrary messages that happen to mention a known plan. Questions about
+recorded enrollment fees remain ordinary information questions. Acceptance tests:
+reported SimpleSaver 24 wording; polite/sign-up variants; pending clarification;
+known/unknown names; mixed request atomicity; subsequent valid scenario recovery.
+
+Verification: 34 tests passed (11 answer/intent, 7 catalog-chat, 16 scenario-chat).
+The API regression deliberately supplies a usage-changing interpreter and a pending
+credit clarification, then verifies enrollment bypasses both, keeps the saved
+comparison/state unchanged and permits a subsequent valid named-plan scenario.
+Direct checks cover reported wording, polite/sign-up/unknown-plan variants and
+mixed requests; enrollment-fee questions remain unblocked. Diff checks passed.
+This fixes the reported enrollment path; it does not establish that all possible
+unsupported natural-language commands have deterministic handling.
+
+
+## CHAT-27: unhappy-path acceptance matrix (2026-09-14)
+
+Status: implemented. Verify the previously supplied unhappy-path
+questions through message routing and API scenario state, not just typed actions.
+Cover vague term/rate/season, unknown and ambiguous plans, invalid usage/renewal,
+conflicting terms and credit bounds, no matches, missing override values,
+unsupported custom energy/reference changes, missing baseline, unequal horizons,
+rough-only recommendations, bill guarantees, enrollment, external search and
+fabricated prices. For invalid, ambiguous or unsupported requests, retain comparison
+inputs/results and never apply part of a mixed request. Unsupported external search
+and fabrication must bypass keyword answers. Guarantee questions must explicitly
+reject a guaranteed actual bill. Fix reproduced routing and clarification failures;
+retain the existing pricing model, bounds, and recovery contracts. Maintain a
+repeatable matrix with expected statuses/content and explicit live-vs-local results.
+Test duplicate submissions, stale responses, expiry and limit recovery with the
+existing fault-injection suites. Unknown natural-language variants remain outside
+any claim of exhaustive correctness.
+
+Verification: final provider-backed API matrix passed all 23 cases using an isolated
+synthetic catalog; both before/final reports and a reproducible runner are included.
+The final run checked unchanged state/result IDs on all non-updates. The 24-month
+credit-exclusion fixture legitimately has a matching plan and correctly updates.
+82 regression tests passed: 14 answer/intent, 8 catalog-chat, 16 scenario-chat,
+44 frontend. Compilation and diff checks passed. The save-failure test initially
+stopped at the new bare-month clarification guard; its prompt was made explicit,
+then the full scenario suite passed, still exercising 503/rollback/retry.
+Fixed actual routing failures: inferred exact term from bare months, search and
+fabrication answered as saved-plan questions, partial edits in mixed external
+requests, rough-only cheapest answers, and inconsistent unsupported-rate handling.
+Clarification-only unsupported-rate responses in earlier live runs were safe but
+are now deterministic for supported explicit syntax. Guarantees and punctuated
+compare-original commands are handled explicitly. No production records changed.
+These checks cover the supplied cases and fault scenarios, not every paraphrase.
+
+
+## UI-28: collapsed settings and latest-answer scrolling (2026-09-14)
+
+Status: implemented. Scenario settings start collapsed when
+attaching a comparison, while retaining the user's open/closed choice during its
+conversation. After a submitted chat turn returns, scroll the newest answer into
+view after results/panel placement is complete, including clarification and
+unsupported replies. Initial automatic startup and saved-session restoration must
+not scroll to old answers. Honor reduced-motion preference. Stale/detached replies
+remain ignored. No calculation or chat API changes. Verify default collapse,
+manual expansion retained on replies, latest answer selection and no initial scroll.
+
+Verification: 43 UI tests passed (13 comparison-chat and 30 comparison UI).
+Checks cover initial/restored collapse, manual expansion retained across replies,
+scrolling the latest answer only, no startup/restoration scroll, and reduced motion.
+JavaScript syntax and diff checks passed. Browser visual inspection was not run.
+
+
+## UI-29: internal-only alternatives scrolling (2026-09-14)
+
+Status: implemented. Replace document-level answer scrolling
+with scrolling inside the bounded chat message area. Keep that area's height
+stable as replies accumulate, with a viewport-responsive height. Do not rebuild
+comparison results when the returned comparison ID is unchanged (explanations,
+clarifications and rejected changes). Changed scenarios still refresh their costs.
+Keep startup/restoration from automatically scrolling; preserve reduced motion and
+collapsed settings. Verify internal scroll calls only, unchanged-result render
+suppression and changed-scenario updates.
+
+Verification: 44 UI tests passed (14 chat, 30 comparison). Tests reject
+scrollIntoView, verify internal scrolling/reduced motion and no unchanged-result
+rebuilds, while changed scenario rendering and restore behavior still pass.
+JavaScript syntax and diff checks passed; no browser visual check was run.
+
+
+## UI-30: no empty conversation spacer (2026-09-14)
+
+Status: implemented. Collapse the alternatives message area
+while it contains no rendered conversation entries or failure messages, including
+fresh startup and empty restored sessions. Once content exists, retain UI-29's
+bounded height and internal scrolling. The question input stays visible before
+the first reply. No chat, pricing or API behavior changes. Verify empty and
+populated message-area CSS states and retain the existing chat UI checks.
+
+Verification: inspected the empty HTML log and CSS cascade: :empty overrides
+height to zero; populated logs retain the existing bounded height and overflow.
+All 14 comparison-chat UI tests and diff checks passed. No browser visual check
+was run. Asset URLs were versioned to load the revised stylesheet.
+
+
+## UI-31: readable answers and composer focus (2026-09-14)
+
+Status: implemented. Format what-if answers as readable
+paragraphs with emphasized labels and lists for semicolon-separated details such
+as monthly credits, preserving all numerical/source text. Keep two-line previews
+and Show more/less. Visually separate source excerpts and links. Render text safely,
+never interpret source HTML. After a returned chat answer, re-enable and focus the
+question textbox with preventScroll; include clarified/rejected/unsupported replies.
+Do not focus on initial load, stale responses or expired/unavailable sessions.
+Preserve internal scrolling, collapsed settings and comparison values. Verify safe
+formatting, expansion, source links, focus after re-enable and failure/stale behavior.
+
+Verification: 46 UI tests passed (16 chat, 30 comparison). Checks cover safe
+text rendering, decimal preservation, detail lists, source links, expansion,
+focus after re-enabling the composer, non-success answer statuses, and no focus
+on startup or stale/detached replies. Syntax and diff checks passed. No browser
+visual inspection was run.
+
+
+## CHAT-32: explicit named-plan comparison routing (2026-09-14)
+
+Status: implemented. Route "Compare Gexa Saver Plus 12 with
+SimpleSaver 12" and compare-A-and/B-vs variants to a read-only comparison of those
+two exact frozen plans before model interpretation. Unknown or duplicate names
+clarify instead of substituting the winner or original scenario. Keep current
+usage/horizon/preferences, show each plan's saved costs/terms and comparable cost
+difference, and omit unrelated category winners/tradeoffs from pair answers.
+Original-vs-current answers require an explicit original/initial comparison request;
+model misclassification alone must not authorize that response. Preserve horizon
+change commands and explicit Compare with original. Test exact screenshot wording,
+unknown/ambiguous names, wrong injected model action, unchanged state and totals.
+
+Verification: 16 answer tests and the named-comparison API regression passed.
+The scenario suite passed 15/16 initially; its original-comparison fixture supplied
+"test" instead of an original request. Updated that prompt to "Compare with
+original." and its targeted rerun passed, retaining unequal-horizon/history checks.
+Read-only local catalog check resolved the exact screenshot names and compared
+their costs over 24 months using a synthetic 1,800-kWh monthly profile. This is
+not the user's saved cost profile. No production scenarios were rewritten.
+Diff checks passed. Pair replies omit unrelated category winners and include a
+cost-difference summary when periods/pricing methods match.
