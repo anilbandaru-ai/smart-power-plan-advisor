@@ -42,12 +42,58 @@ class CatalogRecordTests(unittest.TestCase):
             response = client.post('/api/comparisons', json={'zip_code': '75201', 'data_source': 'catalog', 'monthly_kwh': [1000]*12})
             self.assertEqual(response.status_code, 201, response.text)
             result = response.json()['recommendations'][0]
-            self.assertEqual(result['annual_cost'], '1380.00')
+            self.assertEqual(result['annual_cost'], '2100.00')
+            self.assertEqual(result['pricing_basis'], 'custom_efl')
             self.assertEqual(result['source_revision'], record['revision_id'])
             self.assertEqual(result['source_url'], record['record_url'])
+            expected = [dict(kwh=str(e['kwh']), cents_per_kwh=e['cents_per_kwh'],
+                             page=e['evidence']['page'], quote=e['evidence']['quote']) for e in record['examples']]
+            self.assertEqual(result['efl_price_examples'], expected)
+            saved = client.get('/api/comparisons/' + response.json()['id']).json()
+            self.assertEqual(saved['recommendations'][0]['efl_price_examples'], expected)
+            from backend.catalog.compare import compare_catalog
+            from backend.models import ComparisonRequest
+            frozen = compare_catalog(ComparisonRequest(zip_code='75201', data_source='catalog',
+                monthly_kwh=[1000]*12), self.store, frozen_records=[record])
+            self.assertEqual(frozen.recommendations[0].model_dump(mode='json')['efl_price_examples'], expected)
+            self.assertEqual(str(frozen.recommendations[0].annual_cost), '1380.00')
             self.assertTrue(any(e.get('page') == 1 for e in record['provenance']))
         sync(self.store, self.data, Extractor())
         self.assertEqual(records(self.store, 'pdf'), [])
+
+    def test_catalog_efl_ranges_and_projection_consistency(self):
+        from decimal import Decimal as D
+        from backend.catalog.compare import compare_catalog
+        from backend.models import ComparisonRequest
+        path = self.data / 'plan.pdf'; path.write_bytes(b'pdf')
+        with patch('backend.catalog.sync.read_pages', return_value=(PAGES, [])):
+            sync(self.store, self.data, Extractor())
+        record = records(self.store, 'pdf')[0]
+        record['_comparison_pricing_basis'] = 'custom_efl'
+        for example, price in zip(record['examples'], ('19.7', '6.8', '12.8')):
+            example['cents_per_kwh'] = price
+        usage = [0, 500, 500.1, 800, 1000, 1000.1, 1800, 2000, 2000.1, 2100, 800, 1000]
+        request = ComparisonRequest(zip_code='75201', data_source='catalog', monthly_kwh=usage,
+            recommendation_options={'max_contract_months': 24})
+        result = compare_catalog(request, None, frozen_records=[record])
+        plan = result.recommendations[0]
+        self.assertEqual([m.average_price_cents for m in plan.monthly_costs],
+            list(map(D, ['19.7']*5 + ['6.8']*3 + ['12.8']*2 + ['19.7']*2)))
+        self.assertEqual(plan.monthly_costs[3].energy, D('157.60'))
+        for month in plan.horizon_monthly_costs:
+            self.assertEqual(month['energy'], (month['kwh'] * month['average_price_cents'] / 100).quantize(D('.01'), rounding='ROUND_HALF_UP'))
+            self.assertEqual(month['total'], month['energy'] + month['base_fee'] + month['delivery'] - month['credit'])
+        self.assertEqual(plan.horizon_cost, result.recommendation_result.best_overall.horizon_cost)
+        other = copy.deepcopy(record); other['id'] += '-other'
+        other['examples'][0]['cents_per_kwh'] = '18'
+        mixed = compare_catalog(request, None, frozen_records=[record, other])
+        energies = {p.plan_id: p.monthly_costs[3].energy for p in mixed.recommendations}
+        self.assertEqual(energies, {record['id']: D('157.60'), other['id']: D('144.00')})
+        for examples in ([], [record['examples'][0]]*2):
+            bad = copy.deepcopy(record); bad['examples'] = examples
+            excluded = compare_catalog(request, None, frozen_records=[bad])
+            self.assertFalse(excluded.recommendations)
+            self.assertTrue(excluded.excluded_plans)
 
     def test_txu_api_and_comparison_share_terms_without_documents(self):
         self.client.offers[0]['documents'] = []
@@ -63,6 +109,7 @@ class CatalogRecordTests(unittest.TestCase):
             result = response.json()['recommendations'][0]
             self.assertEqual(result['annual_cost'], '1947.72')
             self.assertEqual(result['monthly_costs'][0]['total'], '162.31')
+            self.assertEqual(result['efl_price_examples'], [])
             self.assertEqual(result['source_revision'], record['revision_id'])
             self.assertEqual(client.get(result['source_url']).json(), record)
             self.assertEqual(client.get('/api/catalog/records?source_type=txu&zip_code=79756').json()['total'], 0)
@@ -147,7 +194,7 @@ class CatalogRecordTests(unittest.TestCase):
             result = response.json()
             self.assertEqual(result['data_mode'], 'catalog')
             self.assertEqual({p['name'] for p in result['recommendations']}, {'Saver', 'Simple Value 24'})
-            self.assertEqual([p['annual_cost'] for p in result['recommendations']], ['1380.00', '1947.72'])
+            self.assertEqual([p['annual_cost'] for p in result['recommendations']], ['1947.72', '2100.00'])
             self.assertEqual(result['utility']['id'], ONCOR)
             # A different delivery area must not bring Oncor PDFs into ranking.
             self.client.utilities[0]['name'] = 'CenterPoint'; self.sync_txu()

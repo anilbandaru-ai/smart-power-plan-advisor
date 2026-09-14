@@ -1,3 +1,9 @@
+The alternatives panel opens automatically after a comparison: scenario settings
+start collapsed and the chat, suggested questions, reset and previous controls are
+visible. A remembered session is restored; otherwise a session is created without
+changing costs. Controls remain disabled while loading. Initialization failure or
+session expiration offers Retry chat while preserving comparison results.
+
 # Comparison scenario chat
 
 Run a comparison, then select **Explore alternatives** in Compare Plan Costs. The existing document assistant remains separate. Chat sits between the recommendation summary and compared plans. Replies default to two-line previews with Show more / Show less controls. Monthly breakdowns use full-width desktop tables, year selection and expandable mobile cards.
@@ -52,8 +58,9 @@ starting from a normal saved comparison; an existing conversation continues usin
 its frozen records without provider calls or catalog changes.
 
 Usage, term/credit preferences, comparison period and renewal scenarios reuse the
-component-based calculator. Hypothetical existing energy, tier energy, delivery,
-base/usage and credit components can be edited for exact-calculation plans; specify
+saved pricing basis: custom EFL for new catalog PDFs, components for API offers and
+older component snapshots. Hypothetical delivery, base/usage and credit components can be edited for calculable
+plans. Energy/tier overrides require component pricing; specify
 a component index when ambiguous. A mapped EFL average cannot replace a catalog
 energy rate. Rough-only plans retain their reviewed assumptions and cannot be
 promoted into exact ranking through component overrides.
@@ -65,3 +72,48 @@ previous/reset and saved-scenario restoration. No rough-only winner is claimed.
 PDF/API provenance stays distinct and original source evidence is not rewritten
 by hypothetical overrides. The existing OpenAI interpreter configuration is reused;
 this integration was tested with mocked interpretation, not live model calls.
+
+
+Question-specific answers and follow-up focus are implemented in
+`backend/scenario/answers.py`. Answers and sources are stored with each turn.
+They use frozen catalog terms and saved calculations, without a new RAG search or
+AI-generated numerical explanation. Credit threshold probes are read-only. Unknown
+plan IDs, multiple possible targets and unsupported details do not invent answers.
+The browser shows the answer's beginning and exposes available safe source links
+under Show more. A structured conversation_limit error offers a fresh session.
+
+
+CHAT-25 verification (2026-09-14): 10 answer tests, 6 catalog-chat tests,
+16 existing scenario tests and 44 frontend tests passed. A final targeted check
+also verified pricing-aware interpreter context and credit-threshold capabilities.
+Five live interpretation checks covered bill-credit follow-ups, a 999-kWh query,
+usage changes, unsupported custom energy-rate overrides and an unknown plan.
+A read-only local SimpleSaver 24 check returned the $125 credit at >=1,000 kWh,
+correct saved monthly credits and the page-1 excerpt. These are targeted checks,
+not a guarantee of correctness for every natural-language question. No new RAG
+retrieval was added; monthly answer summaries currently cover the first year.
+
+
+Enrollment requests such as "Enroll in SimpleSaver 24" or "Sign me up" are
+rejected before AI interpretation. The chat explains that enrollment must happen
+with the provider. Mixed enrollment/scenario requests do not partially change the
+comparison. Questions about recorded enrollment fees remain information requests.
+A pending plan clarification accepts only a bare plan name or ID; mentioning a
+plan inside a new command does not turn that command into a clarification answer.
+
+
+Scenario settings start collapsed; expanding them is preserved during the conversation.
+After a submitted question receives a reply, only the internal message area scrolls to the latest answer.
+Automatic startup/restoration does not scroll to old replies. Reduced motion is respected.
+
+The empty message area takes no space. Once messages appear, it has a stable, viewport-responsive height. Replies that leave the
+comparison unchanged do not rebuild the plan results; changed scenarios still update costs.
+
+Expanded what-if replies use readable paragraphs, emphasized labels, detail lists
+and separate source blocks. After each returned answer, the question box regains
+keyboard focus without scrolling the page. Initial restoration does not steal focus.
+
+Named comparisons such as "Compare Gexa Saver Plus 12 with SimpleSaver 12"
+resolve both exact plans before AI interpretation and preserve the current usage
+and horizon. Unknown or ambiguous names prompt clarification. Original-versus-current
+comparison is reserved for an explicit original/initial-scenario request.

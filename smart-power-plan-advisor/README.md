@@ -52,7 +52,7 @@ Act proactively — Monitor relevant events such as contract expiration, plan av
 
 --------------------------------------------------------------------------------------------------------------------------
 
-Explicit legacy PDF mode uses the custom EFL formula described below. The default combined catalog uses structured component pricing.
+PDF plans in the default combined catalog and explicit PDF mode use the custom EFL formula below. Provider API offers retain structured component pricing.
 
 Current PDF pricing (`custom-efl-v4`): Energy = usage times the mapped EFL average / 100; add PDF base/usage fees and fixed/per-kWh delivery, then subtract eligible credits. This user-authorized custom formula repeats effects embedded in published EFL averages, so it is labeled Custom estimate, not an actual tariff bill. Each plan uses its own examples and charge conditions. Original ranges remain: first price through the second threshold, preceding price at exact thresholds, highest above its threshold. Rankings, savings and scenarios use these custom totals. Renewal escalates energy/base/delivery; retain/drop applies to separate credits. Saved older results retain their original calculation; Compare plans again to apply the new formula. Catalog validation and demo calculations remain component-based.
 
@@ -67,7 +67,7 @@ not change the calculator's pricing data.
 
 ## Architecture and implemented features
 
-![Smart Power Plan Advisor architecture: browser, FastAPI, comparison and document services, external sources, storage and verification](docs/images/architecture.svg)
+![Smart Power Plan Advisor architecture: frontend, FastAPI, pricing, what-if request checks and answer/change branches, document agent and hybrid RAG, databases, ingestion and evaluation](docs/images/architecture.svg)
 
 [Open the full-size architecture image](docs/images/architecture.svg).
 The diagram separates frontend controls, FastAPI routes, the document agent, RAG,
@@ -83,7 +83,7 @@ proposal is implemented with plain HTML, CSS and JavaScript instead.
 | Browser | Plan Assistant and Compare Plan Costs tabs; preferences, recommendations, monthly breakdowns, saved links and comparison chat. |
 | API | FastAPI serves the UI and validates requests for comparisons, catalog access, document Q&A and both chat interfaces. |
 | Comparison services | Python pricing, utility/contract/credit filtering, ranking, top three, category winners, savings, scenario regret, confidence reasons and sampled break-even conditions. |
-| Conversation services | Comparison chat interprets typed scenario changes and reruns Python calculations. The document agent uses LangGraph, identity resolution, hybrid retrieval, exact excerpts and independent claim-support checks. |
+| Conversation services | What-if chat validates capabilities, resolves plan focus, answers from frozen terms and calculations, or applies typed scenario changes through Python. The document agent uses LangGraph, identity resolution, hybrid retrieval, exact excerpts and independent claim-support checks. |
 | External sources | Local EFL PDFs, TXU utility/offer APIs and reviewed delivery-charge lookups; synthetic JSON only in demo mode. |
 | Storage | SQLite for catalog and comparison/scenario snapshots; local PDFs and an active manifest containing page text/identity for BM25 search; Pinecone for versioned document vectors and page metadata. |
 | Verification | Pricing, extraction, recommendation, API, chat and frontend tests; vector/hybrid evaluation fixtures, sanitized RAG metrics, token-usage counters, request timing logs and readiness endpoints. |
@@ -280,7 +280,7 @@ build or npm installation.
 | POST | `/api/agent/threads` | Start a document-agent conversation |
 | POST | `/api/agent/threads/{thread_id}/messages` | Ask a contextual document question |
 | POST | `/api/comparison-chat` | Start a scenario chat from a saved comparison |
-| POST | `/api/comparison-chat/{session_id}/messages` | Validate and apply a scenario change |
+| POST | `/api/comparison-chat/{session_id}/messages` | Answer a plan question or validate/apply a scenario change |
 
 Example synthetic demo comparison request (the browser explicitly sends `data_source: "catalog"`):
 
@@ -299,15 +299,15 @@ lookup and independent PDF and TXU source records. The four in-memory ZIPs
 (`75201`, `75001`, `77002`, `77007`) apply only to synthetic demo mode. Utility
 lookup does not verify eligibility at a specific address or enroll a customer.
 
-Default catalog comparisons use validated component pricing: energy plus applicable
+Default catalog PDF comparisons calculate Energy from range-mapped EFL examples plus applicable
 base/usage fees and fixed/per-kWh delivery charges, minus eligible bill credits.
 Supported reviewed layouts include flat, tiered and conditional charges. Unsupported
 or ambiguous rules are excluded from exact ranking. Reviewed rough estimates have
 separate assumptions and never become recommendation winners.
 
-The explicit legacy `pdf` API mode uses the custom EFL estimate described at the
-start of this README. It must not be confused with default component pricing or
-an actual tariff bill. Synthetic `demo` mode uses the JSON fixture calculator.
+Provider API offers retain component energy pricing. PDF calculations are custom
+estimates as described above, not actual tariff bills. Missing or duplicate EFL
+examples exclude a PDF from range-based calculation. Synthetic `demo` mode uses the JSON fixture calculator.
 
 Contract terms are preserved from each source. A maximum of 24 months excludes
 36-month plans and compares eligible shorter contracts across the selected horizon.
@@ -380,7 +380,7 @@ modeled renewal costs and use the same period for savings and regret. See
 
 ## Comparison chat
 
-After a successful comparison, select **Explore alternatives** to explore contracts, usage, renewal assumptions and hypothetical rates/credits. Successful scenarios update the same comparison results; invalid or failed requests retain the last result. See [comparison chat](docs/comparison-chat.md) for examples, supported actions, configuration and recovery behavior.
+After a successful comparison, **Explore alternatives** opens automatically with collapsed scenario settings, suggested questions and chat controls visible. It restores your saved conversation when available. Explore contracts, usage, renewal assumptions and supported hypothetical rates/credits; use **Retry chat** if initialization fails. Successful scenarios update the same comparison results; invalid or failed requests retain the last result. See [comparison chat](docs/comparison-chat.md) for examples, supported actions, configuration and recovery behavior.
 
 ### TXU cached offers
 
@@ -466,7 +466,7 @@ Month-to-month variable plans can also be imported as explicitly reviewed
 estimates. Reliant Clear Flex preserves its stated term and usage-fee threshold;
 months 2–12 use an editable price-change scenario. See [variable import rules](docs/validated-import.md#reviewed-month-to-month-variable-plans).
 
-Comparison chat supports combined catalog, TXU, PDF-custom and demo results. Catalog scenarios preserve independent frozen source records, component pricing and reviewed rough estimates; they do not switch to demo or PDF-custom prices.
+Comparison chat supports combined catalog, TXU, PDF-custom and demo results. Catalog scenarios preserve independent frozen source records, the saved pricing basis and reviewed rough estimates. New PDF comparisons use custom EFL pricing; older component-based snapshots and sessions retain component pricing. Ineffective energy-component overrides on custom EFL plans are rejected with an explanation.
 
 ### ZIP to delivery utility
 
@@ -672,3 +672,66 @@ Start a new Plan Assistant conversation and ask:
 
 These are acceptance expectations, not promises of fixed response wording. For
 ambiguous questions, a clarification or supported abstention is a valid outcome.
+
+
+### What-if chat: answers, changes and recovery
+
+**Explore alternatives** opens automatically after a comparison and restores a
+saved conversation when available. It keeps the current ZIP, utility, usage,
+preferences and frozen source revisions. Scenario settings start collapsed.
+
+The center lane of the [architecture image](docs/images/architecture.svg) shows
+how each request is handled:
+
+1. **Request checks and plan focus:** reject unsupported enrollment, external
+   search and fabricated-rate requests; resolve exact named plans and follow-ups
+   such as ?it.? Unknown or ambiguous references prompt clarification.
+2. **Routing and interpretation:** explicit commands and recognized questions use
+   deterministic rules. Other requests use the AI interpreter to produce a typed
+   action. The context includes each plan's pricing method and supported overrides.
+3. **Read-only answers:** use saved calculations and frozen terms for credits,
+   fees, delivery, Energy, contracts, first-year monthly cost extremes, savings,
+   regret and sampled break-even conditions. Available quotes and source links
+   accompany answers. This path does not run a new RAG search or change inputs.
+4. **Scenario changes:** validate the complete requested change before applying
+   it to copies of saved inputs. Python recalculates costs and recommendations;
+   the reply explains before/after results. Different horizons or pricing methods
+   are not presented as like-for-like savings.
+5. **Response and recovery:** save successful scenarios and conversation history.
+   Invalid, unsupported and no-match requests retain the prior comparison. Retry,
+   reload, undo/reset and turn-limit restart support recovery.
+
+| Example | Behavior |
+| --- | --- |
+| Are there any bill credits for it? | Name the discussed plan and show recorded credit amounts, thresholds and modeled monthly credits. |
+| Would I get the credit at 999 kWh? | Check recorded eligibility without editing usage. |
+| Compare Gexa Saver Plus 12 with SimpleSaver 12 | Compare those exact frozen plans using the current usage and horizon. |
+| Compare with original | Compare the original and current scenarios explicitly. |
+| What if I use 1,500 kWh every month? | Update usage and recalculate the scenario. |
+| 24 months | Clarify exact term, maximum term or comparison period when context does not resolve it. |
+| Enroll in SimpleSaver 24 | Explain that enrollment must happen with the provider; no inputs change. |
+
+New catalog PDF comparisons calculate Energy from the plan's range-mapped EFL
+reference, then apply source fees, delivery and credits separately. These are
+**custom estimates**, with embedded-effect disclosures and low confidence, not
+validated actual bills. Provider API offers retain component pricing. Saved older
+comparisons retain their pricing method. Catalog custom-EFL reference and energy
+component overrides remain unsupported; other overrides depend on the plan.
+Confidence in a pair answer comes from the overall recommendation, not an
+independent probability estimate for that pair.
+
+Replies have two-line previews and **Show more / Show less**. Expanded answers use
+paragraphs, emphasized labels, detail lists and separate source blocks. The empty
+message area takes no space; populated conversations scroll internally within a
+bounded area. Unchanged comparisons are not rebuilt. After a returned answer,
+keyboard focus returns to the question box without scrolling the page. Initial
+startup/restoration does not steal focus or scroll to old messages.
+
+The [unhappy-path verification guide](docs/chat-unhappy-paths.md) includes a
+repeatable provider-backed runner, [before-fix results](docs/chat-unhappy-before.json)
+and the [latest 23-case report](docs/chat-unhappy-results.json). Backend and frontend
+regression tests cover validation, source preservation, retries, stale responses,
+expiry and restart. Later named-comparison and UI changes received targeted checks;
+these results are not a claim that the entire current working tree passed one
+full-suite run. Natural-language interpretation remains probabilistic. Missing
+structured details require clarification or the separate **Plan Assistant**.

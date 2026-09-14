@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="2260" viewBox="0 0 1800 2260" role="img" aria-labelledby="title desc">
   <title id="title">Smart Power Plan Advisor - component architecture</title>
-  <desc id="desc">Current architecture: JavaScript frontend and FastAPI backend; deterministic comparison and scenario chat; LangGraph document agent with identity resolution, BM25 and Pinecone hybrid retrieval, complete-page evidence, exact excerpts and independent claim verification. SQLite, local manifest and Pinecone stores; separate catalog and RAG ingestion; native extraction, optional Tesseract OCR, audits, evaluations and sanitized metrics. No reranker.</desc>
+  <desc id="desc">Current architecture: JavaScript frontend and FastAPI backend; custom EFL PDF and component-priced API comparisons; what-if capability checks, plan focus, explicit routing and AI interpretation, read-only answers with recorded sources or validated scenario changes; LangGraph document agent with identity resolution, BM25 and Pinecone hybrid retrieval, complete-page evidence, exact excerpts and independent claim verification. SQLite, local manifest and Pinecone stores; separate catalog and RAG ingestion; native extraction, optional Tesseract OCR, audits, evaluations and sanitized metrics. No reranker.</desc>
   <defs>
     <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
       <path d="M0 0L8 4L0 8Z" fill="#63738b" />
@@ -21,8 +21,8 @@
   <text x="70" y="250" class="body">Preferences, ranked plans and monthly breakdowns</text>
   <rect x="630" y="164" width="535" height="118" rx="14" fill="#ffffff" stroke="#d5dfe9" />
   <text x="650" y="196" class="head">Explore alternatives</text>
-  <text x="650" y="225" class="body">Scenario chat, suggested actions and retry</text>
-  <text x="650" y="250" class="body">Updated comparisons; Show more / Show less</text>
+  <text x="650" y="225" class="body">Plan questions, scenario changes and recovery</text>
+  <text x="650" y="250" class="body">Formatted answers + sources; updated comparisons</text>
   <rect x="1210" y="164" width="535" height="118" rx="14" fill="#ffffff" stroke="#d5dfe9" />
   <text x="1230" y="196" class="head">Plan Assistant</text>
   <text x="1230" y="225" class="body">All indexed documents + conversation</text>
@@ -52,10 +52,10 @@
   <path class="edge" d="M310 694 L310 725" />
   <rect x="50" y="729" width="520" height="147" rx="14" fill="#ffffff" stroke="#d5dfe9" />
   <text x="70" y="761" class="head">Pricing engine</text>
-  <text x="70" y="790" class="body">Energy + base / usage + delivery - credits</text>
-  <text x="70" y="815" class="body">Monthly rounding; tier and threshold rules</text>
+  <text x="70" y="790" class="body">PDF: mapped EFL Energy + fees + delivery - credits</text>
+  <text x="70" y="815" class="body">API offers: original component pricing</text>
   <text x="70" y="840" class="body">Renewal scenarios over the comparison horizon</text>
-  <text x="70" y="861" class="meta">Python calculators | explicit legacy PDF mode separate</text>
+  <text x="70" y="861" class="meta">Custom PDF estimates repeat embedded EFL effects</text>
   <path class="edge" d="M310 876 L310 907" />
   <rect x="50" y="911" width="520" height="149" rx="14" fill="#ffffff" stroke="#d5dfe9" />
   <text x="70" y="943" class="head">Recommendation engine</text>
@@ -71,35 +71,46 @@
   <text x="70" y="1199" class="meta">backend/storage.py | comparison snapshots [B]</text>
   <text x="50" y="1247" class="meta">Rough estimates stay separate from winner selection.</text>
   <text x="50" y="1273" class="meta">Synthetic JSON plans are explicit demo mode only.</text>
-  <rect x="630" y="570" width="520" height="124" rx="14" fill="#ffffff" stroke="#d5dfe9" />
-  <text x="650" y="602" class="head">Scenario session manager</text>
-  <text x="650" y="631" class="body">Load saved comparison + freeze source records</text>
-  <text x="650" y="656" class="body">Version checks, request deduplication and history</text>
-  <text x="650" y="679" class="meta">backend/scenario/api.py | persistent sessions [B]</text>
-  <path class="edge" d="M890 694 L890 725" />
-  <rect x="630" y="729" width="520" height="147" rx="14" fill="#ffffff" stroke="#d5dfe9" />
-  <text x="650" y="761" class="head">Intent interpreter</text>
-  <text x="650" y="790" class="body">Explicit command rules + OpenAI adapter</text>
-  <text x="650" y="815" class="body">Convert natural language into typed actions</text>
-  <text x="650" y="840" class="body">Clarify missing scope, values or conflicting intent</text>
-  <text x="650" y="861" class="meta">OpenAI Responses | interpretation only</text>
-  <path class="edge" d="M890 876 L890 907" />
-  <rect x="630" y="911" width="520" height="149" rx="14" fill="#ffffff" stroke="#d5dfe9" />
-  <text x="650" y="943" class="head">Scenario engine</text>
-  <text x="650" y="972" class="body">Validate filters, usage and hypothetical overrides</text>
-  <text x="650" y="997" class="body">Apply changes to copies; rerun comparison</text>
-  <text x="650" y="1022" class="body">Undo, reset, branching and saved scenarios</text>
-  <text x="650" y="1045" class="meta">backend/scenario/engine.py + actions.py</text>
-  <path class="edge" d="M630 981 L599 981 L599 791 L570 791" />
-  <text x="638" y="1081" class="meta">Reuses the Python comparison engine at left.</text>
-  <rect x="630" y="1095" width="520" height="119" rx="14" fill="#ffffff" stroke="#d5dfe9" />
-  <text x="650" y="1127" class="head">Response and recovery</text>
-  <text x="650" y="1156" class="body">Commit successful scenario + return comparison</text>
-  <text x="650" y="1181" class="body">Failures preserve the last successful result</text>
-  <text x="650" y="1199" class="meta">SQLite transaction / frozen records / scenario history [B]</text>
-  <path class="edge" d="M890 1060 L890 1091" />
-  <text x="630" y="1247" class="meta">No automatic filter relaxation or invented prices.</text>
-  <text x="630" y="1273" class="meta">Model output cannot write data or calculate bills.</text>
+  <rect x="630" y="570" width="520" height="102" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="646" y="597" font-size="20" font-weight="700">Session + immutable snapshots</text>
+  <text x="646" y="622" font-size="18">Frozen sources and saved pricing basis [B]</text>
+  <text x="646" y="645" font-size="18">Version checks, deduplication and history</text>
+  <text x="646" y="659" font-size="14" fill="#53647a">api.py + catalog.py | SQLite</text>
+  <path class="edge" d="M890 672 L890 686" />
+  <rect x="630" y="686" width="520" height="108" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="646" y="713" font-size="20" font-weight="700">Request checks + plan focus</text>
+  <text x="646" y="738" font-size="18">Reject enrollment, web search and fabricated rates</text>
+  <text x="646" y="761" font-size="18">Resolve named pairs; clarify ambiguous references</text>
+  <text x="646" y="781" font-size="14" fill="#53647a">actions.py + answers.py | before model interpretation</text>
+  <path class="edge" d="M890 794 L890 808" />
+  <rect x="630" y="808" width="520" height="108" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="646" y="835" font-size="20" font-weight="700">Explicit routing / AI interpretation</text>
+  <text x="646" y="860" font-size="18">Known questions bypass the model</text>
+  <text x="646" y="883" font-size="18">Other requests become pricing-aware typed actions</text>
+  <text x="646" y="903" font-size="14" fill="#53647a">OpenAI interprets; Python validates and calculates</text>
+  <path class="edge" d="M890 916 L890 932 L755 932 L755 948" />
+  <path class="edge" d="M890 932 L1025 932 L1025 948" />
+  <rect x="630" y="948" width="250" height="153" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="646" y="975" font-size="16" font-weight="700">READ-ONLY ANSWERS</text>
+  <text x="646" y="1000" font-size="16">Saved terms + totals</text>
+  <text x="646" y="1023" font-size="16">Plan-specific explanations</text>
+  <text x="646" y="1046" font-size="16">Quotes and source links</text>
+  <text x="646" y="1088" font-size="13" fill="#53647a">answers.py | frozen records [B]</text>
+  <rect x="900" y="948" width="250" height="153" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="916" y="975" font-size="16" font-weight="700">SCENARIO CHANGES</text>
+  <text x="916" y="1000" font-size="16">Validate all edits together</text>
+  <text x="916" y="1023" font-size="16">Recalculate through 03A</text>
+  <text x="916" y="1046" font-size="16">Before / after comparison</text>
+  <text x="916" y="1088" font-size="13" fill="#53647a">engine.py | original / undo</text>
+  <path class="edge" d="M755 1101 L755 1114 L890 1114 L890 1128" />
+  <path class="edge" d="M1025 1101 L1025 1114 L890 1114" />
+  <rect x="630" y="1128" width="520" height="128" rx="12" fill="#ffffff" stroke="#d5dfe9" />
+  <text x="646" y="1155" font-size="20" font-weight="700">Response + recovery</text>
+  <text x="646" y="1180" font-size="18">Formatted answers and recorded evidence</text>
+  <text x="646" y="1203" font-size="18">Save valid changes; failures retain prior results</text>
+  <text x="646" y="1226" font-size="18">Retry, reload or restart after the turn limit</text>
+  <text x="646" y="1243" font-size="14" fill="#53647a">SQLite transaction | scenario history + discussion focus [B]</text>
+  <text x="630" y="1281" class="meta">No new RAG search in what-if chat; sources stay frozen.</text>
   <text x="50" y="1348" class="section">04 / DATA STORES</text>
   <text x="340" y="1348" class="meta">[A-D] references above identify each service's storage dependencies</text>
   <rect x="50" y="1370" width="410" height="170" rx="14" fill="#ffffff" stroke="#d5dfe9" />
@@ -112,7 +123,7 @@
   <text x="500" y="1402" class="head">[B] Comparison DB</text>
   <text x="500" y="1431" class="body">SQLite: advisor.sqlite3</text>
   <text x="500" y="1456" class="body">Saved comparison snapshots</text>
-  <text x="500" y="1481" class="body">Scenario sessions + history</text>
+  <text x="500" y="1481" class="body">Sessions, focus + frozen sources</text>
   <text x="500" y="1525" class="meta">backend/storage.py</text>
   <rect x="910" y="1370" width="410" height="170" rx="14" fill="#ffffff" stroke="#d5dfe9" />
   <text x="930" y="1402" class="head">[C] Vector DB</text>
@@ -208,8 +219,8 @@
   <text x="648" y="2043" font-size="20" font-weight="700">Evaluation + regression tests</text>
   <text x="648" y="2068" font-size="17">Expected documents, pages, facts and abstentions</text>
   <text x="648" y="2091" font-size="17">Compare vector / hybrid; test recovery and security</text>
-  <text x="648" y="2114" font-size="17">Live fixtures supplement offline API and UI tests</text>
-  <text x="648" y="2148" font-size="14">evaluate.py | docs/rag-assurance-evaluation.json</text>
+  <text x="648" y="2114" font-size="17">RAG + what-if matrices; offline API / UI regression</text>
+  <text x="648" y="2148" font-size="14">evaluate.py + scripts/check_chat_unhappy.py</text>
   <rect x="1210" y="2015" width="520" height="145" rx="12" fill="#ffffff" stroke="#d5dfe9" />
   <text x="1228" y="2043" font-size="20" font-weight="700">Operational metrics</text>
   <text x="1228" y="2068" font-size="17">Retrieval misses, unsupported answers and failures</text>

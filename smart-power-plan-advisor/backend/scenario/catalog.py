@@ -22,6 +22,8 @@ def freeze(request, result, store):
     known = {p.plan_id for p in result.recommendations} | {p['plan_id'] for p in result.rough_estimates} | {p['plan_id'] for p in result.excluded_plans}
     frozen = copy.deepcopy([r for r in records if r['id'] in known])
     for record in frozen:
+        saved_plan = next((p for p in result.recommendations if p.plan_id == record['id']), None)
+        record['_comparison_pricing_basis'] = saved_plan.pricing_basis if saved_plan else ('custom_efl' if record['source_type'] == 'pdf' else 'components')
         record['_scenario_utility'] = utility
         record['_scenario_fetched_at'] = fetched_at
         record['_scenario_rough_capability'] = capability(record)
@@ -33,7 +35,7 @@ def override_components(components, operations):
     for op in operations:
         field = op['field']
         if field == 'average_price':
-            raise ValueError('Catalog component pricing requires an energy rate override, not a mapped EFL average.')
+            raise ValueError('Catalog scenarios do not support overriding published EFL examples. Change usage or supported source charges instead.')
         kind = 'credit' if field.startswith('credit_') else field
         matches = [c for i,c in enumerate(components) if c['kind']==kind and (op['component_index'] is None or op['component_index']==i)]
         if len(matches)!=1:
@@ -57,6 +59,8 @@ def calculate_catalog(state, frozen, request):
         ops = [o for o in state['overrides'] if o['plan_id']==record['id']]
         if ops and not record['calculation_eligible']:
             raise ValueError('Component overrides require an exact-calculation plan; rough estimates retain their reviewed assumptions.')
+        if ops and record.get('_comparison_pricing_basis') == 'custom_efl' and any(o['field'] in ('energy', 'energy_tier') for o in ops):
+            raise ValueError('This PDF scenario uses range-mapped EFL references for Energy; an energy component override would not affect its cost.')
         if ops:
             record['components'] = override_components(record['components'],[o for o in ops if o['period']=='all'])
             renewal = [o for o in ops if o['period']=='renewal']

@@ -144,7 +144,9 @@ def no_match_message(state, frozen):
         if 'source_type' in record:
             if not record['calculation_eligible']: continue
             term=record['term_months']
-            credit=any(c['kind']=='credit' and number(c['amount'])>0 for c in record['components'])
+            from backend.scenario.catalog import override_components
+            components = override_components(record['components'], [o for o in state['overrides'] if o['plan_id']==record['id'] and o['period']=='all'])
+            credit=any(c['kind']=='credit' and (c.get('minimum_kwh') is not None or c.get('maximum_kwh') is not None) for c in components)
         elif 'plan' in record:
             if not record['calculation_eligible']: continue
             plan=record['plan']
@@ -157,11 +159,13 @@ def no_match_message(state, frozen):
             term=record['term_months'];credit=record.get('credit_threshold') is not None and number(record.get('credit_amount','0'))>0
         if (exact and term!=exact) or (maximum and term>maximum):continue
         matches.append(credit)
+    terms = sorted({r.get('term_months') or int((r.get('plan',{}).get('contract_term') or {}).get('value',0)) for r in frozen if r.get('calculation_eligible',True)})
+    available = ' Recorded calculable contract terms: ' + ', '.join(str(t) for t in terms if t) + ' months. No filters were relaxed.'
     criteria=f"exactly {exact} months" if exact else f"at most {maximum} months" if maximum else "any contract length"
     if exact and maximum:criteria+=f" (maximum {maximum})"
     if matches and options.get('exclude_bill_credit_plans') and all(matches):
         return (f"{len(matches)} calculable plan(s) match {criteria}, but all are excluded by your active no-bill-credit filter. "
-            "Allow bill-credit plans to compare this term, or choose another contract term while keeping that filter. Previous results are unchanged.")
+            "Allow bill-credit plans to compare this term, or choose another contract term while keeping that filter. Previous results are unchanged." + available)
     return (f"No calculable plans match {criteria} in this scenario's source catalog. "
         f"Exclude bill-credit plans: {'yes' if options.get('exclude_bill_credit_plans') else 'no'}. "
-        "Choose another term or explicitly change a filter. Previous results are unchanged.")
+        "Choose another term or explicitly change a filter. Previous results are unchanged." + available)
