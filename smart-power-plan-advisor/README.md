@@ -732,7 +732,11 @@ repeatable provider-backed runner, [before-fix results](docs/chat-unhappy-before
 and the [latest 23-case report](docs/chat-unhappy-results.json). Unknown explicit
 plan variants request clarification instead of matching a shorter plan name. Credit
 changes without an amount also request clarification without applying source
-amounts as overrides. Backend and frontend
+amounts as overrides. Maximum-contract chat changes also set the comparison period,
+matching the preferences form (for example, maximum 24 months compares over 24 months).
+Explicit comparison-period requests change only the period; exact-contract requests
+remain separate filters. Existing chat filters and saved history are retained.
+Backend and frontend
 regression tests cover validation, source preservation, retries, stale responses,
 expiry and restart. Later named-comparison and UI changes received targeted checks;
 these results are not a claim that the entire current working tree passed one

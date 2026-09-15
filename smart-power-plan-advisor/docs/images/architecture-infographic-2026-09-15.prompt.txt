@@ -1,0 +1,60 @@
+﻿Created using the built-in image_gen tool.
+
+INITIAL PROMPT
+Use case: infographic-diagram.
+Create a polished, cool, high-resolution architecture infographic for "Smart Power Plan Advisor". A new presentation-ready landscape image, approximately 3:2 aspect ratio. Premium editorial technology design, light warm-white background, navy text, teal, blue and violet accents, subtle dimensional icons and clean rounded cards. Clear large typography and generous whitespace. Small Texas outline with lightning bolt beside the title. Prioritize legible component names and accurate arrows over decorative effects. No spaghetti connections, no tiny paragraphs.
+
+Title: "Smart Power Plan Advisor"
+Subtitle: "Architecture • Compare costs. Explore alternatives. Ask with evidence."
+
+Composition: top full-width frontend card, thin backend bar underneath, then three clearly separated vertical workflow lanes with color-coded arrows, shared storage strip and compact quality footer. Use big numbered layer labels and recognizable icons for browser, API, agent robot, documents, calculator and databases.
+
+Layer 1 "FRONTEND — HTML / CSS / JavaScript"
+Two side-by-side modules: "Plan Assistant" / "Cited document Q&A", and "Compare Plan Costs" / "ZIP • Usage • Preferences • What-if chat".
+A bidirectional arrow to Layer 2 "BACKEND — Python / FastAPI" with "REST APIs • Validation • Session handling • Saved results".
+
+Layer 3 three lanes:
+LEFT blue "PLAN ASSISTANT / AGENTIC RAG"
+vertical connected modules:
+"LangGraph Agent + OpenAI" with small "Plan identity • Tool orchestration";
+"Hybrid Retrieval" with small "BM25 keywords + Pinecone vectors";
+"Evidence Checks" with small "Exact excerpts • Claim support";
+"Cited Answer" with small "Document • Page • Supporting quote".
+No reranker box.
+MIDDLE violet "WHAT-IF CONVERSATION"
+vertical connected modules:
+"Intent + Safety Checks" with small "Plan focus • Clarify ambiguity";
+then a clearly drawn fork into two compact boxes "Explain saved results" and "Validate scenario changes";
+the change box arrow connects RIGHT to deterministic pricing and the read-only box links to saved snapshots;
+bottom "Answer + Updated Comparison" with small "History • Retry • Reset".
+RIGHT teal "COMPARISON + RECOMMENDATIONS"
+vertical modules:
+"Eligible Source Records" with small "Utility • Contract • Credit filters";
+"Deterministic Python Pricing" with small "Monthly costs • Comparison horizon • Renewal";
+"Recommendation Engine" with small "Best plan • Top 3 • Savings • Regret";
+"Results + Confidence" with small "Tradeoffs • Assumptions • Evidence".
+On pricing card a small but readable annotation "PDF: custom EFL estimates | API: component pricing".
+
+Layer 4 storage and ingestion band beneath the lanes, with FOUR distinct cards and tidy short vertical labeled links, no crossing:
+"Local EFL PDFs" / "Extraction • OCR • Audit" feeds RAG indexing AND independently PDF catalog validation.
+"Pinecone + Local Manifest" / "Embeddings • Page text • Metadata" supports hybrid retrieval.
+"SQLite" / "Plan catalog • Comparisons • Scenario snapshots" supports deterministic comparison and what-if answers.
+"Provider APIs / TXU" / "Offer sync • ZIP • Freshness" feeds API catalog records.
+A readable single-line note spanning this layer: "PDF and API records stay independent. RAG evidence does not set calculator prices."
+
+Footer "QUALITY + OBSERVABILITY" with short items "Tests & evaluations • Ingestion audit • Evidence validation • Latency & failure metrics".
+Visual invariants: do not depict AI performing pricing arithmetic. Do not imply PDF prices are live verified offers. Do not add React, Angular, Redis, Postgres, a reranker, automatic enrollment, or unsupported infrastructure. All text accurately spelled. This is a stylish infographic with clear architecture, not a screenshot or dense engineering blueprint.
+
+REFINEMENT PROMPT
+Edit this architecture infographic, preserving its excellent typography, colors, icons, title, card layout and almost all wording. Correct misleading connections only:
+1. Remove the horizontal left-pointing arrow and "Read snapshots" text between the what-if "Explain saved results" card and the RAG "Evidence Checks" card. There is NO link between those two cards.
+2. Remove ALL arrows between the layer 4 STORAGE & INGESTION band and layer 3 workflow lanes. Remove their captions "Feeds RAG indexing", "Independent validation", "Feeds API catalog records". Keep the four storage cards and replace their subtitle lines with these exact concise labels, which clarify associations without misleading arrows:
+Local EFL PDFs: "RAG indexing + independent catalog import"
+Pinecone + Local Manifest: "Hybrid retrieval: vectors + page text"
+SQLite: "Catalog + comparison + scenario snapshots"
+Provider APIs / TXU: "Independent API offer sync"
+3. Keep the layer 4 policy sentence exactly: "PDF and API records stay independent. RAG evidence does not set calculator prices."
+4. Change the backend right-edge decorative wording "Secure. Reliable. Scalable." to "Validate. Route. Persist." (avoid unsupported security claim).
+5. Keep the arrow from Validate scenario changes to Deterministic Python Pricing. Do not add any other cross-lane arrows.
+6. The what-if final card should read "Answer / Recalculated Results" with same "History • Retry • Reset" subtitle, so read-only answers do not imply changed comparisons.
+All other content unchanged, maintain sharp readable text and generous spacing.
