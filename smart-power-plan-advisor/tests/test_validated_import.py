@@ -111,33 +111,29 @@ class FlextraImportTests(unittest.TestCase):
 class ShortTermImportTests(unittest.TestCase):
     def test_nine_month_tariff_and_post_term_scenario(self):
         from backend.catalog.records import records
-        from backend.catalog.rough import estimate
+        from backend.catalog.compare import compare_catalog
+        from backend.models import ComparisonRequest
         from decimal import Decimal
         source=Path(__file__).resolve().parents[1]/'data/Reliant/EFL - Reliant Energy Retail Services-3.pdf'
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)/'data';root.mkdir();(root/'nine.pdf').write_bytes(source.read_bytes())
             store=CatalogStore(Path(tmp)/'catalog.sqlite3')
-            result=import_validated(store,root,allow_reviewed_estimates=True)
-            self.assertEqual(result['imported'],1);self.assertEqual(result['estimated'],1)
+            result=import_validated(store,root)
+            self.assertEqual(result['imported'],1);self.assertEqual(result['estimated'],0)
             record=records(store)[0]
             self.assertEqual(record['term_months'],9)
-            self.assertFalse(record['calculation_eligible'])
-            self.assertEqual(record['rough_estimate']['method'],'rough-v1:flat')
-            self.assertEqual(record['rough_estimate']['review_status'],'reviewed_snapshot')
+            self.assertTrue(record['calculation_eligible'])
             self.assertTrue(all(c['passed'] for c in record['price_checks']))
-            base=estimate(record,[1000]*12)
-            self.assertEqual(base['monthly_costs'][0]['total'],'119.03')
-            changed=estimate(record,[1000]*12,{'price_change_percent':'20'})
-            self.assertEqual(changed['monthly_costs'][:9],base['monthly_costs'][:9])
-            self.assertTrue(all(m['total']=='142.83' for m in changed['monthly_costs'][9:]))
-            boundary=estimate(record,[999,1000]+[1000]*10)
-            self.assertGreater(Decimal(boundary['monthly_costs'][0]['total']),Decimal(boundary['monthly_costs'][1]['total'])+74)
-            from backend.catalog.validated import reviewed_estimate
-            from backend.catalog.extract import read_pages
-            from backend.catalog.parser import parse_known
-            from backend.catalog.pricing import validate
-            pages,_=read_pages(source.read_bytes());plan=parse_known(pages)
-            self.assertIsNone(reviewed_estimate(plan,'changed',validate(plan,pages)[0]))
+            request=ComparisonRequest(zip_code='75201',data_source='catalog',monthly_kwh=[1000]*12,
+                recommendation_options={'renewal_escalation_pct':20})
+            result=compare_catalog(request,store)
+            plan=result.recommendations[0]; months=plan.horizon_monthly_costs
+            self.assertTrue(all(m['basis']=='document_terms' for m in months[:9]))
+            self.assertTrue(all(m['basis']=='modeled_renewal' for m in months[9:]))
+            self.assertEqual(months[9]['rate_multiplier'],Decimal('1.2'))
+            self.assertEqual(plan.annual_cost,plan.horizon_cost)
+            self.assertEqual(plan.annual_cost,sum(m.total for m in plan.monthly_costs))
+            self.assertEqual(result.recommendation_result.best_overall.horizon_cost,plan.horizon_cost)
 
 
 class OvernightImportTests(unittest.TestCase):

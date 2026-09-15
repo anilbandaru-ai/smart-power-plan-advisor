@@ -1,5 +1,7 @@
 # PDF validation audit - 2026-09-15
 
+Historical pre-recovery audit. See [the subsequent recovery report](pdf-recovery-report.md) for current status.
+
 25 on-disk PDFs; saved catalog validation and read-only current parser checks. API offers excluded; no ingestion or catalog updates performed. Fresh parser checks do not run delivery-table enrichment. No blocking issues does not verify availability or promise accurate custom-estimate bills.
 
 Files: 25. No blocking issues: 12; Not imported: 2; Issues: 11.

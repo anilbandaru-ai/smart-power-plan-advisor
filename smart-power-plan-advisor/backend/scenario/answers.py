@@ -14,8 +14,12 @@ TOPICS = {
 }
 
 
+TERMINATION = r'\b(?:early\s+)?(?:termination|cancellation|cancelation)\b|\b(?:early\s+)?exit\s+(?:fee|charge|penalty)\b|\betf\b'
+
+
 def topic_for(text):
     if re.search(TOPICS['compare'], text, re.I): return 'compare'
+    if re.search(TERMINATION, text, re.I): return 'contract'
     return next((key for key, pattern in TOPICS.items() if re.search(pattern, text, re.I)), 'unknown')
 
 
@@ -34,17 +38,26 @@ def explicit_ids(text, records):
 
 def local_question(text, records):
     """Recognize clear information requests; leave scenario edits to the interpreter."""
+    discovery = re.fullmatch(
+        r'(?:(?:are there|do you have)\s+(?:any\s+)?|(?:which|what)\s+|(?:show(?: me)?|list)\s+(?:the\s+)?)'
+        r'plans?\s+(?:that\s+)?(?:avoid|without|with no|have no|do not have|don\'t have|do not use|don\'t use)\s+(?:bill\s+)?credits?[?.!]*',
+        text.strip(), re.I)
+    if discovery: return ('credit_free_plans', [])
     pair=re.fullmatch(r'(?:please\s+|can you\s+)?compare\s+(?!over\b|across\b|for\b)(.+?)\s+(?:with|and|versus|vs\.?)\s+(.+?)[?.!]*',text.strip(),re.I)
     if pair:
         if all(name.strip().lower() in ('original','initial','current','original scenario','initial scenario','current scenario') for name in pair.groups()): return None
+        names=list(pair.groups())
+        attribute = re.match(r'(?:(?:early\s+)?(?:termination|cancellation|cancelation|exit)\s+(?:fees?|charges?|penalt(?:y|ies))|ETFs?)\s+(?:of|for|between)\s+', names[0], re.I)
+        pair_topic = 'contract' if attribute else 'compare'
+        if attribute: names[0] = names[0][attribute.end():]
         targets=[]
-        for name in pair.groups():
+        for name in names:
             matches=[r['id'] for r in records if plan_name(r).casefold()==name.strip().casefold()]
             targets.append(matches[0] if len(matches)==1 else 'unresolved:'+name.strip())
-        return ('compare',targets)
+        return (pair_topic,targets)
     if re.search(r'\b(what if|set|change|increase|decrease|exclude|avoid|remove|use|assume|switch)\b', text, re.I):
         return None
-    if not re.match(r'^(are|is|does|do|how|what|which|why|would|will|explain|tell|show)\b', text.strip(), re.I):
+    if not re.match(r'^(are|is|does|do|how|what|which|why|would|will|explain|tell|show)\b', text.strip(), re.I) and not re.match(TERMINATION, text.strip(), re.I):
         return None
     if re.search(r'\bguarantee(?:d)?\b|\bactual bill\b',text,re.I): return ('recommendation', [])
     topic = topic_for(text)
@@ -79,6 +92,35 @@ def delta(before, after):
 
 
 def answer(result, frozen, current, topic, targets, focus, question=''):
+    if topic == 'credit_free_plans':
+        options = current['request']['recommendation_options']
+        maximum, exact = options.get('max_contract_months'), options.get('exact_contract_months')
+        saved = {p.plan_id: p for p in result.recommendations}
+        matches, sources = [], []
+        for record in frozen:
+            plan = saved.get(record['id'])
+            if plan is None or not record.get('calculation_eligible', True): continue
+            if (maximum and plan.term_months > int(maximum)) or (exact and plan.term_months != int(exact)): continue
+            raw = record.get('plan', record)
+            components = raw.get('components', [])
+            if any(c['kind'] == 'credit' for c in components): continue
+            if record.get('credit_threshold') is not None and Decimal(str(record.get('credit_amount') or 0)) > 0: continue
+            # Calculable source records are required; missing components in an
+            # unknown record cannot establish absence of bill credits.
+            if not components and 'credit_amount' not in record: continue
+            matches.append(f'{plan_name(record)}: {plan.term_months} months; no recorded bill-credit component.')
+            source = record.get('source_details', raw)
+            evidence = [c.get('evidence') for c in source.get('components', [])]
+            evidence = [e for e in evidence if e] or record.get('provenance', [])
+            for e in evidence:
+                ref = {'plan_id': record['id'], 'label': plan_name(record),
+                       'url': e.get('url') or record.get('document_url') or record.get('record_url'),
+                       'page': e.get('page'), 'quote': e.get('quote', '')}
+                if ref not in sources: sources.append(ref)
+        text = ('Matching plans in this saved comparison:\n\n' + '\n\n'.join(matches) if matches else
+                'No calculable plans without recorded bill-credit components match your current contract filters in this saved comparison.')
+        text += '\n\nYour comparison and preferences are unchanged. This describes recorded source terms, not verified live availability; incomplete and rough-estimate plans are not classified as credit-free.'
+        return 'explained', text, sources, focus
     by_id = {r['id']: r for r in frozen}
     rec = result.recommendation_result
     if re.search(r'\bguarantee(?:d)?\b|\bactual bill\b',question,re.I):
@@ -91,7 +133,9 @@ def answer(result, frozen, current, topic, targets, focus, question=''):
         if not targets and rec and rec.best_overall:
             targets = [rec.best_overall.plan_id]
             assumption = 'Using the currently recommended plan. '
-    if not targets or any(i not in by_id for i in targets) or (len(targets) > 1 and topic != 'compare'):
+    contract_pair = (topic == 'contract' and len(targets) == 2 and len(set(targets)) == 2
+                     and re.match(r'^(?:please\s+|can you\s+)?compare\b', question.strip(), re.I))
+    if not targets or any(i not in by_id for i in targets) or (len(targets) > 1 and topic != 'compare' and not contract_pair):
         return 'clarify', 'Which plan do you mean? Available plans: ' + ', '.join(plan_name(r) + ' [' + r['id'] + ']' for r in frozen), [], targets
     if topic == 'compare' and len(targets) == 1:
         others = [p.plan_id for p in result.recommendations if p.plan_id not in targets]
@@ -165,7 +209,7 @@ def answer(result, frozen, current, topic, targets, focus, question=''):
             term = record.get('term_months') or (raw.get('contract_term') or {}).get('value')
             text += f'Recorded contract: {term if term is not None else "unknown"} months. '
             termination = raw.get('termination_terms') or (record.get('source_details') or {}).get('termination_terms')
-            text += 'Termination terms: ' + (termination['value'] if isinstance(termination, dict) else 'not available in the structured record') + '.'
+            text += 'Termination terms: ' + (termination['value'] if isinstance(termination, dict) else 'not available in the structured record').rstrip('. ') + '.'
         elif topic in ('recommendation', 'compare', 'regret') and target in analyses:
             analysis = analyses[target]
             text += f'Estimated ${cost_of(analysis):,.2f} over {rec.comparison_horizon} months; contract {plan.term_months} months. Maximum tested regret ${analysis.max_scenario_regret:,.2f}. '
@@ -186,7 +230,7 @@ def answer(result, frozen, current, topic, targets, focus, question=''):
             text += describe(data) if data else 'No supported ' + topic.replace('_', '-') + ' estimate is available. A modeled baseline is needed for savings; break-even findings cover tested scenarios only.'
         else:
             text += 'That detail is not available as a grounded scenario answer. Ask about bill credits, delivery, fees, energy, contract, monthly totals, savings, regret or two available plans. Use Plan Assistant for other document questions.'
-        if plan and plan.pricing_basis == 'custom_efl' and topic != 'energy':
+        if plan and plan.pricing_basis == 'custom_efl' and topic not in ('energy', 'contract'):
             text += ' Custom estimate: EFL averages supply Energy and source charges are applied separately; this repeats embedded effects and is not an actual tariff bill.'
         if overrides:
             text += ' Hypothetical overrides are active: ' + '; '.join(f"{o['field']}={o['value']} ({o['period']})" for o in overrides) + '. Sources describe original terms.'

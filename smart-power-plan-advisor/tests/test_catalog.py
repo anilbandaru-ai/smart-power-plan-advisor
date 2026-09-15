@@ -180,7 +180,7 @@ class RealPdfParserTests(unittest.TestCase):
         self.assertEqual(results['Reliant Secure Advantage® 12 plan'][1],[])
         self.assertTrue(results['4Change Energy Maxx Saver Value 12SM'][1])
         self.assertTrue(results['Reliant Free Overnight 12 plan'][1])
-        self.assertTrue(results['SimpleSaver 11'][1])
+        self.assertEqual(results['SimpleSaver 11'][1],[])
         four=results['4Change Energy Maxx Saver Value 12SM'][0]
         credit=next(c for c in four.components if c.kind=='credit')
         self.assertEqual(credit.minimum_kwh,Decimal('999'));self.assertFalse(credit.minimum_inclusive)

@@ -742,3 +742,29 @@ expiry and restart. Later named-comparison and UI changes received targeted chec
 these results are not a claim that the entire current working tree passed one
 full-suite run. Natural-language interpretation remains probabilistic. Missing
 structured details require clarification or the separate **Plan Assistant**.
+
+
+### PDF catalog recovery
+
+Fixed PDF contracts shorter than twelve months are supported when their source
+terms and price examples validate. Monthly estimates switch to explicit modeled
+renewal after the actual contract ends. The PDF custom EFL formula is unchanged;
+API offers retain independent pricing and eligibility rules.
+
+Free-time and variable-rate PDFs remain separately labeled reviewed estimates.
+Missing or newer-than-document delivery evidence does not enable ranking. See
+the [PDF recovery report](docs/pdf-recovery-report.md) for current per-file status
+and remaining evidence requirements. Start a new comparison after reimporting
+sources; existing chats preserve their saved source snapshots.
+
+Termination-fee questions in what-if chat use saved contract terms and their
+source excerpts, including move-related exceptions. Short requests such as
+"termination fee for [plan]" and cancellation/exit-fee synonyms are supported;
+monthly base fees are not substituted when termination information is absent.
+
+Named fee comparisons such as "Compare termination fee of SimpleSaver 11 with
+Reliant Get More, Save More 36 plan" return each plan's termination terms and
+exceptions with separate evidence. Unknown plan identities still require
+clarification; these questions do not change the cost comparison.
+
+Questions such as "Are there any plans that avoid bill credits?" list saved, calculable plans without recorded credit components and leave the comparison unchanged. Existing contract filters still apply. Explicit "Avoid plans with bill credits" applies the exclusion filter. A plan that earns zero credits at the current usage is not automatically credit-free; incomplete and rough-estimate records are excluded from this classification.

@@ -1942,3 +1942,121 @@ records matched form semantics at both horizons: SimpleSaver 24, custom estimate
 3499.66 USD over 24 months; 5492.88 USD over 36 months. No saved user histories
 were rewritten. Clear/reset is needed to remove previously saved exact-term
 filters; maximum changes intentionally retain those filters. Diff checks passed.
+
+
+### PDF-RECOVERY-01 - Recover audited PDF catalog (implemented; four source gaps remain)
+Revalidate all 25 local PDF files in an isolated catalog before publishing. Back up
+SQLite before replacing selected source associations; retain PDF/API separation,
+source bytes and historical comparison/chat snapshots. Recover missing Gexa and
+stale tiered plans using existing reviewed parsers. Approved free-time and variable
+plans remain reviewed rough estimates, outside ranking; monthly inputs do not
+establish interval consumption or future variable rates. Publish only independently
+validated or fingerprint-approved reviewed estimates; report unresolved sources
+with actionable evidence gaps rather than marking them eligible.
+
+PDF-SHORT-01: Accept explicitly fixed PDF contracts of 1..120 months when all
+other evidence and example checks pass. Comparison horizon remains 12..120.
+Original term pricing is used through the actual term; later months are labeled
+modeled renewal. Apply at least one annual renewal adjustment from the first
+renewal month for sub-12-month plans, retaining the existing multiplier policy
+for longer terms. First-year comparison totals/monthly breakdowns for short
+contracts include that modeled renewal, not an unstated 12-month rate guarantee.
+Preserve document examples and custom EFL formula; API-offer policy is unchanged.
+
+PDF-TDU-02: Add strict parsing for the inspected Discount Power residential totals
+table at its canonical official URL. Provider aliases map only to approved URLs;
+no arbitrary redirects. Preserve unit conversion, utility matching, table date,
+snapshot hash and provenance. Tables newer than the EFL remain excluded; do not
+infer delivery rates from average prices or borrow provider API prices. TXU
+missing rates require an approved dated table; the current linked September 13
+PDF cannot establish charges for a September 11 document. TriEagle bundled-price
+interpretation remains an estimate until an explicit charge breakdown is available.
+
+Acceptance: real-PDF and short-term renewal boundary tests, source/date/unit and
+conflict tests, independent API immutability checks, full Python/frontend suite,
+per-file final audit. Report unresolved seasonal/interval/variable inputs clearly.
+
+Verification (2026-09-15): 230 Python tests ran, 228 passed and two Windows
+symlink-permission tests skipped; no failures/errors. All 57 frontend tests passed.
+Real 9/11-month PDFs pass strict validation, renewal begins immediately after
+the term and first-year totals reconcile with monthly/horizon projections.
+Discount Power canonical URL, dollar-to-cent conversion, source quote checks,
+ambiguous totals and document-date rejection are covered by tests.
+
+Published 19 passing files (16 validated and 3 approved reviewed estimates) after
+a SQLite backup; preserved two existing 4Change validated records using their
+September 1 TDU snapshots. Final on-disk file inventory: 18 validated for ranking,
+3 approved reviewed estimates, 4 unresolved diagnostic PDFs, zero missing source
+entries. API tables, original PDFs and existing comparison payloads unchanged.
+Fresh ZIP 78681 comparisons include the Reliant 36-month plan at maximum 36 and
+exclude it at maximum 24. It need not win: SimpleSaver 24 remains cheapest in the
+checked profile. Existing chats retain frozen source records.
+
+Remaining: Discount Power Bill Credit Bundle 12/24 need delivery evidence valid
+for September 1 (inspected live table is September 13); TriEagle Real 1000 Deal
+needs a verified separate/bundled charge interpretation; TXU Smart 1000 Saver
+needs dated delivery evidence and a seasonal-credit model. That seasonal model
+is NOT implemented by this recovery. Free-time and variable products remain
+reviewed estimates, not validated annual-rate offers. Full per-file status, logs
+and backup reference are in docs/pdf-recovery-report.md.
+
+
+### CHAT-36 - Termination-fee answer routing (implemented)
+Route explicit termination/cancellation/exit fee and ETF information requests to
+contract terms ahead of generic recurring fees. Support terse noun-phrase queries
+as well as complete questions. Preserve exact plan scope, unknown-plan
+clarification, comparison routing and scenario-edit guards. Read only saved
+termination terms with their original exceptions and source evidence; never
+substitute base/delivery charges or infer absent fees. Omit irrelevant custom
+monthly-price boilerplate from contract answers. No pricing or history mutation.
+Acceptance: screenshot wording, synonyms, missing terms, regular fee queries,
+unsafe interpreter bypass, PDF $395 and move exception with page citation.
+
+Verification: 18 answer tests, 13 catalog-chat API tests and four contract-chat
+tests passed (35 tests). Screenshot query replayed read-only against the user's
+frozen record returns $395, move/forwarding-address exception, and page-1 exact
+evidence. API regression bypasses intentionally incorrect recurring-fee model
+output and preserves state/result IDs. Missing terms remain explicitly unknown.
+The app was restarted; existing answer history was not rewritten.
+
+
+### CHAT-37 - Named termination-fee comparisons (implemented)
+Recognize "Compare termination fee of A with B" and cancellation/exit/ETF
+variants as a read-only contract comparison, stripping the requested attribute
+before resolving full plan names. Return both plans' termination terms and
+exceptions with their own evidence. Do not substitute total-cost rankings,
+base fees, or unrelated plans. Permit two explicit contract targets only for
+comparison requests; ambiguous standalone two-plan follow-ups still clarify.
+Unknown or duplicate plan identities require clarification. Ordinary named
+cost comparisons and scenario edits retain existing behavior. Acceptance: exact
+screenshot using SimpleSaver 11 and Reliant 36, separate source refs, missing
+terms, unknown plan, recurring-fee regression and unchanged scenario inputs.
+
+Verification: 20 answer tests and 14 catalog-chat API tests passed. Exact screenshot
+query replayed read-only against saved source records returned SimpleSaver 11
+$150 and Reliant 36 $395, move exception, and separate evidence for both plans.
+Unknown names clarify; absent terms remain unknown; regular named comparisons
+retain cost behavior. API tests bypass wrong model routing and preserve state
+and result IDs. App restarted; prior conversations were not rewritten.
+
+
+### CHAT-38 - Read-only discovery of plans without credits (implemented)
+Questions such as "Are there any plans that avoid bill credits?", "Which plans
+have no bill credits?" and "Show plans without bill credits" list matching saved
+calculable candidates without changing filters, history selection, usage, overrides
+or result ID. Respect existing contract filters. Match absence of recorded credit
+components, not zero credits at current usage. Exclude incomplete/rough records
+from assertions about credit-free plans. Cite available source terms and qualify
+absence as no recorded bill-credit component, not a live-offer guarantee. Report
+no matches clearly. Explicit "Avoid plans with bill credits" remains a change.
+Route complete supported discovery questions before change-keyword detection;
+do not swallow compound edit requests. Acceptance: exact screenshot, synonyms,
+wrong model-change bypass, source credit threshold/zero-usage distinction, missing
+data, active contracts, zero matches and preserved scenario state/result.
+
+Verification: 22 scenario-answer tests and 15 catalog-chat API tests passed.
+The exact screenshot question replayed read-only against its saved comparison
+returned six matching plans with source references, without applying a filter.
+Tests cover deterministic bypass of incorrect model changes, explicit filter
+commands, existing contracts, credit components with zero modeled credits,
+missing data, ineligible records, no matches and unchanged state/result IDs.

@@ -273,3 +273,61 @@ class CatalogChatTests(unittest.TestCase):
                 self.assertEqual(options['comparison_horizon'],48)
                 self.assertEqual(options['max_contract_months'],term)
                 self.assertIsNone(options['exact_contract_months'])
+
+    def test_termination_fee_fragment_bypasses_recurring_fee_interpretation(self):
+        self.start()
+        self.action=Action(kind='explain',question='',operations=[],topic='fees',target_plan_ids=[self.pdf['id']])
+        r=self.client.post('/api/comparison-chat/'+self.session['session_id']+'/messages',
+            headers={'X-Scenario-Token':self.session['token']},json={
+            'request_id':str(uuid4()),'version':self.session['version'],
+            'message':'termination fee for Saver'})
+        self.assertEqual(r.status_code,200,r.text)
+        reply=r.json()
+        self.assertEqual(reply['status'],'explained')
+        self.assertIn('Exit fee 150 dollars',reply['message'])
+        self.assertNotIn('First-year modeled amounts',reply['message'])
+        self.assertEqual(reply['state'],self.session['state'])
+        self.assertEqual(reply['result']['id'],self.original['id'])
+        self.assertFalse(hasattr(self,'context'))
+
+    def test_named_termination_comparison_bypasses_cost_comparison(self):
+        self.start()
+        other=next(p for p in self.before['records'] if p['source_type']=='txu')
+        self.action=Action(kind='compare_original',question='',operations=[])
+        question='Compare termination fee of Saver with '+other['name']
+        r=self.client.post('/api/comparison-chat/'+self.session['session_id']+'/messages',
+            headers={'X-Scenario-Token':self.session['token']},json={
+            'request_id':str(uuid4()),'version':self.session['version'],'message':question})
+        self.assertEqual(r.status_code,200,r.text)
+        reply=r.json()
+        self.assertEqual(reply['status'],'explained')
+        self.assertIn('Exit fee 150 dollars',reply['message'])
+        self.assertIn(other['name'],reply['message'])
+        self.assertNotIn('Original:',reply['message'])
+        self.assertEqual(reply['state'],self.session['state'])
+        self.assertEqual(reply['result']['id'],self.original['id'])
+        self.assertFalse(hasattr(self,'context'))
+
+    def test_credit_free_question_cannot_apply_model_filter(self):
+        self.start()
+        self.action=change('exclude_bill_credit_plans','true','boolean')
+        r=self.client.post('/api/comparison-chat/'+self.session['session_id']+'/messages',
+            headers={'X-Scenario-Token':self.session['token']},json={
+            'request_id':str(uuid4()),'version':self.session['version'],
+            'message':'Are there any plans that avoid bill credits'})
+        self.assertEqual(r.status_code,200,r.text)
+        reply=r.json()
+        self.assertEqual(reply['status'],'explained')
+        self.assertIn('Simple Value 24',reply['message'])
+        self.assertNotIn('Before:',reply['message'])
+        self.assertEqual(reply['state'],self.session['state'])
+        self.assertEqual(reply['result']['id'],self.original['id'])
+        self.assertFalse(hasattr(self,'context'))
+        self.session={**reply,'token':self.session['token']}
+        r=self.client.post('/api/comparison-chat/'+self.session['session_id']+'/messages',
+            headers={'X-Scenario-Token':self.session['token']},json={
+            'request_id':str(uuid4()),'version':self.session['version'],
+            'message':'Avoid plans with bill credits'})
+        self.assertEqual(r.status_code,200,r.text)
+        self.assertEqual(r.json()['status'],'updated')
+        self.assertTrue(r.json()['state']['request']['recommendation_options']['exclude_bill_credit_plans'])

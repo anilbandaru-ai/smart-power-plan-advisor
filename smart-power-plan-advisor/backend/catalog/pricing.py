@@ -75,8 +75,10 @@ def validate(plan, pages):
     if plan.product_type and not plan.product_type.value.lower().startswith('fixed'):
         issues.append('Only fixed-rate products supported')
     term = int(plan.contract_term.value) if plan.contract_term and plan.contract_term.value.isdigit() else 0
-    if term < 12:
+    if term <= 0:
         issues.append('Contract does not cover the 12-month comparison horizon')
+    elif term > 120:
+        issues.append('Fixed contract exceeds the supported 120-month limit')
     raw = ' '.join(texts.values()).lower()
     for phrase in ('free nights', 'free overnight', 'free days', 'free flex', 'summer bill credit'):
         if phrase in raw:
@@ -104,7 +106,12 @@ def validate(plan, pages):
         derived_zero = component.kind == 'base' and component.amount == 0 and component.evidence.quote in (
             'The price you pay each month includes the Energy Charge, Usage Credit and TDU Delivery Charges in effect for your monthly billing cycle.',
             'The above price disclosure is based on the following prices:')
-        if component.amount not in quoted and not derived_zero:
+        converted_delivery = (component.evidence.url is not None and component.kind == 'delivery_energy'
+                              and component.amount / 100 in quoted
+                              and plan.tdu_lookup is not None and plan.tdu_lookup.status == 'resolved'
+                              and plan.tdu_lookup.source is not None
+                              and component.amount == plan.tdu_lookup.source.cents_per_kwh)
+        if component.amount not in quoted and not derived_zero and not converted_delivery:
             issues.append(f'{component.kind}: amount not present in source excerpt')
         expected = 'cents_per_kwh' if component.kind in ('energy', 'energy_tier', 'delivery_energy') else 'usd_per_month'
         if component.unit != expected:
