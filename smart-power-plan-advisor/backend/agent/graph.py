@@ -12,10 +12,27 @@ from langgraph.types import interrupt
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend.knowledge.models import DocumentIdentityError
+from backend.knowledge.verification import VERIFICATION_FAILURE
 from backend.knowledge.evidence import abstain, select_context, validate_answer
 
 
 COMPARISON_MESSAGE = "Use Compare Plan Costs to estimate bills and compare plans using your usage. Plan Assistant can explain documented rates, fees and bill-credit conditions, but cannot calculate bills or recommend plans."
+
+
+ENROLLMENT_MESSAGE = "I can't enroll you in a plan or submit an enrollment application. No enrollment was performed. To enroll, contact the electricity provider directly. I can help explain the plan's documented rates, fees and terms."
+
+
+def enrollment_request(messages):
+    text = ''
+    for message in messages:
+        if isinstance(message, HumanMessage):
+            text = message.content
+        elif isinstance(message, ToolMessage) and message.name == 'ask_user':
+            text = json.loads(message.content).get('user_clarification', '')
+    return bool(re.match(
+        r'^\s*(?:please\s+|(?:can|could|would|will) you\s+(?:please\s+)?|I (?:want|would like) you to\s+)?'
+        r'(?:enroll\s+(?:me|us)\b|sign\s+(?:me|us)\s+up\b|sign\s+up\s+(?:me|us)\b|'
+        r'(?:enroll|sign up)\s+(?:in|for|with)\b)', text, re.I))
 
 
 def comparison_request(messages):
@@ -31,6 +48,41 @@ def comparison_request(messages):
         or re.search(r"\bhow much\b.{0,40}\b(?:pay|owe|bill|cost)\b", text)
         or re.search(r"\b(?:recommend|rank|choose|pick)\b.{0,45}\bplans?\b", text)
         or re.search(r"\b(?:cheapest|best)\s+(?:electricity\s+)?plan\b", text))
+
+
+def factual_followup_tool(messages, manifest, scope=None):
+    """Recover an erroneous calculator redirect for a narrow document follow-up."""
+    from backend.knowledge.identity import normalize, value
+    turns = []
+    for message in messages:
+        if isinstance(message, HumanMessage):
+            turns.append(message.content)
+        elif isinstance(message, ToolMessage) and message.name == 'ask_user':
+            turns.append(json.loads(message.content).get('user_clarification', ''))
+    if not turns or not re.fullmatch(
+            r'(?:and\s+|what about\s+|how about\s+)?(?:rates?|fees?|bill credits?|delivery charges?|termination fees?)[?.!]*',
+            turns[-1].strip(), re.I):
+        return None
+    query = None
+    if scope:
+        query = turns[-1]
+    else:
+        for index in range(len(turns) - 2, -1, -1):
+            normalized = normalize(turns[index])
+            names = {normalize(value(d, 'name')) for d in manifest['documents'] if value(d, 'name')}
+            matched = {name for name in names if re.search(r'(?:^| )' + re.escape(name) + r'(?: |$)', normalized)}
+            if len(matched) == 1:
+                query = ' '.join(turns[index:])
+                break
+            if len(matched) > 1:
+                break
+            # Do not fall back past an unknown variant of a known plan family.
+            families = {re.sub(r'\s+\d+$', '', name) for name in names}
+            if any(re.search(r'(?:^| )' + re.escape(name) + r'(?: |$)', normalized) for name in families):
+                break
+    if query is None:
+        return {'name': 'ask_user', 'args': {'question': 'Which plan and delivery utility would you like me to check?'}}
+    return {'name': 'search_document_evidence', 'args': {'query': query[:2000], 'document_id': scope}}
 
 
 class Search(BaseModel):
@@ -113,6 +165,9 @@ def build_graph(checkpointer):
                    for value in (messages, evidence)) > 10000
 
     def reason(state, config):
+        if enrollment_request(state['messages']):
+            return {'messages': [AIMessage(content='', tool_calls=[{
+                'id': str(uuid4()), 'name': 'unsupported_enrollment', 'args': {}}])]}
         if state.get("identity_question"):
             return {"identity_question": None, "messages": [AIMessage(content="", tool_calls=[{
                 "id": str(uuid4()), "name": "ask_user", "args": {"question": state["identity_question"][:500]}}])]}
@@ -127,6 +182,10 @@ def build_graph(checkpointer):
             return {"stopped": True}
         model = config["configurable"]["model"]
         message = model.decide(context_messages(state["messages"]), state.get("document_id"), require_search=state["searches"] == 0)
+        if len(message.tool_calls) == 1 and message.tool_calls[0]['name'] == 'redirect_to_comparison':
+            recovery = factual_followup_tool(state['messages'], state['manifest'], state.get('document_id'))
+            if recovery:
+                message = AIMessage(content='', tool_calls=[{'id': str(uuid4()), **recovery}])
         return {"messages": [message], "calls": state["calls"] + 1}
 
     def route(state):
@@ -137,6 +196,8 @@ def build_graph(checkpointer):
         calls = state["messages"][-1].tool_calls
         if not calls:
             return "finalize"
+        if len(calls) == 1 and calls[0]["name"] == "unsupported_enrollment":
+            return "enrollment"
         if len(calls) == 1 and calls[0]["name"] == "redirect_to_comparison" and calls[0]["args"] == {}:
             return "redirect"
         if len(calls) == 1 and calls[0]["name"] == "ask_user":
@@ -199,6 +260,13 @@ def build_graph(checkpointer):
                     tool_call_id=call["id"], name="ask_user")],
                 "tools": state["tools"] + 1, "activity": state["activity"] + ["Received clarification"]}
 
+    def enrollment(state):
+        call = state['messages'][-1].tool_calls[0]
+        answer = abstain(ENROLLMENT_MESSAGE)
+        return {'result': {'status': 'insufficient_evidence', **answer.model_dump()},
+                'messages': [ToolMessage(content=ENROLLMENT_MESSAGE, tool_call_id=call['id'], name=call['name']),
+                             AIMessage(content=ENROLLMENT_MESSAGE)]}
+
     def redirect(state):
         call = state["messages"][-1].tool_calls[0]
         answer = abstain(COMPARISON_MESSAGE)
@@ -215,10 +283,12 @@ def build_graph(checkpointer):
         else:
             generated = config["configurable"]["model"].finalize(context_messages(state["messages"]), list(state["evidence"].values()))
             answer = validate_answer(generated, list(state["evidence"].values()))
-            if generated is not None and not generated.abstained and answer.abstained and state["calls"] < 5:
-                activity.append("Retried answer with exact source excerpts")
+            verification_failed = generated is not None and generated.abstained and generated.answer == VERIFICATION_FAILURE
+            if generated is not None and (not generated.abstained or verification_failed) and answer.abstained and state["calls"] < 5:
+                activity.append("Retried answer after claim verification" if verification_failed else "Retried answer with exact source excerpts")
+                feedback = {"verification_feedback": generated._verification_issues} if verification_failed else {}
                 generated = config["configurable"]["model"].finalize(
-                    context_messages(state["messages"]), list(state["evidence"].values()), repair=True)
+                    context_messages(state["messages"]), list(state["evidence"].values()), repair=True, **feedback)
                 answer = validate_answer(generated, list(state["evidence"].values()))
         return {"activity": activity, "result": {"status": "insufficient_evidence" if answer.abstained else "answered",
                            **answer.model_dump()}, "messages": [AIMessage(content=answer.answer)]}
@@ -229,7 +299,7 @@ def build_graph(checkpointer):
         return {"result": {"status": "limit_reached", "answer": answer, "citations": []}}
 
     graph = StateGraph(State)
-    for name, fn in [("reason", reason), ("action", action), ("clarify", clarify), ("finalize", finalize), ("limit", limit), ("redirect", redirect)]:
+    for name, fn in [("reason", reason), ("action", action), ("clarify", clarify), ("finalize", finalize), ("limit", limit), ("redirect", redirect), ("enrollment", enrollment)]:
         graph.add_node(name, fn)
     graph.add_edge(START, "reason")
     graph.add_conditional_edges("reason", route)
@@ -238,4 +308,5 @@ def build_graph(checkpointer):
     graph.add_edge("finalize", END)
     graph.add_edge("limit", END)
     graph.add_edge("redirect", END)
+    graph.add_edge("enrollment", END)
     return graph.compile(checkpointer=checkpointer)

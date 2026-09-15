@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 
 class Question(BaseModel):
@@ -13,6 +13,7 @@ class Evidence(BaseModel):
 
 
 class GeneratedAnswer(BaseModel):
+    _verification_issues: list[str] = PrivateAttr(default_factory=list)
     answer: str = Field(min_length=1, max_length=6000)
     abstained: bool
     evidence: list[Evidence] = Field(max_length=8)

@@ -125,6 +125,18 @@ class VerificationTests(unittest.TestCase):
         self.assertNotIn('tools',request)
         self.assertNotIn('execute_shell',request['instructions'])
 
+    def test_verification_feedback_is_internal_and_fail_closed(self):
+        candidate=GeneratedAnswer(answer='No other fees exist.',abstained=False,
+            evidence=[{'source_id':'S1','quote':'Contract Term 12 Months.'}])
+        client=MagicMock()
+        client.responses.parse.return_value=SimpleNamespace(output_parsed=self.review(
+            complete_conditions=False,issues=['Cannot establish all fees without Terms of Service.']))
+        result=verify(client,'model','fees',candidate,select_context([match()],manifest()))
+        self.assertTrue(result.abstained)
+        self.assertEqual(result._verification_issues,['Cannot establish all fees without Terms of Service.'])
+        self.assertNotIn('_verification_issues',result.model_dump())
+        self.assertNotIn('_verification_issues',GeneratedAnswer.model_json_schema()['properties'])
+
     def test_support_check_keeps_exact_quote_gate(self):
         candidate=GeneratedAnswer(answer='12 months',abstained=False,
             evidence=[{'source_id':'unknown','quote':'A fabricated quotation here.'}])

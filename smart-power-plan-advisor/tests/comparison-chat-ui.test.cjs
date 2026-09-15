@@ -219,3 +219,39 @@ test('clarification and unsupported replies refocus, but detached replies do not
  app.context.comparisonChat.detach();release(ok(view()));await flush();
  assert.equal(app.get('scenario-input').focused,undefined);
 });
+
+
+test('available plan bullets render as one safe readable list',async()=>{
+ const data=view();data.attempts=[{user:'which plan',status:'clarify',message:'Available plans:\n- SimpleSaver 24: 24 months | Oncor | PDF document\n- <img src=x>: TXU offer'}];
+ const app=setup(async()=>ok(data));await flush();
+ const full=app.get('scenario-messages').children[0].children[1].children[2];
+ const lists=full.children.filter(node=>node.className==='scenario-detail-list');
+ assert.equal(lists.length,1);assert.equal(lists[0].children.length,2);
+ assert.equal(lists[0].children[0].children[0].textContent,'SimpleSaver 24: ');
+ assert.equal(lists[0].children[1].children[0].textContent,'<img src=x>: ');
+});
+
+
+test('restored legacy choices hide IDs in preview and full list without splitting plan-name commas',async()=>{
+ const message='Which plan do you mean? Available plans: SimpleSaver 11 [0123456789abcdef01234567], Reliant Get More, Save More 36 plan [abcdef0123456789abcdef01]';
+ const data=view();data.attempts=[{user:'compare',status:'clarify',message}];
+ const app=setup(async()=>ok(data));await flush();
+ const bubble=app.get('scenario-messages').children[0].children[1];
+ const preview=bubble.children[1], full=bubble.children[2];
+ assert.ok(!preview.textContent.includes('0123456789abcdef01234567'));
+ const lists=full.children.filter(n=>n.className==='scenario-detail-list');
+ assert.equal(lists.length,1);assert.equal(lists[0].children.length,2);
+ assert.equal(lists[0].children[1].textContent,'Reliant Get More, Save More 36 plan');
+ assert.equal(data.attempts[0].message,message);
+});
+
+test('unrelated bracketed evidence and incomplete lists are preserved',async()=>{
+ for(const [status,message] of [
+  ['explained','Available plans: Source [0123456789abcdef01234567]'],
+  ['clarify','Available plans: Source [0123456789abcdef01234567], unresolved text']]) {
+  const data=view();data.attempts=[{user:'question',status,message}];
+  const app=setup(async()=>ok(data));await flush();
+  const preview=app.get('scenario-messages').children[0].children[1].children[1];
+  assert.equal(preview.textContent,message);
+ }
+});
