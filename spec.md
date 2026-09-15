@@ -2060,3 +2060,105 @@ returned six matching plans with source references, without applying a filter.
 Tests cover deterministic bypass of incorrect model changes, explicit filter
 commands, existing contracts, credit components with zero modeled credits,
 missing data, ineligible records, no matches and unchanged state/result IDs.
+
+
+### UI-39 - Plan list pagination (implemented)
+Display five plan records per page in compared plans and rough cost estimates.
+Each list has independent Previous/Next controls and a visible range and page
+count; hide navigation for zero to five records. Preserve source order, ranking,
+expanded details and edited rough assumptions when navigating pages. Existing
+longer-contract disclosure remains separate and paginates independently. New
+comparison results reset all lists to page one. Pagination changes presentation
+only, with no API calls, scenario changes or pricing changes. Controls use native
+buttons, accessible navigation labels, live page status and disabled boundaries.
+Acceptance: 0/1/5/6/11 records, independent lists, previous/next boundaries,
+preserved input nodes and fresh-render reset; existing UI regressions pass.
+
+Verification: all 60 frontend tests passed, including pagination boundaries for
+0/1/5/6/11 records, independent controls, preserved detail/input nodes and initial
+page reset. Existing comparison rendering, rough-assumption submission, chat and
+tab regressions passed. JavaScript syntax and git diff whitespace checks passed.
+
+
+### UI-40 - Collapsible recommendation details (implemented)
+The recommendation starts in Show less mode on every result render. Keep applied
+preferences, winner, main cost metrics, pricing caveats and initial/renewal totals
+visible. Place a hyperlink-styled Show more control immediately before the Cost
+by year detail area; expand that area and subsequent recommendation details and
+change the control to Show less. Collapse without resetting nested disclosures.
+Support keyboard activation and aria-expanded/aria-controls. Keep prominent
+warnings (including negative net savings) visible in compact mode. Legacy
+recommendations without yearly data still have the toggle; no-winner results
+retain their existing message without an empty toggle. No calculation changes.
+Acceptance: initial collapse, expand/collapse labels and state, control placement,
+legacy and no-winner behavior, preserved detailed content and UI regressions.
+
+Verification: all 62 frontend tests passed, including default collapsed state,
+Show more/Show less labels and accessibility state, placement before Cost by
+year, preserved nested expansion, legacy data and no-winner behavior. Existing
+negative-savings visibility tests passed. JavaScript syntax and whitespace checks
+passed. Visual browser inspection was not performed.
+
+
+### UI-40 amendment - Expanded toggle placement (implemented)
+Keep Show more immediately above the collapsed recommendation details. When
+expanded, move the same control to the end of the recommendation section, after
+all details and warnings, labeled Show less. Collapsing restores its original
+position. Preserve keyboard focus, accessibility state and nested disclosures;
+default remains collapsed. Verify both placements through repeated toggles.
+
+Verification: all 35 comparison UI tests passed, including expanded control at
+the section end, restored collapsed placement, focus restoration without forced
+scrolling and preserved nested disclosure state. Syntax and whitespace checks
+passed. No visual browser inspection performed.
+
+
+### UI-41 - Compact comparison inputs (implemented)
+Place Electric utility and Monthly usage in one desktop row, allocating more
+width to usage; stack on small screens and let usage fill the row when utility
+is hidden by the existing lookup logic. Group Preferences & savings and How
+these estimates work under a hyperlink-styled Show more/Show less control,
+collapsed initially. Expanding directly reveals both sections without a second
+click. Keep Compare plans and the estimate caution visible. Preserve all input
+values, restored preferences, validation and request behavior when collapsing.
+If hidden preference inputs fail native validation, expand before focus so the
+invalid input is accessible. Use native keyboard-accessible buttons with
+aria-expanded and aria-controls. No pricing or API changes. Acceptance: toggle
+state, retained preferences, validation recovery and existing frontend checks.
+
+Verification: all 63 frontend tests passed, including default collapsed state,
+toggle labels/accessibility, restored preference preservation and invalid-field
+recovery. Existing submission, utility and saved-result tests passed. JavaScript
+syntax and whitespace checks passed; HTML structure reviewed. Responsive CSS
+implemented; visual browser inspection was not performed.
+
+
+### UI-41 amendment - Aligned search columns (implemented)
+Use the same equal-width two-column grid and horizontal gap for ZIP/source,
+utility/usage and preference rows, superseding the wider usage-column allocation.
+Align label positions and control top edges with consistent label space and
+control spacing; style Plans to compare as a matching field heading. Preserve
+usage textarea resizing, full-width usage when utility is hidden and mobile
+single-column layout. No field values, validation or request behavior changes.
+Acceptance: shared grid definitions, consistent label/control spacing, responsive
+layout and existing frontend regressions.
+
+Verification: shared equal-column grid definitions and label/control styles
+reviewed. All 63 frontend regression tests passed; whitespace checks passed.
+No visual browser inspection performed.
+
+
+### UI-41 amendment - Search disclosure placement (implemented)
+When search details are expanded, place Show less at the end of the search form,
+after the Compare plans action row. Collapsing restores Show more above the
+optional details. Preferences & savings and How these estimates work each use
+a native independently collapsible details section, initially collapsed. Preserve
+nested open states and input values across the outer toggle. Invalid preferences
+expand both the outer area and Preferences disclosure before native focus.
+Preserve keyboard focus on the moved toggle without forced scrolling. Verify
+placement, nested semantics, validation recovery and existing form regressions.
+
+Verification: all 64 frontend tests passed, covering bottom placement when
+expanded, restored Show more position, nested disclosure state, saved values,
+validation opening Preferences and native collapsed disclosure markup. Syntax
+and whitespace checks passed. No visual browser inspection performed.

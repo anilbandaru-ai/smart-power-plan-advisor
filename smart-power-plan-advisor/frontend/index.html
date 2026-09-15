@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Smart Power Plan Advisor</title>
-  <link rel="stylesheet" href="/static/styles.css?v=ui31">
+  <link rel="stylesheet" href="/static/styles.css?v=ui42">
   <script src="/static/tabs.js?v=ui31" defer></script>
-  <script src="/static/app.js?v=ui31" defer></script>
+  <script src="/static/app.js?v=ui43" defer></script>
   <script src="/static/agent.js?v=ui31" defer></script>
   <script src="/static/comparison-chat.js?v=ui31" defer></script>
 </head>
@@ -57,18 +57,23 @@
           <div><label for="zip-code">ZIP code</label>
             <input id="zip-code" type="text" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" minlength="5" maxlength="5" placeholder="e.g. 75201" required aria-describedby="zip-help">
             <p id="zip-help" class="note">Enter your ZIP to compare PDF and TXU plans for your utility. Additional ZIPs require a current TXU cache.</p></div>
-          <div><p>Plans to compare</p>
+          <div><p class="field-heading">Plans to compare</p>
             <p class="note">Both PDF and TXU plans are included automatically when eligible for your utility.</p></div>
         </div>
+        <div class="utility-usage-row">
         <div id="txu-utility-field" hidden>
           <label for="txu-utility">Electric utility</label>
           <select id="txu-utility"><option value="">Select your utility</option></select>
           <p class="note">Choose the utility serving your address. Offer availability is checked from the local cache.</p>
         </div>
-        <label for="usage">Monthly usage <span class="label-hint">kWh / January to December</span></label>
+        <div class="usage-field"><label for="usage">Monthly usage <span class="label-hint">kWh / January to December</span></label>
         <textarea id="usage" rows="2" required aria-describedby="usage-help">800, 750, 700, 850, 1100, 1400, 1600, 1500, 1200, 950, 750, 850</textarea>
         <p id="usage-help">Paste 12 numbers separated by commas. Replace the sample values with your usage.</p>
-        <details class="recommendation-options">
+        </div>
+        </div>
+        <button id="search-details-toggle" class="text-link" type="button" aria-expanded="false" aria-controls="search-details">Show more</button>
+        <div id="search-details" hidden>
+        <details id="search-preferences" class="recommendation-options">
           <summary>Preferences &amp; savings <span class="label-hint">Optional</span></summary>
           <p class="note">Change preferences, then select Compare plans to update your results.</p>
           <div class="input-grid">
@@ -90,10 +95,11 @@
               <p id="switching-help" class="note">Reduces net savings against your current plan; does not change total-cost ranking. Include cancellation and enrollment fees. Blank means unknown; 0 means no costs.</p></div>
           </div>
         </details>
-        <div class="compare-actions"><p class="note">Estimates only. Review plan terms before switching.</p><button id="submit" disabled>Compare plans</button></div>
-        <details class="estimate-help"><summary>How these estimates work</summary>
+        <details id="search-estimates-help" class="estimate-help"><summary>How these estimates work</summary>
           <p class="note">PDF imports use document-date rates; TXU imports use cached API rates. Only eligible plans for your utility are compared; address eligibility is not verified. Bill estimates exclude taxes and switching fees; entered switching costs are reflected separately in net savings. Usage scenarios are sensitivity checks, not forecasts.</p>
         </details>
+        </div>
+        <div class="compare-actions"><p class="note">Estimates only. Review plan terms before switching.</p><button id="submit" disabled>Compare plans</button></div>
       </form>
     <p id="status" role="status" aria-live="polite"></p>
     <div class="comparison-workspace">

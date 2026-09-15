@@ -8,7 +8,10 @@ class Element {
   constructor(tag = 'div') { this.tag = tag; this.children = []; this.listeners = {}; this.disabled = false; this.textContent = ''; }
   get value() { return this.selected ?? (this.tag === 'select' ? this.children[0]?.value ?? '' : ''); }
   set value(value) { this.selected = value; }
-  append(child) { this.children.push(child); }
+  setAttribute(name, value) { this[name] = value; }
+  append(child) { this.children = this.children.filter(node => node !== child); this.children.push(child); }
+  insertBefore(child, reference) { this.children = this.children.filter(node => node !== child); this.children.splice(this.children.indexOf(reference), 0, child); }
+  focus(options) { this.focused = options; }
   replaceChildren() { this.children = []; this.selected = undefined; }
   addEventListener(event, callback) { this.listeners[event] = callback; }
   fire(event) { return this.listeners[event]?.({ preventDefault() {} }); }
@@ -26,6 +29,9 @@ function setup(handler, search = '', comparisonChat = undefined, useCacheHandler
     if (!nodes.has(id)) nodes.set(id, new Element(id === 'knowledge-document' ? 'select' : 'div'));
     return nodes.get(id);
   };
+  get('compare-form').append(get('search-details-toggle'));
+  get('compare-form').append(get('search-details'));
+  get('compare-form').append(get('submit'));
   get('submit').disabled = true;
   get('usage').value = Array(12).fill('1000').join(',');
   let url = '/' + search;
@@ -529,4 +535,142 @@ test('unverifiable ZIP utility guidance is shown and comparison is not submitted
  assert.equal(app.get('status').textContent,guidance);
  assert.equal(comparisons,0);
  assert.equal(app.get('txu-utility').value,'');
+});
+
+function pagination(count) {
+  const parent = new Element();
+  const cards = Array.from({length: count}, () => new Element('details'));
+  const context = {element(tag, text, parent) { const node = new Element(tag); node.textContent = text; parent.append(node); return node; }};
+  vm.createContext(context);
+  vm.runInContext(source.slice(source.indexOf('function paginatePlans('), source.indexOf('function renderRoughEstimates(')), context);
+  context.paginatePlans(cards, parent, 'Test plans');
+  const nav = parent.children[0];
+  return {cards, nav, previous: nav.children[0], status: nav.children[1], next: nav.children[2]};
+}
+
+test('pagination handles empty, single and five-plan lists without navigation', () => {
+  for (const count of [0, 1, 5]) {
+    const view = pagination(count);
+    assert.equal(view.nav.hidden, true);
+    assert.equal(view.cards.filter(c => !c.hidden).length, count);
+    assert.equal(view.previous.disabled, true);
+    assert.equal(view.next.disabled, true);
+  }
+});
+
+test('pagination limits each page to five with stable records and bounded navigation', () => {
+  for (const count of [6, 11]) {
+    const view = pagination(count);
+    const original = view.cards[0]; original.open = true; original.value = 'edited assumption';
+    assert.equal(view.nav.hidden, false);
+    assert.equal(view.cards.filter(c => !c.hidden).length, 5);
+    view.next.fire('click');
+    assert.equal(view.cards[0].hidden, true);
+    assert.equal(view.cards[5].hidden, false);
+    if (count === 11) view.next.fire('click');
+    assert.equal(view.cards.filter(c => !c.hidden).length, 1);
+    assert.equal(view.next.disabled, true);
+    view.next.fire('click');
+    assert.equal(view.cards.at(-1).hidden, false);
+    view.previous.fire('click'); view.previous.fire('click');
+    assert.equal(view.previous.disabled, true);
+    assert.equal(view.cards[0], original);
+    assert.equal(original.open, true);
+    assert.equal(original.value, 'edited assumption');
+  }
+});
+
+test('pagination lists are independent and newly rendered lists start on page one', () => {
+  const compared = pagination(11), rough = pagination(6);
+  compared.next.fire('click');
+  assert.equal(rough.cards[0].hidden, false);
+  rough.next.fire('click');
+  assert.equal(compared.cards[5].hidden, false);
+  const fresh = pagination(11);
+  assert.equal(fresh.cards[0].hidden, false);
+  assert.match(fresh.status.textContent, /1-5 of 11 plans/);
+  assert.equal(fresh.nav['aria-label'], 'Test plans pagination');
+  assert.equal(fresh.status['aria-live'], 'polite');
+});
+
+
+test('recommendation details default collapsed with toggle immediately above yearly costs', async () => {
+  const data = recommendedSnapshot();
+  Object.assign(data.recommendation_result.best_overall, {initial_term_cost: '1500', modeled_renewal_cost: '100', yearly_costs: [{year: 1, months: 12, cost: '1600'}]});
+  const app = setup(async () => data, '?comparison=saved'); await flush();
+  const panel = app.get('results').children.find(n => n.className === 'recommendation-summary');
+  const toggle = panel.children.find(n => n.className === 'recommendation-toggle');
+  const details = panel.children.find(n => n.id === 'recommendation-details');
+  assert.equal(panel.children.indexOf(details), panel.children.indexOf(toggle) + 1);
+  assert.equal(details.children[0].children[0].textContent, 'Cost by year');
+  assert.equal(details.hidden, true);
+  assert.equal(toggle.textContent, 'Show more');
+  assert.equal(panel.children.indexOf(toggle) + 1, panel.children.indexOf(details));
+  assert.equal(toggle['aria-controls'], details.id);
+  assert.equal(toggle['aria-expanded'], 'false');
+  toggle.fire('click');
+  assert.equal(details.hidden, false);
+  assert.equal(toggle.textContent, 'Show less');
+  assert.equal(panel.children.at(-1), toggle);
+  assert.equal(toggle.focused.preventScroll, true);
+  assert.equal(toggle['aria-expanded'], 'true');
+  details.children[0].open = true;
+  toggle.fire('click');
+  assert.equal(details.hidden, true);
+  assert.equal(toggle.textContent, 'Show more');
+  assert.equal(panel.children.indexOf(toggle) + 1, panel.children.indexOf(details));
+  toggle.fire('click');
+  assert.equal(details.children[0].open, true);
+  assert.ok(allText(details).includes('Year 1 (12 months): $1,600.00'));
+});
+
+test('legacy recommendation details collapse and no-winner results have no toggle', async () => {
+  for (const winner of [true, false]) {
+    const data = recommendedSnapshot();
+    if (!winner) data.recommendation_result.best_overall = null;
+    const app = setup(async () => data, '?comparison=saved'); await flush();
+    const panel = app.get('results').children.find(n => n.className === 'recommendation-summary');
+    const details = panel.children.find(n => n.id === 'recommendation-details');
+    assert.equal(Boolean(details), winner);
+    if (winner) { assert.equal(details.hidden, true); assert.ok(allText(details).includes('Recommendation confidence')); }
+    else assert.equal(panel.children.some(n => n.className === 'recommendation-toggle'), false);
+  }
+});
+
+
+test('compact search toggle preserves restored preferences and opens for invalid fields', async () => {
+  const app = setup(async () => recommendedSnapshot(), '?comparison=saved'); await flush();
+  const toggle = app.get('search-details-toggle'), details = app.get('search-details');
+  assert.equal(details.hidden, true);
+  assert.equal(toggle.textContent, 'Show more');
+  const contract = app.get('max-contract').value;
+  const preferences = app.get('search-preferences');
+  preferences.open = true;
+  toggle.fire('click');
+  assert.equal(details.hidden, false);
+  assert.equal(toggle['aria-expanded'], 'true');
+  assert.equal(toggle.textContent, 'Show less');
+  assert.equal(app.get('compare-form').children.at(-1), toggle);
+  assert.equal(toggle.focused.preventScroll, true);
+  toggle.fire('click');
+  assert.equal(details.hidden, true);
+  assert.equal(app.get('max-contract').value, contract);
+  assert.equal(preferences.open, true);
+  const children = app.get('compare-form').children;
+  assert.equal(children.indexOf(toggle) + 1, children.indexOf(details));
+  preferences.open = false;
+  details.fire('invalid');
+  assert.equal(preferences.open, true);
+  assert.equal(details.hidden, false);
+  assert.equal(toggle['aria-expanded'], 'true');
+});
+
+
+test('search preferences and estimate help are independent native disclosures', () => {
+  const html = readFileSync('frontend/index.html', 'utf8');
+  for (const id of ['search-preferences', 'search-estimates-help']) {
+    const tag = html.match(new RegExp('<details id="' + id + '"[^>]*>'));
+    assert.ok(tag);
+    assert.ok(!/\bopen\b/.test(tag[0]));
+  }
 });

@@ -768,3 +768,11 @@ exceptions with separate evidence. Unknown plan identities still require
 clarification; these questions do not change the cost comparison.
 
 Questions such as "Are there any plans that avoid bill credits?" list saved, calculable plans without recorded credit components and leave the comparison unchanged. Existing contract filters still apply. Explicit "Avoid plans with bill credits" applies the exclusion filter. A plan that earns zero credits at the current usage is not automatically credit-free; incomplete and rough-estimate records are excluded from this classification.
+
+Compared plans and rough cost estimates display five records per page, with independent Previous/Next controls and page counts. Longer contracts paginate separately inside their disclosure. Navigation preserves expanded details and edited assumptions; new comparisons start on page one.
+
+Recommendation details start collapsed. Use Show more above Cost by year to expand them, and Show less at the end of the section to collapse them. The winner, main costs, applied preferences and prominent warnings remain visible.
+
+The comparison form places Electric utility and Monthly usage in one row on desktop and stacks them on mobile. Show more reveals Preferences & savings and How these estimates work; Show less hides them while preserving entered settings.
+
+Search options contain independent collapsible Preferences & savings and How these estimates work sections. When expanded, Show less appears at the bottom of the search form; collapsing preserves entered preferences and disclosure states.

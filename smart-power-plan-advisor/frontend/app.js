@@ -1,5 +1,23 @@
 const form = document.querySelector('#compare-form');
 const zipInput = document.querySelector('#zip-code');
+const searchDetailsToggle = document.querySelector('#search-details-toggle');
+const searchDetails = document.querySelector('#search-details');
+function showSearchDetails(show) {
+  searchDetails.hidden = !show;
+  searchDetailsToggle.textContent = show ? 'Show less' : 'Show more';
+  searchDetailsToggle.setAttribute('aria-expanded', String(show));
+  if (show) form.append(searchDetailsToggle);
+  else form.insertBefore(searchDetailsToggle, searchDetails);
+}
+searchDetailsToggle.addEventListener('click', () => {
+  showSearchDetails(searchDetails.hidden);
+  searchDetailsToggle.focus({preventScroll: true});
+});
+searchDetails.addEventListener('invalid', () => {
+  showSearchDetails(true);
+  document.querySelector('#search-preferences').open = true;
+}, true);
+showSearchDetails(false);
 let revision = 0;
 let busy = false;
 let roughOverrides = {};
@@ -171,21 +189,40 @@ function renderRecommendation(data) {
   if (best.annualized_cost != null) element('p', `Annualized average: ${dollars(best.annualized_cost)}. This is not a year-by-year forecast.`, panel).className = 'note';
   if (best.initial_term_cost != null) {
     element('p', `Initial contract: ${dollars(best.initial_term_cost)}. Modeled renewal: ${dollars(best.modeled_renewal_cost)}.`, panel).className = 'note';
-    const years = element('details', '', panel);
+  }
+  const toggle = element('button', 'Show more', panel);
+  toggle.type = 'button';
+  toggle.className = 'recommendation-toggle';
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-controls', 'recommendation-details');
+  const expanded = element('div', '', panel);
+  expanded.id = 'recommendation-details';
+  expanded.className = 'recommendation-details';
+  expanded.hidden = true;
+  toggle.addEventListener('click', () => {
+    expanded.hidden = !expanded.hidden;
+    toggle.textContent = expanded.hidden ? 'Show more' : 'Show less';
+    toggle.setAttribute('aria-expanded', String(!expanded.hidden));
+    if (expanded.hidden) panel.insertBefore(toggle, expanded);
+    else panel.append(toggle);
+    toggle.focus({preventScroll: true});
+  });
+  if (best.initial_term_cost != null) {
+    const years = element('details', '', expanded);
     element('summary', 'Cost by year', years);
     for (const year of best.yearly_costs || []) element('p', `Year ${year.year} (${year.months} months): ${dollars(year.cost)}`, years);
   }
-  element('p', `Recommendation confidence: ${rec.confidence}`, panel);
-  const confidence = element('details', '', panel);
+  element('p', `Recommendation confidence: ${rec.confidence}`, expanded);
+  const confidence = element('details', '', expanded);
   element('summary', 'Why this confidence level?', confidence);
   for (const reason of rec.confidence_reasons) element('p', reason, confidence).className = 'note';
   const alternative = rec.plan_analyses.find(plan => plan.plan_id === rec.category_winners.lowest_scenario_regret);
-  const tradeoffs = element('details', '', panel);
+  const tradeoffs = element('details', '', expanded);
   element('summary', 'Cost vs. usage uncertainty', tradeoffs);
   for (const tradeoff of rec.key_tradeoffs) element('p', tradeoff, tradeoffs);
   if (alternative?.plan_id === best.plan_id) element('p', 'The primary plan also has the lowest maximum regret across tested scenarios.', tradeoffs);
-  element('h3', `Top ${rec.top_3.length} qualifying plan${rec.top_3.length === 1 ? '' : 's'}`, panel);
-  const shortlist = element('div', '', panel);
+  element('h3', `Top ${rec.top_3.length} qualifying plan${rec.top_3.length === 1 ? '' : 's'}`, expanded);
+  const shortlist = element('div', '', expanded);
   shortlist.className = 'shortlist';
   for (const [index, plan] of rec.top_3.entries()) {
     const card = element('div', '', shortlist);
@@ -195,20 +232,20 @@ function renderRecommendation(data) {
     element('p', `${plan.term_months}-month contract / ${horizon}-month estimate`, card).className = 'note';
     element('p', `Maximum tested regret: ${dollars(plan.max_scenario_regret)}`, card).className = 'note';
   }
-  element('p', 'Regret is the extra cost versus the cheapest plan in a tested usage scenario.', panel).className = 'note';
+  element('p', 'Regret is the extra cost versus the cheapest plan in a tested usage scenario.', expanded).className = 'note';
   if (rec.baseline) {
-    element('h3', 'Savings against your selected current plan', panel);
-    element('p', `${rec.baseline.name}: ${dollars(rec.baseline.horizon_cost ?? rec.baseline.annual_cost)} under the same usage.`, panel);
+    element('h3', 'Savings against your selected current plan', expanded);
+    element('p', `${rec.baseline.name}: ${dollars(rec.baseline.horizon_cost ?? rec.baseline.annual_cost)} under the same usage.`, expanded);
     const savings = rec.expected_savings;
     const gross = savings.gross_horizon_savings ?? savings.gross_annual_savings;
     const net = 'net_horizon_savings' in savings ? savings.net_horizon_savings : savings.net_annual_savings;
-    element('p', `Switching costs applied: ${savings.switching_cost == null ? 'Unknown' : dollars(savings.switching_cost)}.`, panel).className = 'note';
-    if (rec.baseline.plan_id === best.plan_id) element('p', 'Your current plan is the lowest-cost qualifying plan. Staying applies no switching cost.', panel).className = 'note';
+    element('p', `Switching costs applied: ${savings.switching_cost == null ? 'Unknown' : dollars(savings.switching_cost)}.`, expanded).className = 'note';
+    if (rec.baseline.plan_id === best.plan_id) element('p', 'Your current plan is the lowest-cost qualifying plan. Staying applies no switching cost.', expanded).className = 'note';
     if (net != null && Number(net) < 0) element('p', 'Switching costs exceed comparison-period savings. Staying on your current plan may cost less.', panel).className = 'result-warning';
-    element('p', `Estimated gross savings: ${dollars(gross)}. Net after switching costs: ${net == null ? 'unknown' : dollars(net)}.`, panel);
-    element('p', savings.sustained_payback_month === null ? 'No switching payback month established.' : `Switching costs recovered from month ${savings.sustained_payback_month} through month ${horizon}.`, panel);
-  } else element('p', 'Savings unavailable until a current-plan baseline is selected.', panel);
-  const analysis = element('details', '', panel);
+    element('p', `Estimated gross savings: ${dollars(gross)}. Net after switching costs: ${net == null ? 'unknown' : dollars(net)}.`, expanded);
+    element('p', savings.sustained_payback_month === null ? 'No switching payback month established.' : `Switching costs recovered from month ${savings.sustained_payback_month} through month ${horizon}.`, expanded);
+  } else element('p', 'Savings unavailable until a current-plan baseline is selected.', expanded);
+  const analysis = element('details', '', expanded);
   element('summary', 'Explore usage scenarios & bill credits', analysis);
   const scenarioDetails = element('details', '', analysis);
   element('summary', 'Scenario costs and regret for all qualifying plans', scenarioDetails);
@@ -240,7 +277,7 @@ function renderRecommendation(data) {
     }
     if (!credit.threshold_exposure.length) element('p', 'No usage-dependent credit boundaries.', details);
   }
-  const conditions = element('details', '', panel);
+  const conditions = element('details', '', expanded);
   element('summary', 'Break-even conditions', conditions);
   if (!rec.break_even_conditions.length) element('p', 'No cost-preference changes detected between the tested usage scenarios; this does not rule out crossings between samples.', conditions);
   for (const condition of rec.break_even_conditions) {
@@ -250,10 +287,10 @@ function renderRecommendation(data) {
       : `Switching payback month: ${condition.month ?? 'not established'}. ${condition.description}`, conditions);
   }
   if (rec.warnings.length) element('p', rec.warnings[0], panel).className = 'result-warning';
-  const limits = element('details', '', panel);
+  const limits = element('details', '', expanded);
   element('summary', `Warnings & assumptions (${rec.warnings.length + rec.assumptions.length})`, limits);
   for (const warning of [...rec.warnings, ...rec.assumptions]) element('p', warning, limits).className = 'note';
-  const evidence = element('details', '', panel);
+  const evidence = element('details', '', expanded);
   element('summary', 'Recommendation evidence', evidence);
   for (const ref of rec.evidence_refs) {
     const line = element('p', `${ref.quote || ref.description || ref.date_label || ref.kind}`, evidence);
@@ -263,6 +300,33 @@ function renderRecommendation(data) {
     }
   }
   element('p', `Policy: ${rec.policy_version}. Comparison horizon: ${rec.comparison_horizon} months.`, evidence).className = 'note';
+}
+
+function paginatePlans(cards, parent, label) {
+  const pageSize = 5;
+  let page = 0;
+  const pages = Math.ceil(cards.length / pageSize);
+  const nav = element('nav', '', parent);
+  nav.className = 'plan-pagination';
+  nav.setAttribute('aria-label', `${label} pagination`);
+  nav.hidden = pages <= 1;
+  const previous = element('button', 'Previous', nav);
+  previous.type = 'button'; previous.className = 'secondary-button';
+  const status = element('span', '', nav);
+  status.setAttribute('aria-live', 'polite');
+  status.setAttribute('aria-atomic', 'true');
+  const next = element('button', 'Next', nav);
+  next.type = 'button'; next.className = 'secondary-button';
+  function showPage(value) {
+    page = Math.max(0, Math.min(value, Math.max(0, pages - 1)));
+    cards.forEach((card, index) => { card.hidden = Math.floor(index / pageSize) !== page; });
+    previous.disabled = page === 0;
+    next.disabled = page >= pages - 1;
+    status.textContent = `${cards.length ? page * pageSize + 1 : 0}-${Math.min((page + 1) * pageSize, cards.length)} of ${cards.length} plans | Page ${pages ? page + 1 : 0} of ${pages}`;
+  }
+  previous.addEventListener('click', () => showPage(page - 1));
+  next.addEventListener('click', () => showPage(page + 1));
+  showPage(0);
 }
 
 function renderRoughEstimates(data) {
@@ -275,8 +339,10 @@ function renderRoughEstimates(data) {
   reset.type = 'button';
   reset.className = 'secondary-button';
   reset.addEventListener('click', () => { roughOverrides = {}; invalidate(); status.textContent = 'Assumptions reset. Click Compare plans to recalculate.'; });
+  const cards = [];
   for (const plan of data.rough_estimates) {
     const card = element('details', '', section);
+    cards.push(card);
     card.className = 'plan-row';
     element('summary', `${plan.name} — approximately ${dollars(plan.annual_cost)} / year — ${plan.availability}`, card);
     const content = element('div', '', card);
@@ -310,6 +376,7 @@ function renderRoughEstimates(data) {
     for (const month of plan.monthly_costs) element('p', `Month ${month.month}: ${month.kwh} kWh — approximately ${dollars(month.total)}`, breakdown);
     for (const issue of plan.pricing_issues) element('p', issue, breakdown);
   }
+  paginatePlans(cards, section, 'Rough cost estimates');
 }
 
 function render(data) {
@@ -332,9 +399,11 @@ function render(data) {
   const assumptions = element('details', '', results);
   element('summary', 'Calculation assumptions', assumptions);
   for (const assumption of data.assumptions) element('p', assumption, assumptions).className = 'note';
+  const matchingCards = [], longerCards = [];
   [...matching, ...longer].forEach((plan, index) => {
     const outsidePreference = index >= matching.length;
     const card = element('details', '', outsidePreference ? longerPlans : results);
+    (outsidePreference ? longerCards : matchingCards).push(card);
     const horizon = plan.comparison_horizon || 12;
     card.className = 'plan-row';
     const rowSummary = element('summary', '', card);
@@ -426,7 +495,11 @@ function render(data) {
     }
     selectYear(0);
   });
-  if (longer.length) results.append(longerPlans);
+  paginatePlans(matchingCards, results, 'Compared plans');
+  if (longer.length) {
+    paginatePlans(longerCards, longerPlans, 'Longer contracts');
+    results.append(longerPlans);
+  }
   renderRoughEstimates(data);
   if (data.excluded_plans?.length) {
     const excluded = element('details', '', results);

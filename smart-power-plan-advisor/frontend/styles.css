@@ -238,3 +238,35 @@ form.chat-composer { margin: 0; border: 1px solid #b9cbd2; padding: .6rem; borde
 @media (max-width: 640px) {
   .rough-assumptions { grid-template-columns: 1fr; }
 }
+
+.plan-pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }
+.plan-pagination[hidden], .plan-row[hidden] { display: none; }
+.plan-pagination span { font-size: .85rem; color: #597080; }
+.plan-pagination button { padding: .5rem .85rem; font-size: .85rem; }
+.plan-pagination button:disabled { opacity: .5; cursor: default; }
+
+.recommendation-toggle { display: inline-block; padding: 0; margin: .6rem 0; border: 0; border-radius: 0; background: transparent; color: #007b70; font: inherit; font-size: .85rem; text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
+.recommendation-toggle:hover { background: transparent; color: #005b53; }
+.recommendation-toggle:focus-visible { outline: 2px solid #007b70; outline-offset: 4px; }
+.recommendation-details[hidden] { display: none; }
+
+.utility-usage-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem 1.2rem; align-items: start; }
+.utility-usage-row > div { min-width: 0; }
+.utility-usage-row:has(#txu-utility-field[hidden]) { grid-template-columns: minmax(0, 1fr); }
+#txu-utility-field[hidden], #search-details[hidden] { display: none; }
+#search-details h3 { font-size: .9rem; margin: 0 0 .5rem; }
+#search-details-toggle { margin: .4rem 0; }
+@media (max-width: 640px) { .utility-usage-row { grid-template-columns: minmax(0, 1fr); gap: .3rem; } }
+
+/* Shared field rhythm keeps all comparison rows on the same column edges. */
+#compare-form .input-grid, #compare-form .utility-usage-row { align-items: start; }
+#compare-form label, #compare-form .field-heading {
+  display: block; min-height: 2.55rem; margin: .55rem 0 .35rem;
+  font-size: .85rem; line-height: 1.5; font-weight: 650;
+}
+#compare-form input, #compare-form select, #compare-form textarea {
+  display: block; min-height: 44px; margin: 0; line-height: 1.5;
+}
+@media (max-width: 640px) {
+  #compare-form label, #compare-form .field-heading { min-height: 0; }
+}
