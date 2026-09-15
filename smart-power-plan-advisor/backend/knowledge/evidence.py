@@ -37,7 +37,7 @@ def validate_answer(value, context):
         return abstain("The model did not return a usable grounded answer. Try a more specific document question.")
     sources = {source["source_id"]: source for source in context}
     if not value.evidence:
-        return abstain()
+        return abstain(value.answer) if value.abstained else abstain()
     citations = []
     seen = set()
     for evidence in value.evidence:

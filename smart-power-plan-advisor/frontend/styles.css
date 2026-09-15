@@ -270,3 +270,6 @@ form.chat-composer { margin: 0; border: 1px solid #b9cbd2; padding: .6rem; borde
 @media (max-width: 640px) {
   #compare-form label, #compare-form .field-heading { min-height: 0; }
 }
+
+/* Let page scrolling continue when the document chat reaches an edge. */
+#agent-scroll { overscroll-behavior-y: auto; }

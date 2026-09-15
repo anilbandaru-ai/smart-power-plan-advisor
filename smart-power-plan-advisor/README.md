@@ -776,3 +776,17 @@ Recommendation details start collapsed. Use Show more above Cost by year to expa
 The comparison form places Electric utility and Monthly usage in one row on desktop and stacks them on mobile. Show more reveals Preferences & savings and How these estimates work; Show less hides them while preserving entered settings.
 
 Search options contain independent collapsible Preferences & savings and How these estimates work sections. When expanded, Show less appears at the bottom of the search form; collapsing preserves entered preferences and disclosure states.
+
+Plan Assistant EFL average-price follow-ups use the listed usage points and price row. A rejected claim check can receive one bounded regeneration using the same retrieved evidence; citations and independent verification remain mandatory. If verification still fails, the assistant reports that failure specifically rather than claiming the document lacks evidence.
+
+Plan Assistant keeps short factual follow-ups such as fees and what about rates in document Q&A, recovering incorrect calculator redirects using the current plan context. Fee answers distinguish documented terms from an exhaustive fee schedule and retain exceptions and extra-charge caveats. A rejected claim check supplies internal factual diagnostics to the single repair attempt; unresolved answers still abstain.
+
+Plan Assistant cannot enroll users. Direct enrollment requests receive a specific unsupported-action response before model or retrieval calls, with no enrollment performed. Questions about documented enrollment fees and conditions remain supported document questions.
+
+Named what-if plan comparisons accept an optional trailing word plan (for example, Reliant Get More, Save More 36). Contract terms remain exact; ambiguous or unknown identities still require clarification.
+
+What-if plan clarifications display readable bullet lists with plan names and available contract, utility, source and document-date details. Internal hashed record IDs are retained for matching but omitted from the displayed choices. Expand Show more to view the list.
+
+What-if chat rejects direct contract cancellation requests with a clear explanation: no cancellation is performed and comparison preferences remain unchanged. Contact the provider to cancel; recorded termination-fee questions remain available in chat.
+
+What-if chat rejects requests to ignore source documents and assert fabricated rates or credits, preserving the saved scenario. Explicitly labeled hypothetical credit assumptions remain supported and are not represented as PDF facts.

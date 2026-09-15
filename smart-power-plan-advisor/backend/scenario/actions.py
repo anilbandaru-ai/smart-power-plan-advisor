@@ -60,8 +60,22 @@ def unsupported_action(message):
     """Product capability boundary, independent of model interpretation."""
     if re.search(r'\b(?:internet|web|online)\b', message, re.I) and re.search(r'\b(?:search|find|latest|new|look\s+up|browse)\b', message, re.I):
         return Action(kind='unsupported',question='This what-if chat cannot search the internet or fetch new plans or live rates. It uses the saved comparison sources. Your comparison and preferences are unchanged.',operations=[])
-    if re.search(r'\b(?:invent|fabricate|make up)\b', message, re.I) and re.search(r'\b(?:rate|price|document|credit|evidence)\b', message, re.I):
-        return Action(kind='unsupported',question='I cannot invent source rates or evidence. Your comparison is unchanged. You can explicitly request a supported hypothetical scenario, labeled separately from source terms.',operations=[])
+    source_disregard = re.search(
+        r'\b(?:ignore|disregard|override|forget)\b.{0,100}\b(?:PDF|EFL|documents?|sources?|evidence)\b', message, re.I | re.S)
+    false_assertion = re.search(r'\b(?:say|claim|tell|report|state|pretend|assert)\b', message, re.I)
+    pretend_source = re.search(r'\bpretend\b.{0,100}\b(?:PDF|EFL|documents?|sources?)\b.{0,60}\b(?:says?|lists?|shows?|has)\b', message, re.I | re.S)
+    fabricated = re.search(r'\b(?:invent|fabricate|make up)\b', message, re.I) or (source_disregard and false_assertion) or pretend_source
+    if fabricated and re.search(r'\b(?:rates?|prices?|documents?|credits?|evidence|fees?)\b', message, re.I):
+        return Action(kind='unsupported',question='I cannot claim a PDF contains a rate, fee or credit without supporting evidence. No changes were applied to your comparison or preferences. You can explicitly request a supported hypothetical scenario, labeled separately from source terms.',operations=[])
+    if re.fullmatch(
+        r'\s*(?:please\s+|(?:can|could|would|will) you\s+(?:please\s+)?)?'
+        r'(?:cancel|terminate|end)\s+(?:(?:my|our|the|this)\s+)?(?:current\s+)?'
+        r'(?:electricity\s+)?(?:contract|service|plan)(?:\s+(?:with|for)\s+.+?)?[.!?]*\s*', message, re.I):
+        return Action(kind='unsupported', question=(
+            'I cannot cancel your electricity contract or contact the provider on your behalf. '
+            'No cancellation was performed. Your comparison and preferences are unchanged. '
+            'Contact your current provider to request cancellation and review any early termination fees. '
+            'I can explain termination terms recorded in this comparison.'), operations=[])
     enrollment = re.search(
         r"\b(?:enroll|enrol)\b"
         r"|\b(?:enroll|enrol)\s+(?:me|us)\b"

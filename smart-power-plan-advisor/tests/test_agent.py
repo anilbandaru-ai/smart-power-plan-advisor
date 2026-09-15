@@ -77,6 +77,52 @@ class AgentTests(unittest.TestCase):
         return client.post(self.base + '/messages', headers=self.headers,
             json={'request_id': str(uuid4()), 'message': 'What is the term?', 'document_id': DOC_ID, **kwargs})
 
+    def test_enrollment_is_rejected_without_model_or_retrieval_and_followup_works(self):
+        model = ScriptedModel([search(), AIMessage(content='')])
+        client = self.client(model)
+        with patch.object(self.providers, 'retrieve', wraps=self.providers.retrieve) as retrieve:
+            for question in ['Enroll me in SimpleSaver 24', 'Please sign me up for SimpleSaver 24',
+                             'Can you enroll me in SimpleSaver 24?', 'Enroll in SimpleSaver 24']:
+                data = self.send(client, message=question).json()
+                self.assertIn('No enrollment was performed', data['answer'])
+                self.assertNotIn('Compare Plan Costs', data['answer'])
+                self.assertEqual(data['citations'], [])
+            self.assertEqual(model.decisions, 0)
+            retrieve.assert_not_called()
+        self.assertEqual(self.send(client, message='What is the contract term?').json()['status'], 'answered')
+
+    def test_enrollment_fee_questions_are_not_account_actions(self):
+        from backend.agent.graph import enrollment_request
+        from langchain_core.messages import HumanMessage
+        for text in ['What are the enrollment fees?', 'How do I enroll?',
+                     'Does SimpleSaver 24 have a sign up fee?', 'Explain enrollment conditions']:
+            self.assertFalse(enrollment_request([HumanMessage(content=text)]), text)
+
+    def test_factual_followup_recovers_wrong_model_redirect(self):
+        model = ScriptedModel([call('redirect_to_comparison', {}), AIMessage(content='')])
+        data = self.send(self.client(model), message='what about rates').json()
+        self.assertEqual(data['status'], 'answered')
+        self.assertEqual(self.providers.retrieval[0], 'what about rates')
+        self.assertEqual(self.providers.retrieval[2], DOC_ID)
+
+    def test_factual_followup_resolves_latest_plan_or_clarifies(self):
+        from langchain_core.messages import HumanMessage
+        from backend.agent.graph import factual_followup_tool
+        corpus = {'documents': [{'identity': {'facts': {'name': {'value': name}}}}
+                               for name in ['Frontier Saver Plus 12', 'SimpleSaver 24']]}
+        def route(*texts):
+            return factual_followup_tool([HumanMessage(content=t) for t in texts], corpus)
+        result = route('Frontier Saver Plus 12', 'fees', 'what about rates')
+        self.assertEqual(result['name'], 'search_document_evidence')
+        self.assertIn('Frontier Saver Plus 12', result['args']['query'])
+        switched = route('Frontier Saver Plus 12', 'SimpleSaver 24', 'Oncor', 'rates')
+        self.assertNotIn('Frontier', switched['args']['query'])
+        self.assertIn('Oncor', switched['args']['query'])
+        self.assertEqual(route('rates')['name'], 'ask_user')
+        self.assertEqual(route('Frontier Saver Plus 12 and SimpleSaver 24', 'fees')['name'], 'ask_user')
+        self.assertEqual(route('Frontier Saver Plus 12', 'SimpleSaver 99', 'fees')['name'], 'ask_user')
+        self.assertIsNone(route('Frontier Saver Plus 12', 'Calculate my bill at 1000 kWh'))
+
     def test_react_search_followup_and_request_deduplication(self):
         model = ScriptedModel([call('list_indexed_documents', {}), search(), AIMessage(content=''), search('early termination'), AIMessage(content='')])
         client = self.client(model)
@@ -140,6 +186,33 @@ class AgentTests(unittest.TestCase):
             self.assertEqual(data['status'], 'answered' if succeeds and not exhausted else 'insufficient_evidence')
             if not exhausted:
                 self.assertEqual(model.contexts[0], model.contexts[1])
+
+    def test_claim_verification_repair_is_bounded_and_preserves_failure_reason(self):
+        from backend.knowledge.verification import VERIFICATION_FAILURE
+        for succeeds, exhausted in [(True, False), (False, False), (True, True)]:
+            steps = [search(), AIMessage(content='')]
+            if exhausted:
+                steps = [call('list_indexed_documents', {}) for _ in range(3)] + steps
+            model = ScriptedModel(steps)
+            failure = GeneratedAnswer(answer=VERIFICATION_FAILURE, abstained=True, evidence=[])
+            failure._verification_issues = ['Retain the moving exception.']
+            def finish(messages, evidence, repair=False, verification_feedback=None):
+                if repair:
+                    self.assertEqual(verification_feedback, ['Retain the moving exception.'])
+                if repair and succeeds:
+                    return GeneratedAnswer(answer='The contract term is 12 months.', abstained=False,
+                        evidence=[{'source_id': evidence[0]['source_id'], 'quote': 'Contract Term 12 Months.'}])
+                return failure
+            with patch.object(model, 'finalize', side_effect=finish) as mocked:
+                data = self.send(self.client(model)).json()
+            self.assertEqual(mocked.call_count, 1 if exhausted else 2)
+            if succeeds and not exhausted:
+                self.assertEqual(data['status'], 'answered')
+            else:
+                self.assertEqual(data['answer'], VERIFICATION_FAILURE)
+                self.assertEqual(data['citations'], [])
+            if not exhausted:
+                self.assertEqual(mocked.call_args_list[0].args[1], mocked.call_args_list[1].args[1])
 
     def test_no_repair_for_abstention_refusal_or_empty_retrieval(self):
         for mode in ('abstention', 'refusal', 'empty'):

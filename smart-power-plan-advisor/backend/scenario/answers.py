@@ -27,6 +27,24 @@ def plan_name(record):
     return record['plan']['name']['value'] if 'plan' in record else record['name']
 
 
+def available_plan_choices(records):
+    lines = ['Which plan do you mean? Reply with the plan name and, if needed, its utility or document date.', '', 'Available plans:']
+    for record in records:
+        raw = record.get('plan', record)
+        def fact(key):
+            item = raw.get(key)
+            return item.get('value') if isinstance(item, dict) else item
+        term = fact('contract_term') or fact('term_months')
+        details = []
+        if term: details.append(f'{term} months')
+        if fact('service_area'): details.append(str(fact('service_area')))
+        source = {'pdf': 'PDF document', 'txu': 'TXU offer'}.get(record.get('source_type'))
+        if source: details.append(source)
+        if fact('issue_date'): details.append('Document date ' + str(fact('issue_date')))
+        lines.append('- ' + plan_name(record) + (': ' + ' | '.join(details) if details else ''))
+    return '\n'.join(lines)
+
+
 def explicit_ids(text, records):
     exact = [r['id'] for r in records if text.strip() == r['id']]
     if exact: return exact
@@ -53,6 +71,10 @@ def local_question(text, records):
         targets=[]
         for name in names:
             matches=[r['id'] for r in records if plan_name(r).casefold()==name.strip().casefold()]
+            if not matches:
+                def alias(value):
+                    return re.sub(r'\s+plan$', '', ' '.join(value.casefold().split()))
+                matches = [r['id'] for r in records if alias(plan_name(r)) == alias(name)]
             targets.append(matches[0] if len(matches)==1 else 'unresolved:'+name.strip())
         return (pair_topic,targets)
     if re.search(r'\b(what if|set|change|increase|decrease|exclude|avoid|remove|use|assume|switch)\b', text, re.I):
@@ -136,7 +158,7 @@ def answer(result, frozen, current, topic, targets, focus, question=''):
     contract_pair = (topic == 'contract' and len(targets) == 2 and len(set(targets)) == 2
                      and re.match(r'^(?:please\s+|can you\s+)?compare\b', question.strip(), re.I))
     if not targets or any(i not in by_id for i in targets) or (len(targets) > 1 and topic != 'compare' and not contract_pair):
-        return 'clarify', 'Which plan do you mean? Available plans: ' + ', '.join(plan_name(r) + ' [' + r['id'] + ']' for r in frozen), [], targets
+        return 'clarify', available_plan_choices(frozen), [], targets
     if topic == 'compare' and len(targets) == 1:
         others = [p.plan_id for p in result.recommendations if p.plan_id not in targets]
         if others:

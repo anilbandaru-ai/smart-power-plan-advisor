@@ -33,8 +33,30 @@
       parent.append(strong,rest);
     } else parent.textContent=text;
   }
+  function readableMessage(attempt) {
+    const text = attempt.message;
+    if(attempt.status !== 'clarify') return text;
+    const marker = 'Available plans:';
+    const start = text.indexOf(marker);
+    if(start < 0) return text;
+    const tail = text.slice(start + marker.length).trim();
+    // Old lists delimit records by their IDs, not commas inside plan names.
+    const names = tail.split(/\s*\[[a-f0-9]{24}\](?:,\s*|$)/i);
+    if(names.length < 2 || names.at(-1) !== '') return text;
+    names.pop();
+    if(names.some(name => !name.trim() || /[\[\]\n]/.test(name))) return text;
+    return text.slice(0, start).trim() + '\n\n' + marker + '\n' + names.map(name => '- ' + name.trim()).join('\n');
+  }
+
   function formatAnswer(parent, text) {
+    let choices = null;
     for(const block of text.split(/\n+|(?<=[.!?])\s+(?=[A-Z])/).map(s=>s.trim()).filter(Boolean)) {
+      if(block.startsWith('- ')) {
+        if(!choices) { choices=document.createElement('ul');choices.className='scenario-detail-list';parent.append(choices); }
+        const item=document.createElement('li');answerText(item,block.slice(2));choices.append(item);
+        continue;
+      }
+      choices=null;
       if(block.includes(';')) {
         const heading=block.match(/^([^:]{1,70}):\s*(.*)$/);
         let details=block;
@@ -64,8 +86,9 @@
       const label=document.createElement('p');label.className='scenario-outcome';
       label.textContent=({updated:'Comparison updated',clarify:'Clarification needed',no_matches:'No matching plans',invalid:'Changes not applied',unsupported:'Request not supported',restored:'Scenario restored',explained:'Plan advisor'})[attempt.status] || 'Plan advisor';
       const preview=document.createElement('p');preview.className='scenario-preview';
-      preview.textContent=attempt.message;
-      const full=document.createElement('div');full.className='scenario-full';formatAnswer(full,attempt.message);full.hidden=true;
+      const message=readableMessage(attempt);
+      preview.textContent=message;
+      const full=document.createElement('div');full.className='scenario-full';formatAnswer(full,message);full.hidden=true;
       full.id='scenario-answer-'+$('scenario-messages').children.length;
       const toggle=document.createElement('button');toggle.type='button';toggle.className='text-link';toggle.textContent='Show more';
       toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls',full.id);
