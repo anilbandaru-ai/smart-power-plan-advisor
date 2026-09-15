@@ -239,3 +239,37 @@ class CatalogChatTests(unittest.TestCase):
         self.assertIn('$40.00',response.json()['message'])
         self.assertEqual(response.json()['state'],self.session['state'])
         self.assertFalse(hasattr(self,'context'))
+
+    def test_contract_preference_chat_matches_form_costs_and_ranking(self):
+        for term in (24,36):
+            with self.subTest(term=term):
+                self.start()
+                self.action=change('exact_contract_months','12')  # Must bypass wrong model action.
+                def send(message):
+                    r=self.client.post('/api/comparison-chat/'+self.session['session_id']+'/messages',
+                        headers={'X-Scenario-Token':self.session['token']},json={
+                        'request_id':str(uuid4()),'version':self.session['version'],'message':message})
+                    self.assertEqual(r.status_code,200,r.text)
+                    self.session={**r.json(),'token':self.session['token']}
+                    return r.json()
+                self.assertEqual(send(str(term)+' months')['status'],'clarify')
+                reply=send('maximum contract length '+str(term)+' months')
+                self.assertEqual(reply['status'],'updated')
+                direct=self.client.post('/api/comparisons',json={**self.request,
+                    'recommendation_options':{'max_contract_months':term}})
+                self.assertEqual(direct.status_code,201,direct.text)
+                expected=direct.json(); actual=reply['result']
+                self.assertEqual(actual['recommendation_result']['comparison_horizon'],term)
+                self.assertEqual(actual['recommendation_result']['best_overall'],expected['recommendation_result']['best_overall'])
+                def costs(result):
+                    return [(p['plan_id'],p['horizon_cost'],p['horizon_monthly_costs'])
+                        for p in result['recommendations'] if p['term_months']<=term]
+                self.assertEqual(costs(actual),costs(expected))
+                self.assertFalse(hasattr(self,'context'))
+                # A period-only reply must leave the maximum/exact filters alone.
+                reply=send('comparison period 48 months')
+                self.assertEqual(reply['status'],'updated')
+                options=reply['state']['request']['recommendation_options']
+                self.assertEqual(options['comparison_horizon'],48)
+                self.assertEqual(options['max_contract_months'],term)
+                self.assertIsNone(options['exact_contract_months'])

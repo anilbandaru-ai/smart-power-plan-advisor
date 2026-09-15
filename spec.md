@@ -1914,3 +1914,31 @@ assertion was updated to expect local clarification; the final full run includes
 that update. Python details: .data/full-test-results.log in the app repository.
 Live evaluation used temporary data; no production comparison snapshots were
 rewritten. Browser appearance was not manually assessed in this verification.
+
+
+### CHAT-35 - Contract preference and horizon parity (implemented)
+Maximum-contract changes in what-if chat must match REC-10 form semantics:
+set the maximum and comparison horizon together (24 => 24; 36 => 36). Clear
+maximum restores the default 12-month horizon unless the same action explicitly
+specifies a separate horizon. Preserve independent exact-term and credit filters,
+usage, renewal assumptions, baseline, overrides, and frozen source provenance.
+An explicit horizon in the same action takes precedence regardless of operation
+order. Standalone maximum-contract and comparison-period wording must be routed
+deterministically, including answers to pending clarification. Comparison period
+changes only horizon; exact-contract requests change only the exact filter.
+Do not silently repair historical snapshots or remove conflicting constraints.
+Acceptance: form/chat parity tests for 24/36 months compare candidates, winner,
+horizon totals and monthly projections; test ambiguity, exact/period distinction,
+existing horizon replacement, explicit separate horizon and clearing maximum.
+Verify a copy of the observed saved scenario without rewriting user history.
+
+Verification (2026-09-15): four contract routing/engine tests, twelve catalog-chat
+API tests and sixteen scenario-chat tests passed (32 total); all 49 comparison,
+tab and what-if frontend tests passed. New API regressions compare form/chat
+winners, eligible plan IDs, horizon costs and monthly projections for 24/36
+months, including pending clarification and an intentionally wrong interpreter.
+Read-only replay of the observed session on copied inputs and frozen source
+records matched form semantics at both horizons: SimpleSaver 24, custom estimate
+3499.66 USD over 24 months; 5492.88 USD over 36 months. No saved user histories
+were rewritten. Clear/reset is needed to remove previously saved exact-term
+filters; maximum changes intentionally retain those filters. Diff checks passed.

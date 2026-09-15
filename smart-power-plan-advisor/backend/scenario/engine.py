@@ -61,6 +61,12 @@ def apply(state, original, operations, plan_ids):
                 override={**op.model_dump(), 'plan_id':plan_id}
                 state['overrides']=[o for o in state['overrides'] if (o['plan_id'],o['field'],o['period'],o['component_index'])!=(plan_id,key,op.period,op.component_index)]
                 state['overrides'].append(override)
+    # Saved sessions carry an explicit horizon. A maximum-only action must
+    # replace it, matching the preferences form instead of retaining old costs.
+    # An independently requested horizon in this action always wins.
+    if any(op.field == 'max_contract_months' for op in operations) and not any(op.field == 'comparison_horizon' for op in operations):
+        options = state['request']['recommendation_options']
+        options['comparison_horizon'] = options.get('max_contract_months')
     state['request']=ComparisonRequest.model_validate(state['request']).model_dump(mode='json')
     return state
 

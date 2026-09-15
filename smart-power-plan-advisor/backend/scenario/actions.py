@@ -80,6 +80,17 @@ def unsupported_action(message):
 def preflight_action(message, context=None):
     blocked=unsupported_action(message)
     if blocked: return blocked
+    text = message.strip().rstrip('.!?')
+    prefix = r'(?:(?:please|can you)\s+)?(?:(?:set|change)\s+)?(?:the\s+)?'
+    maximum = re.fullmatch(prefix + r'(?:maximum|max)(?:\s+contract(?:\s+(?:length|term))?)?\s*(?:to\s+|of\s+|:\s*)?(\d+)\s*months?', text, re.I)
+    horizon = re.fullmatch(prefix + r'comparison\s+(?:period|horizon)\s*(?:to\s+|of\s+|:\s*)?(\d+)\s*months?', text, re.I)
+    horizon = horizon or re.fullmatch(r'compare\s+(?:over|for|across)\s+(\d+)\s*months?', text, re.I)
+    if maximum or horizon:
+        value = (maximum or horizon).group(1)
+        fields = ['max_contract_months', 'comparison_horizon'] if maximum else ['comparison_horizon']
+        return Action(kind='change', question='', operations=[Operation(
+            field=field, value=value, unit='months', plan_id=None, months=[],
+            basis='current', period='all', component_index=None) for field in fields])
     # A plan's contract number or existing credit does not authorize an amount.
     # Check even during pending clarification: repeating this request is still
     # underspecified, whereas an explicit amount follow-up reaches interpretation.
