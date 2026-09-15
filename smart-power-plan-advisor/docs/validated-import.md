@@ -8,7 +8,7 @@ python -m backend.catalog.cli import-validated
 
 It processes preserved PDF files sequentially in sorted path order. Each ordinary
 PDF is read, parsed by a reviewed parser, checked for source evidence, required
-fields, supported billing rules, a twelve-month term and all three price examples,
+fields, supported billing rules, a stated fixed term of 1 through 120 months and all three price examples,
 and checked again for changed bytes. Only a passing plan is committed to SQLite.
 The revision and source association are written in one transaction.
 
@@ -69,11 +69,15 @@ assumptions and estimate notes in comparison. Missing evidence and unreviewed
 sources cannot use this option to bypass validation. Logs preserve the original
 exact checks separately from assumption-based checks and count estimated imports.
 
-The reviewed **Reliant Power Savings 9** PDF is also approved with
-`--allow-reviewed-estimates`. Its nine-month contract and stated tariff are
-preserved. The 12-month comparison uses an editable post-contract bill adjustment
-only for months 10–12 (default 0%); renewal pricing is unknown. Select it with
-`--file "Reliant/EFL - Reliant Energy Retail Services-3.pdf"`.
+## Fixed contracts shorter than twelve months
+
+Reliant Power Savings 9 and the Oncor/CenterPoint SimpleSaver 11 PDFs can now
+pass strict validation. Their actual contract lengths are retained. Comparisons
+still span at least twelve months; months after the initial term use the selected
+hypothetical renewal escalation and credit policy, with explicit renewal labels.
+The first renewal month receives at least one escalation step. First-year totals
+and monthly breakdowns include those assumptions. Document examples remain the
+original source values; they are not promises of post-contract prices.
 
 ## Keep PDF and API imports separate
 
@@ -161,3 +165,14 @@ independently reconcile the tariff. Exact pricing remains ineligible.
 ```sh
 python -m backend.catalog.cli import-validated --file "_txu/0160b2be9238adb9647f00d1028d84dc61a694b3c7a94328a5ca259b27e1ebb2.pdf" --allow-reviewed-estimates
 ```
+
+## Delivery lookup dates and recovery
+
+Discount Power's canonical official delivery page is supported. Its published
+dollar-per-kWh totals are converted to cents with saved table evidence. A table
+newer than the PDF still fails document-date validation. An older, already
+validated catalog snapshot is not replaced with newer rates merely to clear a
+warning. The September 15 recovery report lists imports and remaining data gaps.
+
+After source recovery, run a fresh comparison and start a new chat. Existing
+comparison and scenario snapshots retain their original source revisions.

@@ -112,7 +112,7 @@ def recommend(request, candidates, data_mode, today=None):
         "Credit probes are local boundary checks, not annual forecasts or additional regret scenarios.",
         f"Comparison period: {horizon} months. The supplied 12-month usage profile repeats; taxes and nonrecurring charges are excluded.",
         "Each plan uses its own rates during its original term, holding delivery rates constant as an assumption.",
-        f"After expiration, charges escalate by {options.renewal_escalation_pct}% annually from the comparison start, using whole elapsed usage years. Renewal credits: {options.renewal_credit_policy}.",
+        f"After expiration, charges escalate by {options.renewal_escalation_pct}% annually from the comparison start, using whole elapsed usage years and at least one adjustment when renewal starts before month 12. Renewal credits: {options.renewal_credit_policy}.",
         "Renewal is hypothetical, not general inflation or an available offer; original credit conditions may not be available. Future enrollment fees and renewal commitments are not modeled.",
         "Freshness uses a 365-day heuristic; recent documents do not establish live offer availability."]
     warnings = ["Live offer availability and address eligibility are unverified.",

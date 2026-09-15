@@ -144,3 +144,92 @@ class AnswerTests(unittest.TestCase):
         self.assertIn('less over this period',text)
         self.assertNotIn('Original:',text)
         self.assertNotIn('Category winners:',text)
+
+    def test_termination_fee_queries_route_to_contract_terms(self):
+        from backend.scenario.answers import topic_for
+        for wording in ('termination fee','early termination fee','cancellation fee','exit fee','ETF'):
+            with self.subTest(wording=wording):
+                self.assertEqual(topic_for(wording+' for Saver'),'contract')
+                self.assertEqual(local_question(wording+' for Saver',self.frozen),('contract',['a']))
+                self.assertEqual(local_question('What is the '+wording+' for Saver?',self.frozen),('contract',['a']))
+        self.assertEqual(topic_for('monthly base fee'),'fees')
+        self.assertEqual(local_question('termination fee for Unknown Saver 99',self.frozen),
+            ('contract',['unresolved:unknown saver 99']))
+        self.assertIsNone(local_question('Set termination fee for Saver to $10',self.frozen))
+
+    def test_reliant_termination_terms_use_exact_pdf_with_move_exception(self):
+        from pathlib import Path
+        from backend.catalog.extract import read_pages
+        from backend.catalog.parser import parse_known
+        pages,_=read_pages((Path(__file__).resolve().parents[1]/'data/Reliant/EFL - Reliant Energy Retail Services-4.pdf').read_bytes())
+        raw=parse_known(pages).model_dump(mode='json')
+        self.frozen[0]['plan']=raw
+        prompt='termination fee for Reliant Get More, Save More 36 plan'
+        topic,ids=local_question(prompt,self.frozen)
+        status,text,refs,_=answer(self.result,self.frozen,self.state,topic,ids,[],prompt)
+        self.assertEqual(status,'explained')
+        self.assertIn('$395',text)
+        self.assertIn('forwarding address',text)
+        self.assertIn('customer moves',text)
+        self.assertNotIn('First-year modeled amounts',text)
+        self.assertTrue(any(r['page']==1 and '$395' in r['quote'] for r in refs))
+        self.frozen[0]['plan']['termination_terms']=None
+        self.assertIn('not available',self.ask('contract',['a'])[1])
+
+    def test_named_termination_comparison_returns_each_pdf_terms(self):
+        from pathlib import Path
+        from backend.catalog.extract import read_pages
+        from backend.catalog.parser import parse_known
+        for record,path in zip(self.frozen,['choosetexaspower/EFL-8.pdf','Reliant/EFL - Reliant Energy Retail Services-4.pdf']):
+            pages,_=read_pages((Path(__file__).resolve().parents[1]/'data'/path).read_bytes())
+            record['plan']=parse_known(pages).model_dump(mode='json')
+        question='Compare termination fee of SimpleSaver 11 with Reliant Get More, Save More 36 plan'
+        topic,ids=local_question(question,self.frozen)
+        self.assertEqual((topic,ids),('contract',['a','b']))
+        before=copy.deepcopy(self.state)
+        status,text,refs,_=answer(self.result,self.frozen,self.state,topic,ids,[],question)
+        self.assertEqual(status,'explained')
+        self.assertIn('$150',text);self.assertIn('$395',text)
+        self.assertIn('forwarding address',text)
+        self.assertEqual({r['plan_id'] for r in refs},{'a','b'})
+        self.assertNotIn('Maximum tested regret',text)
+        self.assertNotIn('First-year modeled',text)
+        self.assertEqual(self.state,before)
+        self.frozen[1]['plan']['termination_terms']=None
+        reply=answer(self.result,self.frozen,self.state,topic,ids,[],question)
+        self.assertIn('not available',reply[1]);self.assertNotIn('$395',reply[1])
+
+    def test_contract_pair_aliases_and_unknown_scope(self):
+        for phrase in ('termination fees of','cancellation fee for','early exit fees between','ETF of'):
+            question='Compare '+phrase+' Saver with Alternative 24'
+            self.assertEqual(local_question(question,self.frozen),('contract',['a','b']))
+        question='Compare termination fee of Unknown Saver 99 with Alternative 24'
+        topic,ids=local_question(question,self.frozen)
+        self.assertEqual(answer(self.result,self.frozen,self.state,topic,ids,[],question)[0],'clarify')
+        self.assertEqual(self.ask('contract',['a','b'])[0],'clarify')
+        self.assertEqual(local_question('Compare Saver with Alternative 24',self.frozen),('compare',['a','b']))
+
+    def test_credit_free_discovery_is_read_only_and_distinct_from_filter(self):
+        for question in ('Are there any plans that avoid bill credits',
+                         'Which plans have no bill credits?', 'Show plans without bill credits'):
+            self.assertEqual(local_question(question,self.frozen),('credit_free_plans',[]))
+        self.assertIsNone(local_question('Avoid plans with bill credits',self.frozen))
+        self.assertIsNone(local_question('Are there plans without credits and set usage to 1500 kWh',self.frozen))
+        self.frozen[1]['plan']['components']=[c for c in self.frozen[1]['plan']['components'] if c['kind']!='credit']
+        before=copy.deepcopy(self.state)
+        reply=self.ask('credit_free_plans',focus=['a'])
+        self.assertEqual(reply[0],'explained')
+        self.assertIn('Alternative 24',reply[1])
+        self.assertNotIn('Saver:',reply[1])  # Saver has credit rules even below its threshold.
+        self.assertEqual(reply[3],['a'])
+        self.assertEqual(self.state,before)
+        self.assertEqual({r['plan_id'] for r in reply[2]},{'b'})
+        self.state['request']['recommendation_options']['max_contract_months']=12
+        self.assertIn('No calculable plans',self.ask('credit_free_plans')[1])
+        self.state['request']['recommendation_options']['max_contract_months']=None
+        self.frozen[1]['calculation_eligible']=False
+        self.assertIn('No calculable plans',self.ask('credit_free_plans')[1])
+
+    def test_missing_credit_data_is_not_claimed_credit_free(self):
+        self.frozen[1]['plan']['components']=[]
+        self.assertIn('No calculable plans',self.ask('credit_free_plans')[1])

@@ -68,12 +68,12 @@ class TduTests(unittest.TestCase):
         with patch('httpx.Client',side_effect=AssertionError('Must not fetch')):
             for url in ['http://127.0.0.1/tdu-charges','https://www.4changeenergy.com/tdu-charges?x=1','https://evil.example/tdu-charges']:
                 with self.assertRaises(ValueError):fetch_html(url)
-        plan=self.plan.model_copy(deep=True);plan.provider.value='U.S. Retailers LLC dba Discount Power'
-        pages=[{'page':1,'text':'TDU information: www.discountpowertx.com/TDSPcharges'}]
+        plan=self.plan.model_copy(deep=True);plan.provider.value='TXU Energy Retail Company LLC'
+        pages=[{'page':1,'text':'TDU information: www.txu.com/tducharges'}]
         resolver=Resolver(lambda _:self.fail('Unapproved provider must not fetch'))
         result=resolver.enrich(plan,pages)
         self.assertEqual(result.tdu_lookup.status,'unsupported_source')
-        self.assertEqual(result.tdu_lookup.candidate_url,'https://www.discountpowertx.com/TDSPcharges')
+        self.assertEqual(result.tdu_lookup.candidate_url,'https://www.txu.com/tducharges')
         gexa_pages,_=read_pages((PDF.parents[1]/'choosetexaspower'/'EFL-6.pdf').read_bytes())
         gexa=parse_known(gexa_pages)
         self.assertIsNone(resolver.enrich(gexa,gexa_pages).tdu_lookup)

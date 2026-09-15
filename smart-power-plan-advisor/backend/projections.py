@@ -14,7 +14,7 @@ def project(candidate, usage, horizon, escalation, credit_policy):
         renewal = index >= candidate.term_months
         calculator = candidate.renewal_calculate if renewal and candidate.renewal_calculate else candidate.calculate
         original = calculator(usage[index % 12], index % 12 + 1)
-        factor = (1 + escalation / 100) ** (index // 12) if renewal else D(1)
+        factor = (1 + escalation / 100) ** (max(1, index // 12)) if renewal else D(1)
         energy, base, delivery = (cash(getattr(original, field) * factor) for field in ('energy', 'base_fee', 'delivery'))
         credit = D('0.00') if renewal and credit_policy == 'drop' else original.credit
         month = original.model_copy(update={'month': index + 1, 'energy': energy, 'base_fee': base,
@@ -45,4 +45,8 @@ def attach_projections(results, candidates, request):
         result.horizon_cost = sum((month.total for month in months), D('0.00'))
         result.comparison_horizon = horizon
         result.horizon_monthly_costs = details
+        if by_id[result.plan_id].term_months < 12:
+            result.monthly_costs = months[:12]
+            result.annual_cost = sum((m.total for m in months[:12]), D('0.00'))
+            result.explanation += ' The initial contract ends before month 12; later first-year months use the selected hypothetical renewal assumptions.'
     results.sort(key=lambda result: (result.horizon_cost, result.plan_id))

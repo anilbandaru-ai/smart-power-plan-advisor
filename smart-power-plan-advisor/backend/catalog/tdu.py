@@ -9,7 +9,8 @@ from urllib.parse import urlsplit, urlunsplit
 from backend.catalog.models import Component, Evidence, TduLookup, TduSource
 
 FOUR_CHANGE_URL = 'https://www.4changeenergy.com/tdu-charges'
-APPROVED_URLS = frozenset([FOUR_CHANGE_URL])
+DISCOUNT_URL = 'https://www.discountpowertx.com/en/customer-care/billing/tdsp-delivery-charges'
+APPROVED_URLS = frozenset([FOUR_CHANGE_URL, DISCOUNT_URL])
 
 
 class Tables(HTMLParser):
@@ -72,6 +73,33 @@ def parse_rates(html, area, url=FOUR_CHANGE_URL, fetched_at=None):
         raise ValueError('Unapproved source or service area')
     parser=Tables();parser.feed(html)
     candidates=[]
+    if url == DISCOUNT_URL:
+        for rows in parser.tables:
+            header = next((r for r in rows if r and r[0] == 'TDSP Delivery Charges'), None)
+            if not header: continue
+            label = 'ONCOR' if area == 'Oncor' else 'CenterPoint'
+            if header.count(label) != 1: continue
+            column = header.index(label)
+            def cell(label):
+                matches = [r for r in rows if r and r[0] == label]
+                if len(matches) != 1 or len(matches[0]) != len(header):
+                    raise ValueError('Missing or ambiguous delivery totals')
+                return matches[0][column]
+            date_text = cell('Rates as of:')
+            published = parse_date(date_text)
+            if published > datetime.now(timezone.utc).date():
+                raise ValueError('Future TDU publication date')
+            amounts = [cell('Total Per Month Charges:'), cell('Total Per kWh Charges:')]
+            if any(not re.fullmatch(r'\$\d+(?:\.\d{1,6})?', value) for value in amounts):
+                raise ValueError('Delivery totals must be explicitly in dollars')
+            snapshot = '\n'.join(' | '.join(row) for row in rows)
+            candidates.append(TduSource(url=url, service_area=area,
+                published_on=published.isoformat(), date_label='Rates as of: '+date_text,
+                fetched_at=fetched_at or datetime.now(timezone.utc).isoformat(),
+                snapshot=snapshot, sha256=sha256(snapshot.encode()).hexdigest(),
+                monthly_usd=Decimal(amounts[0][1:]), cents_per_kwh=Decimal(amounts[1][1:])*100))
+        if len(candidates) != 1: raise ValueError('Missing or ambiguous residential TDU table')
+        return candidates[0]
     for rows in parser.tables:
         labels=[cell for row in rows for cell in row if re.fullmatch(r'Updated [A-Za-z]+ \d{1,2}, \d{4} - Residential',cell)]
         if len(labels)!=1:continue
@@ -112,6 +140,7 @@ def candidate_url(plan,pages):
             if 'tdu' in parsed.path.lower() or 'tdsp' in parsed.path.lower():
                 if parsed.username or parsed.password or parsed.port or parsed.query or parsed.fragment:continue
                 if domain=='4changeenergy.com' and parsed.path.rstrip('/').lower()=='/tdu-charges':return FOUR_CHANGE_URL
+                if domain=='discountpowertx.com' and parsed.path.rstrip('/.,').lower() in ('/tdspcharges', '/en/customer-care/billing/tdsp-delivery-charges'):return DISCOUNT_URL
                 return urlunsplit(('https',parsed.hostname,parsed.path.rstrip('.,'),'', ''))
     return FOUR_CHANGE_URL if domain=='4changeenergy.com' else None
 

@@ -71,7 +71,7 @@ def compare_catalog(request, store, *, frozen_records=None, utility=None, fetche
                 page=example['evidence']['page'], quote=example['evidence']['quote'])
                 for example in record.get('examples', [])
                 if record['source_type'] == 'pdf' and (example.get('evidence') or {}).get('page')],
-            explanation=("Custom estimate: Energy uses range-mapped EFL averages; source fees and delivery are added and eligible credits subtracted. This repeats effects embedded in published averages and is not an actual tariff bill. " if custom else "") + f"Estimated first 12 months using {'mapped EFL references and source charges' if custom else 'structured catalog API rates'} from {source_date}. Contract term: {record['term_months']} months. Rates held constant; availability and address eligibility are not verified." + tdu_note,
+            explanation=("Custom estimate: Energy uses range-mapped EFL averages; source fees and delivery are added and eligible credits subtracted. This repeats effects embedded in published averages and is not an actual tariff bill. " if custom else "") + f"Estimated first 12 months using {'mapped EFL references and source charges' if custom else 'structured catalog API rates'} from {source_date}. Contract term: {record['term_months']} months. Initial-contract rates held constant; later months use renewal assumptions; availability and address eligibility are not verified." + tdu_note,
             source=f"{record['provider']}: {record['source_label']}", source_url=record['record_url'],
             source_revision=record['revision_id'], tdu_source=tdu, offer_sources=record['offer_sources']))
     attach_projections(results, candidates, request)
@@ -80,7 +80,7 @@ def compare_catalog(request, store, *, frozen_records=None, utility=None, fetche
         utility=utility, offers_fetched_at=fetched_at,
         recommendation_result=recommend(request, candidates, request.data_source),
         assumptions=['PDF custom estimates use range-mapped EFL averages for Energy plus source fees/delivery minus credits. This repeats effects embedded in EFL averages. API offers retain their own component pricing. Review source terms.',
-            'Prices are USD; recorded energy and delivery rates are held constant for the first 12 months. Longer comparison periods use the selected renewal assumptions.',
+            'Prices are USD; recorded energy and delivery rates are held constant during the initial contract. Months after that term use the selected renewal assumptions.',
             'Taxes, enrollment, termination and other nonrecurring charges excluded. Conditional charges use each supplied month independently.',
             (f'TXU offers fetched {fetched_at} for {utility["name"]}; cached ZIP availability does not verify address eligibility.' if utility and fetched_at else f"Delivery utility: {utility['name']}, resolved independently of plan offers. Address eligibility remains unverified." if utility else 'TXU availability is missing, stale or empty; only eligible PDF imports for the mapped area are compared. Address eligibility is not verified.' if request.data_source == 'catalog' else 'ZIP-to-area lookup is limited and does not establish address eligibility.'),
             f'{len(excluded)} plan(s) excluded from calculated-cost ranking; {len(rough)} have separate assumption-based illustrations.'])
