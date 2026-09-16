@@ -166,7 +166,7 @@ form.chat-composer { margin: 0; border: 1px solid #b9cbd2; padding: .6rem; borde
 .scenario-heading .eyebrow { margin: 0; font-size: .65rem; }
 .scenario-controls { display: flex; flex-wrap: wrap; gap: .5rem; margin: .7rem 0; }
 #comparison-chat .secondary-button { padding: .45rem .8rem; border-radius: 8px; min-height: 40px; }
-#scenario-messages { height: min(420px, 45vh); overscroll-behavior-y: contain; overflow-y: auto; overflow-wrap: anywhere; scrollbar-width: thin; }
+#scenario-messages { height: min(420px, 45vh); overscroll-behavior-y: auto; overflow-y: auto; overflow-wrap: anywhere; scrollbar-width: thin; }
 #scenario-messages:empty { height: 0; }
 .scenario-entry { padding: .6rem 0; }
 .scenario-user { margin: 0 0 .6rem auto; width: fit-content; max-width: 85%; background: #dfeee9; border-radius: 12px 12px 2px 12px; padding: .7rem 1rem; }
