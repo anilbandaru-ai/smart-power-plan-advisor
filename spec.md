@@ -2327,3 +2327,16 @@ it is never called; state, result ID and history remain unchanged. Wording
 variants and pending clarification are guarded, while explicit hypothetical
 inputs and factual credit questions pass through. App health and whitespace
 checks passed. Previously saved erroneous scenarios are not automatically undone.
+
+
+### UI-43 - What-if chat scroll chaining (implemented)
+Allow wheel/touch scrolling over what-if messages to continue to the outer page
+when the message viewport reaches its top or bottom, including no-overflow
+content. Preserve internal chat scrolling, fixed viewport, automatic answer
+scrolling and composer focus. Supersedes the previous what-if scroll-containment
+setting; no request or calculation behavior changes. Verify scoped CSS and chat
+UI regressions; native boundary scrolling requires browser verification.
+
+Verification: scenario-messages uses overscroll-behavior-y:auto. All 19
+comparison-chat UI tests passed, including internal answer scrolling and focus
+regressions; whitespace checks passed. No native wheel/touch browser test run.
